@@ -1,25 +1,23 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { AuthModule } from './modules/auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
-import appConfig from './config/app.config';
-import databaseConfig from './config/database.config';
-import jwtConfig from './config/jwt.config';
+import { UsersModule } from './modules/users/users.module';
+import configuration from './config/configuration';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: [
-        `.env.${process.env.NODE_ENV}`,
-        '.env',
-        '.env.example'
-      ],
-      load: [appConfig, databaseConfig, jwtConfig],
+      envFilePath: [`.env.${process.env.NODE_ENV}`, '.env'],
+      load: [configuration],
       expandVariables: true,
       cache: true,
       ignoreEnvFile: false,
     }),
     PrismaModule,
+    AuthModule,
+    UsersModule,
   ],
 })
 export class AppModule {}
