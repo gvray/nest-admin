@@ -1,10 +1,14 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { seedPermissions } from './seeds/permissions';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  // 查找或创建管理员角色
+  // 初始化权限
+  await seedPermissions();
+
+  // 创建管理员角色
   const adminRole = await prisma.role.upsert({
     where: { name: 'admin' },
     update: {
@@ -13,39 +17,27 @@ async function main() {
     create: {
       name: 'admin',
       description: '系统管理员',
+    },
+  });
+
+  // 为管理员角色分配所有权限
+  const allPermissions = await prisma.permission.findMany();
+  await prisma.role.update({
+    where: { id: adminRole.id },
+    data: {
       permissions: {
-        create: [
-          {
-            name: '用户管理',
-            code: 'user:manage',
-            description: '用户管理权限',
-          },
-          {
-            name: '角色管理',
-            code: 'role:manage',
-            description: '角色管理权限',
-          },
-          {
-            name: '权限管理',
-            code: 'permission:manage',
-            description: '权限管理权限',
-          },
-        ],
+        connect: allPermissions.map((permission) => ({ id: permission.id })),
       },
     },
   });
 
-  // 查找或创建管理员用户
+  // 创建管理员用户
   const hashedPassword = await bcrypt.hash('admin123', 10);
   await prisma.user.upsert({
     where: { email: 'admin@example.com' },
     update: {
-      password: hashedPassword,
-      isActive: true,
       roles: {
-        connect: {
-          id: adminRole.id,
-        },
+        connect: { id: adminRole.id },
       },
     },
     create: {
@@ -54,14 +46,12 @@ async function main() {
       password: hashedPassword,
       isActive: true,
       roles: {
-        connect: {
-          id: adminRole.id,
-        },
+        connect: { id: adminRole.id },
       },
     },
   });
 
-  console.log('Seed data created successfully');
+  console.log('数据库初始化完成');
 }
 
 main()

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -17,105 +17,44 @@ export class UsersService {
         ...rest,
         password: hashedPassword,
       },
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        avatar: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
-        roles: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            createdAt: true,
-            updatedAt: true,
-            permissions: {
-              select: {
-                id: true,
-                name: true,
-                code: true,
-                description: true,
-                createdAt: true,
-                updatedAt: true,
-              },
-            },
-          },
-        },
+      include: {
+        roles: true,
       },
     });
   }
 
-  findAll() {
+  async findAll() {
     return this.prisma.user.findMany({
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        avatar: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
+      include: {
         roles: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            createdAt: true,
-            updatedAt: true,
-            permissions: {
-              select: {
-                id: true,
-                name: true,
-                code: true,
-                description: true,
-                createdAt: true,
-                updatedAt: true,
-              },
-            },
+          include: {
+            permissions: true,
           },
         },
       },
     });
   }
 
-  findOne(id: number) {
-    return this.prisma.user.findUnique({
+  async findOne(id: number) {
+    const user = await this.prisma.user.findUnique({
       where: { id },
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        avatar: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
+      include: {
         roles: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            createdAt: true,
-            updatedAt: true,
-            permissions: {
-              select: {
-                id: true,
-                name: true,
-                code: true,
-                description: true,
-                createdAt: true,
-                updatedAt: true,
-              },
-            },
+          include: {
+            permissions: true,
           },
         },
       },
     });
+
+    if (!user) {
+      throw new NotFoundException(`用户ID ${id} 不存在`);
+    }
+
+    return user;
   }
 
-  findOneByEmail(email: string) {
+  async findOneByEmail(email: string) {
     return this.prisma.user.findUnique({
       where: { email },
       include: {
@@ -130,49 +69,101 @@ export class UsersService {
 
   async update(id: number, updateUserDto: UpdateUserDto) {
     const { password, ...rest } = updateUserDto;
-    const data: any = { ...rest };
+    let hashedPassword: string | undefined;
 
     if (password) {
-      data.password = await bcrypt.hash(password, 10);
+      hashedPassword = await bcrypt.hash(password, 10);
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`用户ID ${id} 不存在`);
     }
 
     return this.prisma.user.update({
       where: { id },
-      data,
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        avatar: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
+      data: {
+        ...rest,
+        ...(hashedPassword && { password: hashedPassword }),
+      },
+      include: {
         roles: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            createdAt: true,
-            updatedAt: true,
-            permissions: {
-              select: {
-                id: true,
-                name: true,
-                code: true,
-                description: true,
-                createdAt: true,
-                updatedAt: true,
-              },
-            },
+          include: {
+            permissions: true,
           },
         },
       },
     });
   }
 
-  remove(id: number) {
+  async remove(id: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`用户ID ${id} 不存在`);
+    }
+
     return this.prisma.user.delete({
       where: { id },
+    });
+  }
+
+  // 为用户分配角色
+  async assignRoles(userId: number, roleIds: number[]) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`用户ID ${userId} 不存在`);
+    }
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        roles: {
+          set: roleIds.map((id) => ({ id })),
+        },
+      },
+      include: {
+        roles: {
+          include: {
+            permissions: true,
+          },
+        },
+      },
+    });
+  }
+
+  // 移除用户的角色
+  async removeRoles(userId: number, roleIds: number[]) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`用户ID ${userId} 不存在`);
+    }
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        roles: {
+          disconnect: roleIds.map((id) => ({ id })),
+        },
+      },
+      include: {
+        roles: {
+          include: {
+            permissions: true,
+          },
+        },
+      },
     });
   }
 } 
