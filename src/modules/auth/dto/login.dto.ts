@@ -1,10 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsString, MinLength } from 'class-validator';
+import { IsString, MinLength } from 'class-validator';
 
 export class LoginDto {
-  @ApiProperty({ description: '用户邮箱' })
-  @IsEmail({}, { message: '请输入有效的邮箱地址' })
-  email: string;
+  @ApiProperty({ description: '用户名或邮箱' })
+  @IsString({ message: '用户名或邮箱必须是字符串' })
+  account: string;
 
   @ApiProperty({ description: '密码' })
   @IsString({ message: '密码必须是字符串' })

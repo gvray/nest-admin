@@ -34,16 +34,21 @@ export class AuthService {
     });
 
     // 生成 token
-    const payload = { sub: user.id, email: user.email, username: user.username };
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      username: user.username,
+    };
     return {
       access_token: this.jwtService.sign(payload),
       user,
     };
   }
 
-  async validateUser(email: string, password: string) {
-    const user = await this.usersService.findOneByEmail(email);
+  async validateUser(account: string, password: string) {
+    const user = await this.usersService.findOneByAccount(account);
     if (user && (await bcrypt.compare(password, user.password))) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password: _, ...result } = user;
       return result;
     }
@@ -51,12 +56,16 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto) {
-    const user = await this.validateUser(loginDto.email, loginDto.password);
+    const user = await this.validateUser(loginDto.account, loginDto.password);
     if (!user) {
-      throw new UnauthorizedException('邮箱或密码错误');
+      throw new UnauthorizedException('用户名/邮箱或密码错误');
     }
 
-    const payload = { sub: user.id, email: user.email, username: user.username };
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      username: user.username,
+    };
     return {
       access_token: this.jwtService.sign(payload),
       user,

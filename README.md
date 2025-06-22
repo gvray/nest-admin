@@ -11,6 +11,8 @@
 - 🎨 **代码规范** - 遵循 TypeScript 最佳实践，统一的代码风格
 - 🔄 **数据迁移** - 基于 Prisma 的数据库版本控制和迁移
 - 🛡️ **安全防护** - JWT 认证，请求加密，CORS 配置等
+- 🔑 **灵活登录** - 支持用户名或邮箱登录
+- 🏢 **组织架构** - 完整的部门和岗位管理体系
 
 ## 🚀 技术栈
 
@@ -33,7 +35,9 @@
 ### 🔐 认证与授权
 - [x] 完整的注册登录流程
 - [x] JWT 令牌认证机制
+- [x] 支持用户名或邮箱登录
 - [x] 权限验证守卫
+- [x] 角色权限管理
 - [ ] 刷新令牌机制（Access Token + Refresh Token）
 - [ ] 登录日志记录与分析
 - [ ] 单点登录（SSO）集成
@@ -44,10 +48,10 @@
 ### 👥 用户管理
 - [x] 用户基础管理（CRUD）
 - [x] 灵活的角色分配
+- [x] 部门岗位关联
 - [ ] 批量用户操作
 - [ ] 用户数据导入导出（Excel、CSV）
 - [ ] 用户状态管理（在线、离线、禁用）
-- [ ] 部门管理集成
 - [ ] 头像上传管理（本地/云存储）
 - [ ] 用户操作日志
 - [ ] 用户登录设备管理
@@ -58,6 +62,7 @@
 - [x] RBAC 权限控制
 - [x] 权限代码管理
 - [x] 权限分配机制
+- [x] 25个基础权限预设
 - [ ] 批量角色操作
 - [ ] 数据权限控制（行级、列级）
 - [ ] 菜单权限管理
@@ -67,12 +72,19 @@
 - [ ] 临时权限分配
 - [ ] 权限继承机制
 
+### 🏢 组织架构
+- [x] 部门管理（CRUD）
+- [x] 岗位管理（CRUD）
+- [x] 部门岗位关联
+- [x] 组织架构树形展示
+- [ ] 多级部门支持
+- [ ] 部门权限继承
+- [ ] 岗位权限模板
+
 ### ⚙️ 系统管理
-- [ ] 系统参数配置（动态配置）
+- [x] 系统参数配置（环境变量）
+- [x] 数据字典维护（权限、角色、部门、岗位）
 - [ ] 菜单动态管理
-- [ ] 组织架构管理（多级部门）
-- [ ] 岗位体系管理
-- [ ] 数据字典维护
 - [ ] 系统通知公告
 - [ ] 综合日志管理
   - [ ] 操作行为日志（审计日志）
@@ -83,6 +95,8 @@
 
 ### 📚 接口文档
 - [x] Swagger 接口文档（OpenAPI 3.0）
+- [x] 详细的API描述和示例
+- [x] Bearer Token 认证支持
 - [ ] 接口版本管理
 - [ ] 接口访问控制（限流、黑白名单）
 - [ ] 接口性能监控
@@ -102,6 +116,7 @@
 ### 🛠️ 开发支持
 - [x] 数据库迁移工具（Prisma Migrate）
 - [x] 数据填充脚本（Seed）
+- [x] 完整的种子数据（管理员、角色、权限、部门、岗位）
 - [ ] 代码自动生成（CRUD）
 - [ ] 表单在线构建
 - [ ] 开发技术文档
@@ -151,8 +166,30 @@ pnpm start:prod
 
 ## 👤 默认账户
 
-- 管理员账号：admin@example.com
+- 管理员账号：admin@example.com 或 admin
 - 初始密码：admin123
+
+## 🔧 API 测试
+
+### 登录测试
+```bash
+# 用户名登录
+curl -X POST http://localhost:8001/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"account": "admin", "password": "admin123"}'
+
+# 邮箱登录
+curl -X POST http://localhost:8001/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"account": "admin@example.com", "password": "admin123"}'
+```
+
+### 获取用户列表
+```bash
+# 使用登录返回的 token
+curl -X GET http://localhost:8001/users \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE"
+```
 
 ## 📁 项目结构
 
@@ -164,22 +201,52 @@ src
 │   └── database.config.ts# 数据库配置
 ├── core                  # 核心功能模块
 │   ├── decorators       # 自定义装饰器
+│   │   ├── permissions.decorator.ts  # 权限装饰器
+│   │   └── roles.decorator.ts        # 角色装饰器
 │   ├── guards          # 权限守卫
+│   │   ├── jwt-auth.guard.ts         # JWT认证守卫
+│   │   ├── permissions.guard.ts      # 权限守卫
+│   │   └── roles.guard.ts            # 角色守卫
 │   ├── interceptors    # 拦截器
 │   ├── filters         # 异常过滤器
 │   └── strategies      # 认证策略
+│       └── jwt.strategy.ts           # JWT策略
 ├── modules              # 业务功能模块
 │   ├── auth            # 认证授权模块
+│   │   ├── auth.controller.ts        # 认证控制器
+│   │   ├── auth.service.ts           # 认证服务
+│   │   └── dto                        # 数据传输对象
+│   │       ├── login.dto.ts          # 登录DTO
+│   │       └── register.dto.ts       # 注册DTO
 │   ├── users           # 用户管理模块
+│   │   ├── users.controller.ts       # 用户控制器
+│   │   ├── users.service.ts          # 用户服务
+│   │   └── dto                        # 数据传输对象
 │   ├── roles           # 角色管理模块
-│   └── permissions     # 权限管理模块
+│   │   ├── roles.controller.ts       # 角色控制器
+│   │   ├── roles.service.ts          # 角色服务
+│   │   └── dto                        # 数据传输对象
+│   ├── permissions     # 权限管理模块
+│   │   ├── permissions.controller.ts # 权限控制器
+│   │   ├── permissions.service.ts    # 权限服务
+│   │   └── dto                        # 数据传输对象
+│   ├── departments     # 部门管理模块
+│   │   ├── departments.controller.ts # 部门控制器
+│   │   └── departments.service.ts    # 部门服务
+│   ├── positions       # 岗位管理模块
+│   │   ├── positions.controller.ts   # 岗位控制器
+│   │   └── positions.service.ts      # 岗位服务
+│   └── auth            # 认证授权模块
+│       └── dto            # 数据传输对象
 ├── shared              # 共享模块
 │   ├── constants       # 常量定义
 │   ├── dto            # 数据传输对象
 │   └── utils          # 工具函数
 └── prisma              # Prisma 配置
     ├── migrations      # 数据库迁移
-    └── seeds          # 数据填充
+    ├── seeds          # 数据填充
+    │   └── permissions.ts            # 权限种子数据
+    └── seed.ts                       # 主种子脚本
 ```
 
 ## 📄 开源协议
@@ -195,3 +262,14 @@ src
 - [NestJS 官方文档](https://docs.nestjs.com/)
 - [Prisma 官方文档](https://www.prisma.io/docs/)
 - [TypeScript 官方文档](https://www.typescriptlang.org/docs/)
+
+## 🎯 最新更新
+
+### v1.0.0 (2024-06-22)
+- ✅ 支持用户名或邮箱登录
+- ✅ 完善权限管理系统（25个基础权限）
+- ✅ 优化数据库种子脚本
+- ✅ 完善Swagger API文档
+- ✅ 修复403权限问题
+- ✅ 添加部门和岗位管理
+- ✅ 完善项目结构和代码规范

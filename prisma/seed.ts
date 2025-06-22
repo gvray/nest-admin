@@ -5,10 +5,13 @@ import { seedPermissions } from './seeds/permissions';
 const prisma = new PrismaClient();
 
 async function main() {
+  console.log('开始初始化数据库...');
+
   // 初始化权限
   await seedPermissions();
 
   // 创建部门
+  console.log('创建部门...');
   const itDepartment = await prisma.department.upsert({
     where: { code: 'IT' },
     update: {},
@@ -46,7 +49,8 @@ async function main() {
   });
 
   // 创建岗位
-  const developerPosition = await prisma.position.upsert({
+  console.log('创建岗位...');
+  await prisma.position.upsert({
     where: { code: 'DEVELOPER' },
     update: {},
     create: {
@@ -72,7 +76,7 @@ async function main() {
     },
   });
 
-  const hrPosition = await prisma.position.upsert({
+  await prisma.position.upsert({
     where: { code: 'HR_SPECIALIST' },
     update: {},
     create: {
@@ -85,7 +89,7 @@ async function main() {
     },
   });
 
-  const accountantPosition = await prisma.position.upsert({
+  await prisma.position.upsert({
     where: { code: 'ACCOUNTANT' },
     update: {},
     create: {
@@ -99,6 +103,7 @@ async function main() {
   });
 
   // 创建管理员角色
+  console.log('创建管理员角色...');
   const adminRole = await prisma.role.upsert({
     where: { name: 'admin' },
     update: {
@@ -111,7 +116,10 @@ async function main() {
   });
 
   // 为管理员角色分配所有权限
+  console.log('为管理员角色分配权限...');
   const allPermissions = await prisma.permission.findMany();
+  console.log(`找到 ${allPermissions.length} 个权限，正在分配给管理员角色...`);
+  
   await prisma.role.update({
     where: { id: adminRole.id },
     data: {
@@ -122,8 +130,9 @@ async function main() {
   });
 
   // 创建管理员用户
+  console.log('创建管理员用户...');
   const hashedPassword = await bcrypt.hash('admin123', 10);
-  await prisma.user.upsert({
+  const adminUser = await prisma.user.upsert({
     where: { email: 'admin@example.com' },
     update: {
       roles: {
@@ -143,14 +152,29 @@ async function main() {
         connect: { id: adminRole.id },
       },
     },
+    include: {
+      roles: {
+        include: {
+          permissions: true,
+        },
+      },
+    },
   });
 
-  console.log('数据库初始化完成');
+  console.log('数据库初始化完成！');
+  console.log('管理员账户信息:');
+  console.log(`  邮箱: ${adminUser.email}`);
+  console.log(`  用户名: ${adminUser.username}`);
+  console.log(`  密码: admin123`);
+  console.log(`  角色: ${adminUser.roles.map((role) => role.name).join(', ')}`);
+  console.log(
+    `  权限数量: ${adminUser.roles.reduce((total, role) => total + role.permissions.length, 0)}`,
+  );
 }
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error('数据库初始化失败:', e);
     process.exit(1);
   })
   .finally(async () => {

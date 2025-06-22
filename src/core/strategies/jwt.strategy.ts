@@ -50,7 +50,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload): Promise<IUser> {
-    // @ts-ignore: Prisma 类型系统限制，这里的类型是安全的
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
       include: {

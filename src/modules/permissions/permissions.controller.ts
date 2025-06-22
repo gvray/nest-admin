@@ -9,7 +9,7 @@ import {
   ParseIntPipe,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { PermissionsService } from './permissions.service';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
@@ -19,6 +19,7 @@ import { Roles } from '../../core/decorators/roles.decorator';
 @ApiTags('权限管理')
 @Controller('permissions')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@ApiBearerAuth('JWT-auth')
 export class PermissionsController {
   constructor(private readonly permissionsService: PermissionsService) {}
 
