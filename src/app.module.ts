@@ -5,6 +5,8 @@ import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './modules/users/users.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
+import { DepartmentsModule } from './modules/departments/departments.module';
+import { PositionsModule } from './modules/positions/positions.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -22,6 +24,8 @@ import configuration from './config/configuration';
     UsersModule,
     RolesModule,
     PermissionsModule,
+    DepartmentsModule,
+    PositionsModule,
   ],
 })
 export class AppModule {}

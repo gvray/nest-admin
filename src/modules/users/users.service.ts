@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -9,16 +9,45 @@ export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createUserDto: CreateUserDto) {
-    const { password, ...rest } = createUserDto;
+    const { password, departmentId, positionId, ...rest } = createUserDto;
     const hashedPassword = await bcrypt.hash(password, 10);
+
+    // 验证部门是否存在
+    if (departmentId) {
+      const department = await this.prisma.department.findUnique({
+        where: { id: departmentId },
+      });
+      if (!department) {
+        throw new NotFoundException('部门不存在');
+      }
+    }
+
+    // 验证岗位是否存在
+    if (positionId) {
+      const position = await this.prisma.position.findUnique({
+        where: { id: positionId },
+      });
+      if (!position) {
+        throw new NotFoundException('岗位不存在');
+      }
+
+      // 如果指定了部门，检查岗位是否属于该部门
+      if (departmentId && position.departmentId !== departmentId) {
+        throw new ConflictException('岗位不属于指定的部门');
+      }
+    }
 
     return this.prisma.user.create({
       data: {
         ...rest,
         password: hashedPassword,
+        departmentId,
+        positionId,
       },
       include: {
         roles: true,
+        department: true,
+        position: true,
       },
     });
   }
@@ -31,6 +60,8 @@ export class UsersService {
             permissions: true,
           },
         },
+        department: true,
+        position: true,
       },
     });
   }
@@ -44,6 +75,8 @@ export class UsersService {
             permissions: true,
           },
         },
+        department: true,
+        position: true,
       },
     });
 
@@ -63,12 +96,14 @@ export class UsersService {
             permissions: true,
           },
         },
+        department: true,
+        position: true,
       },
     });
   }
 
   async update(id: number, updateUserDto: UpdateUserDto) {
-    const { password, ...rest } = updateUserDto;
+    const { password, departmentId, positionId, ...rest } = updateUserDto;
     let hashedPassword: string | undefined;
 
     if (password) {
@@ -83,11 +118,38 @@ export class UsersService {
       throw new NotFoundException(`用户ID ${id} 不存在`);
     }
 
+    // 验证部门是否存在
+    if (departmentId) {
+      const department = await this.prisma.department.findUnique({
+        where: { id: departmentId },
+      });
+      if (!department) {
+        throw new NotFoundException('部门不存在');
+      }
+    }
+
+    // 验证岗位是否存在
+    if (positionId) {
+      const position = await this.prisma.position.findUnique({
+        where: { id: positionId },
+      });
+      if (!position) {
+        throw new NotFoundException('岗位不存在');
+      }
+
+      // 如果指定了部门，检查岗位是否属于该部门
+      if (departmentId && position.departmentId !== departmentId) {
+        throw new ConflictException('岗位不属于指定的部门');
+      }
+    }
+
     return this.prisma.user.update({
       where: { id },
       data: {
         ...rest,
         ...(hashedPassword && { password: hashedPassword }),
+        departmentId,
+        positionId,
       },
       include: {
         roles: {
@@ -95,6 +157,8 @@ export class UsersService {
             permissions: true,
           },
         },
+        department: true,
+        position: true,
       },
     });
   }
@@ -136,6 +200,8 @@ export class UsersService {
             permissions: true,
           },
         },
+        department: true,
+        position: true,
       },
     });
   }
@@ -163,6 +229,8 @@ export class UsersService {
             permissions: true,
           },
         },
+        department: true,
+        position: true,
       },
     });
   }

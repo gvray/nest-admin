@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength, IsOptional, IsBoolean } from 'class-validator';
+import { IsEmail, IsString, MinLength, IsOptional, IsBoolean, IsInt } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateUserDto {
@@ -25,4 +25,14 @@ export class CreateUserDto {
   @IsOptional()
   @IsBoolean({ message: '激活状态必须是布尔值' })
   isActive?: boolean;
+
+  @ApiPropertyOptional({ description: '部门ID' })
+  @IsOptional()
+  @IsInt({ message: '部门ID必须是整数' })
+  departmentId?: number;
+
+  @ApiPropertyOptional({ description: '岗位ID' })
+  @IsOptional()
+  @IsInt({ message: '岗位ID必须是整数' })
+  positionId?: number;
 } 

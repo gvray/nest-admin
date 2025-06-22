@@ -14,15 +14,19 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  username  String   @unique
-  password  String
-  avatar    String?
-  isActive  Boolean  @default(true)
-  roles     Role[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           Int        @id @default(autoincrement())
+  email        String     @unique
+  username     String     @unique
+  password     String
+  avatar       String?
+  isActive     Boolean    @default(true)
+  departmentId Int?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  positionId   Int?
+  position     Position?  @relation(fields: [positionId], references: [id])
+  roles        Role[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   @@map("users")
 }
@@ -49,4 +53,38 @@ model Permission {
   updatedAt   DateTime @updatedAt
 
   @@map("permissions")
+}
+
+model Department {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  code        String   @unique
+  description String?
+  parentId    Int?
+  parent      Department? @relation("DepartmentHierarchy", fields: [parentId], references: [id])
+  children    Department[] @relation("DepartmentHierarchy")
+  positions   Position[]
+  users       User[]
+  isActive    Boolean  @default(true)
+  sort        Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("departments")
+}
+
+model Position {
+  id           Int        @id @default(autoincrement())
+  name         String     @unique
+  code         String     @unique
+  description  String?
+  departmentId Int
+  department   Department @relation(fields: [departmentId], references: [id])
+  users        User[]
+  isActive     Boolean    @default(true)
+  sort         Int        @default(0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("positions")
 }
