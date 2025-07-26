@@ -12,6 +12,14 @@ async function bootstrap() {
   console.log('PORT:', process.env.PORT);
   console.log('NODE_ENV:', process.env.NODE_ENV);
   console.log('JWT_SECRET:', process.env.JWT_SECRET);
+  console.log('ENABLE_CORS:', process.env.ENABLE_CORS);
+
+  if (process.env.ENABLE_CORS === 'true') {
+    app.enableCors({
+      origin: true,
+      credentials: true,
+    });
+  }
 
   // 全局验证管道
   app.useGlobalPipes(
@@ -27,23 +35,23 @@ async function bootstrap() {
     .setTitle('NestAdmin 企业级后台管理系统')
     .setDescription(
       '基于 NestJS + Prisma + MySQL 的企业级后台管理系统 API 文档\n\n' +
-      '## 功能特性\n' +
-      '- 🔐 JWT 身份认证\n' +
-      '- 👥 用户管理\n' +
-      '- 🎭 角色管理\n' +
-      '- 🔑 权限管理\n' +
-      '- 🏢 部门管理\n' +
-      '- 💼 岗位管理\n' +
-      '- 🛡️ 基于角色的访问控制 (RBAC)\n\n' +
-      '## 快速开始\n' +
-      '1. 使用管理员账户登录获取 token\n' +
-      '2. 点击右上角的 "Authorize" 按钮\n' +
-      '3. 输入 Bearer token (格式: Bearer your_token_here)\n' +
-      '4. 开始使用 API\n\n' +
-      '## 默认管理员账户\n' +
-      '- 邮箱: admin@example.com\n' +
-      '- 用户名: admin\n' +
-      '- 密码: admin123',
+        '## 功能特性\n' +
+        '- 🔐 JWT 身份认证\n' +
+        '- 👥 用户管理\n' +
+        '- 🎭 角色管理\n' +
+        '- 🔑 权限管理\n' +
+        '- 🏢 部门管理\n' +
+        '- 💼 岗位管理\n' +
+        '- 🛡️ 基于角色的访问控制 (RBAC)\n\n' +
+        '## 快速开始\n' +
+        '1. 使用管理员账户登录获取 token\n' +
+        '2. 点击右上角的 "Authorize" 按钮\n' +
+        '3. 输入 Bearer token (格式: Bearer your_token_here)\n' +
+        '4. 开始使用 API\n\n' +
+        '## 默认管理员账户\n' +
+        '- 邮箱: admin@example.com\n' +
+        '- 用户名: admin\n' +
+        '- 密码: admin123',
     )
     .setVersion('1.0.0')
     .addTag('认证管理', '用户登录、注册相关接口')
@@ -62,7 +70,7 @@ async function bootstrap() {
       'JWT-auth',
     )
     .build();
-  
+
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document, {
     swaggerOptions: {
