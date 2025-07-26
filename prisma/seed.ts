@@ -119,7 +119,7 @@ async function main() {
   console.log('为管理员角色分配权限...');
   const allPermissions = await prisma.permission.findMany();
   console.log(`找到 ${allPermissions.length} 个权限，正在分配给管理员角色...`);
-  
+
   await prisma.role.update({
     where: { id: adminRole.id },
     data: {
@@ -140,10 +140,12 @@ async function main() {
       },
       departmentId: itDepartment.id,
       positionId: managerPosition.id,
+      phone: '13800138000',
     },
     create: {
       email: 'admin@example.com',
       username: 'admin',
+      phone: '13800138000',
       password: hashedPassword,
       isActive: true,
       departmentId: itDepartment.id,
@@ -165,10 +167,13 @@ async function main() {
   console.log('管理员账户信息:');
   console.log(`  邮箱: ${adminUser.email}`);
   console.log(`  用户名: ${adminUser.username}`);
+  console.log(`  手机号: ${adminUser.phone}`);
   console.log(`  密码: admin123`);
-  console.log(`  角色: ${adminUser.roles.map((role) => role.name).join(', ')}`);
   console.log(
-    `  权限数量: ${adminUser.roles.reduce((total, role) => total + role.permissions.length, 0)}`,
+    `  角色: ${adminUser.roles?.map((role) => role.name).join(', ') || ''}`,
+  );
+  console.log(
+    `  权限数量: ${adminUser.roles?.reduce((total, role) => total + (role.permissions?.length || 0), 0) || 0}`,
   );
 }
 
@@ -179,4 +184,4 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
-  }); 
+  });

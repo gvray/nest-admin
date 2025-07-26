@@ -4,6 +4,8 @@ import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import * as bcrypt from 'bcrypt';
+import { ResponseUtil } from '../../shared/utils/response.util';
+import { ApiResponse } from '../../shared/interfaces/response.interface';
 
 @Injectable()
 export class AuthService {
@@ -12,7 +14,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async register(registerDto: RegisterDto) {
+  async register(registerDto: RegisterDto): Promise<ApiResponse<any>> {
     const { email, username, password } = registerDto;
 
     // 检查邮箱是否已存在
@@ -25,12 +27,19 @@ export class AuthService {
     // 加密密码
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 创建用户
-    const user = await this.usersService.create({
-      email,
-      username,
-      password: hashedPassword,
-      isActive: true,
+    // 创建用户 - 直接调用 Prisma，因为 usersService.create 现在返回 ApiResponse
+    const user = await this.usersService['prisma'].user.create({
+      data: {
+        email,
+        username,
+        password: hashedPassword,
+        isActive: true,
+      },
+      include: {
+        roles: true,
+        department: true,
+        position: true,
+      },
     });
 
     // 生成 token
@@ -39,10 +48,17 @@ export class AuthService {
       email: user.email,
       username: user.username,
     };
-    return {
+
+    // 移除密码字段
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: _, ...userWithoutPassword } = user;
+
+    const result = {
       access_token: this.jwtService.sign(payload),
-      user,
+      user: userWithoutPassword,
     };
+
+    return ResponseUtil.created(result, '注册成功');
   }
 
   async validateUser(account: string, password: string) {
@@ -55,10 +71,10 @@ export class AuthService {
     return null;
   }
 
-  async login(loginDto: LoginDto) {
+  async login(loginDto: LoginDto): Promise<ApiResponse<any>> {
     const user = await this.validateUser(loginDto.account, loginDto.password);
     if (!user) {
-      throw new UnauthorizedException('用户名/邮箱或密码错误');
+      throw new UnauthorizedException('用户名/邮箱/手机号或密码错误');
     }
 
     const payload = {
@@ -66,9 +82,36 @@ export class AuthService {
       email: user.email,
       username: user.username,
     };
-    return {
+
+    const result = {
       access_token: this.jwtService.sign(payload),
-      user,
     };
+
+    return ResponseUtil.success(result, '登录成功');
+  }
+
+  async getCurrentUser(userId: number): Promise<ApiResponse<any>> {
+    const user = await this.usersService['prisma'].user.findUnique({
+      where: { id: userId },
+      include: {
+        roles: {
+          include: {
+            permissions: true,
+          },
+        },
+        department: true,
+        position: true,
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('用户不存在');
+    }
+
+    // 移除密码字段
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: _, ...userWithoutPassword } = user;
+
+    return ResponseUtil.success(userWithoutPassword, '获取用户信息成功');
   }
 }

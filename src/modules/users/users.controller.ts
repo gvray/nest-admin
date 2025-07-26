@@ -8,8 +8,14 @@ import {
   Delete,
   ParseIntPipe,
   UseGuards,
+  Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiTags,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -19,6 +25,7 @@ import { RolesGuard } from '../../core/guards/roles.guard';
 import { PermissionsGuard } from '../../core/guards/permissions.guard';
 import { Roles } from '../../core/decorators/roles.decorator';
 import { RequirePermissions } from '../../core/decorators/permissions.decorator';
+import { PaginationSortDto } from '../../shared/dtos/pagination.dto';
 
 @ApiTags('用户管理')
 @Controller('users')
@@ -41,10 +48,10 @@ export class UsersController {
   @Roles('admin')
   @RequirePermissions('user:read')
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '获取所有用户' })
-  @ApiResponse({ status: 200, description: '获取成功' })
-  findAll() {
-    return this.usersService.findAll();
+  @ApiOperation({ summary: '获取用户列表' })
+  @ApiResponse({ status: 200, description: '用户列表' })
+  findAll(@Query() pagination?: PaginationSortDto) {
+    return this.usersService.findAll(pagination);
   }
 
   @Get(':id')
@@ -110,4 +117,4 @@ export class UsersController {
   ) {
     return this.usersService.removeRoles(id, assignRolesDto.roleIds);
   }
-} 
+}

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 import { AuthModule } from './modules/auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './modules/users/users.module';
@@ -8,6 +9,8 @@ import { PermissionsModule } from './modules/permissions/permissions.module';
 import { DepartmentsModule } from './modules/departments/departments.module';
 import { PositionsModule } from './modules/positions/positions.module';
 import configuration from './config/configuration';
+import { ResponseInterceptor } from './core/interceptors/response.interceptor';
+import { HttpExceptionFilter } from './core/filters/http-exception.filter';
 
 @Module({
   imports: [
@@ -26,6 +29,16 @@ import configuration from './config/configuration';
     PermissionsModule,
     DepartmentsModule,
     PositionsModule,
+  ],
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ResponseInterceptor,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: HttpExceptionFilter,
+    },
   ],
 })
 export class AppModule {}

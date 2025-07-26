@@ -17,6 +17,7 @@ model User {
   id           Int        @id @default(autoincrement())
   email        String     @unique
   username     String     @unique
+  phone        String?    @unique
   password     String
   avatar       String?
   isActive     Boolean    @default(true)

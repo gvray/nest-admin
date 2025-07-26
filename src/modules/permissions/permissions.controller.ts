@@ -8,6 +8,7 @@ import {
   Delete,
   ParseIntPipe,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { PermissionsService } from './permissions.service';
@@ -15,6 +16,7 @@ import { CreatePermissionDto } from './dto/create-permission.dto';
 import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
 import { RolesGuard } from '../../core/guards/roles.guard';
 import { Roles } from '../../core/decorators/roles.decorator';
+import { PaginationSortDto } from '../../shared/dtos/pagination.dto';
 
 @ApiTags('权限管理')
 @Controller('permissions')
@@ -33,10 +35,10 @@ export class PermissionsController {
 
   @Get()
   @Roles('admin')
-  @ApiOperation({ summary: '获取所有权限' })
-  @ApiResponse({ status: 200, description: '获取成功' })
-  findAll() {
-    return this.permissionsService.findAll();
+  @ApiOperation({ summary: '获取权限列表' })
+  @ApiResponse({ status: 200, description: '权限列表' })
+  findAll(@Query() pagination?: PaginationSortDto) {
+    return this.permissionsService.findAll(pagination);
   }
 
   @Get(':id')
@@ -68,4 +70,4 @@ export class PermissionsController {
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.permissionsService.remove(id);
   }
-} 
+}

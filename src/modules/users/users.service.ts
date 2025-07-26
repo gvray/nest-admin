@@ -7,12 +7,21 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
+import { BaseService } from '../../shared/services/base.service';
+import { ResponseUtil } from '../../shared/utils/response.util';
+import { PaginationSortDto } from '../../shared/dtos/pagination.dto';
+import {
+  ApiResponse,
+  PaginationResponse,
+} from '../../shared/interfaces/response.interface';
 
 @Injectable()
-export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+export class UsersService extends BaseService {
+  constructor(prisma: PrismaService) {
+    super(prisma);
+  }
 
-  async create(createUserDto: CreateUserDto) {
+  async create(createUserDto: CreateUserDto): Promise<ApiResponse<any>> {
     const { password, departmentId, positionId, ...rest } = createUserDto;
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -41,7 +50,7 @@ export class UsersService {
       }
     }
 
-    return this.prisma.user.create({
+    const user = await this.prisma.user.create({
       data: {
         ...rest,
         password: hashedPassword,
@@ -54,10 +63,36 @@ export class UsersService {
         position: true,
       },
     });
+
+    // 移除密码字段
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: _, ...userWithoutPassword } = user;
+    return ResponseUtil.created(userWithoutPassword, '用户创建成功');
   }
 
-  async findAll() {
-    return this.prisma.user.findMany({
+  async findAll(
+    pagination?: PaginationSortDto,
+  ): Promise<PaginationResponse<any> | ApiResponse<any>> {
+    if (pagination) {
+      return this.paginateWithSortAndResponse(
+        this.prisma.user,
+        pagination,
+        {
+          roles: {
+            include: {
+              permissions: true,
+            },
+          },
+          department: true,
+          position: true,
+        },
+        undefined,
+        'createdAt',
+        '用户列表查询成功',
+      );
+    }
+
+    const users = await this.prisma.user.findMany({
       include: {
         roles: {
           include: {
@@ -67,10 +102,16 @@ export class UsersService {
         department: true,
         position: true,
       },
+      orderBy: { createdAt: 'desc' },
     });
+
+    // 移除密码字段
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const usersWithoutPassword = users.map(({ password, ...user }) => user);
+    return ResponseUtil.found(usersWithoutPassword, '用户列表查询成功');
   }
 
-  async findOne(id: number) {
+  async findOne(id: number): Promise<ApiResponse<any>> {
     const user = await this.prisma.user.findUnique({
       where: { id },
       include: {
@@ -88,7 +129,10 @@ export class UsersService {
       throw new NotFoundException(`用户ID ${id} 不存在`);
     }
 
-    return user;
+    // 移除密码字段
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...userWithoutPassword } = user;
+    return ResponseUtil.found(userWithoutPassword, '用户查询成功');
   }
 
   async findOneByEmail(email: string) {
@@ -109,7 +153,7 @@ export class UsersService {
   async findOneByAccount(account: string) {
     return this.prisma.user.findFirst({
       where: {
-        OR: [{ email: account }, { username: account }],
+        OR: [{ email: account }, { username: account }, { phone: account }],
       },
       include: {
         roles: {
@@ -255,4 +299,4 @@ export class UsersService {
       },
     });
   }
-} 
+}
