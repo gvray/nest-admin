@@ -185,4 +185,43 @@ export class AuthController {
   profile(@CurrentUser() user: { id: number }) {
     return this.authService.getCurrentUser(user.id);
   }
+
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: '用户退出登录',
+    description: '退出当前用户登录状态，客户端需要删除本地存储的JWT令牌',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '退出登录成功',
+    schema: {
+      type: 'object',
+      properties: {
+        code: { type: 'number', example: 200 },
+        message: { type: 'string', example: '退出登录成功' },
+        data: { type: 'null', example: null },
+        timestamp: { type: 'string', example: '2024-01-01T00:00:00.000Z' },
+        path: { type: 'string', example: '/api/auth/logout' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'JWT令牌无效或已过期',
+    schema: {
+      type: 'object',
+      properties: {
+        code: { type: 'number', example: 401 },
+        message: { type: 'string', example: 'JWT令牌无效或已过期' },
+        data: { type: 'null', example: null },
+        timestamp: { type: 'string', example: '2024-01-01T00:00:00.000Z' },
+        path: { type: 'string', example: '/api/auth/logout' },
+      },
+    },
+  })
+  logout() {
+    return this.authService.logout();
+  }
 }

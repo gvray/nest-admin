@@ -114,4 +114,10 @@ export class AuthService {
 
     return ResponseUtil.success(userWithoutPassword, '获取用户信息成功');
   }
+
+  logout(): ApiResponse<any> {
+    // 在无状态JWT系统中，logout主要是客户端删除token
+    // 这里返回成功响应，实际的token失效由客户端处理
+    return ResponseUtil.success(null, '退出登录成功');
+  }
 }
