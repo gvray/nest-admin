@@ -14,6 +14,7 @@ import {
   ApiResponse,
   PaginationResponse,
 } from '../../shared/interfaces/response.interface';
+import { UserStatus } from '../../shared/constants/user-status.constant';
 
 @Injectable()
 export class UsersService extends BaseService {
@@ -56,6 +57,7 @@ export class UsersService extends BaseService {
         password: hashedPassword,
         departmentId,
         positionId,
+        status: rest.status ?? UserStatus.ENABLED,
       },
       include: {
         roles: true,
@@ -77,6 +79,7 @@ export class UsersService extends BaseService {
       return this.paginateWithSortAndResponse(
         this.prisma.user,
         pagination,
+        undefined, // where 条件
         {
           roles: {
             include: {
@@ -85,8 +88,7 @@ export class UsersService extends BaseService {
           },
           department: true,
           position: true,
-        },
-        undefined,
+        }, // include 关联查询
         'createdAt',
         '用户列表查询成功',
       );
@@ -167,6 +169,52 @@ export class UsersService extends BaseService {
     });
   }
 
+  async findOneByUserId(userId: string) {
+    const user = await this.prisma.user.findFirst({
+      where: { userId },
+      select: {
+        id: true,
+        userId: true,
+        email: true,
+        username: true,
+        nickname: true,
+        avatar: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        department: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        position: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        roles: {
+          select: {
+            role: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('用户不存在');
+    }
+
+    return user;
+  }
+
   async update(id: number, updateUserDto: UpdateUserDto) {
     const { password, departmentId, positionId, ...rest } = updateUserDto;
     let hashedPassword: string | undefined;
@@ -228,6 +276,64 @@ export class UsersService extends BaseService {
     });
   }
 
+  async updateByUserId(userId: string, updateUserDto: UpdateUserDto) {
+    const { password, departmentId, positionId, ...rest } = updateUserDto;
+    let hashedPassword: string | undefined;
+
+    if (password) {
+      hashedPassword = await bcrypt.hash(password, 10);
+    }
+
+    const user = await this.prisma.user.findFirst({
+      where: { userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`用户ID ${userId} 不存在`);
+    }
+
+    // 验证部门是否存在
+    if (departmentId) {
+      const department = await this.prisma.department.findUnique({
+        where: { id: departmentId },
+      });
+      if (!department) {
+        throw new NotFoundException('部门不存在');
+      }
+    }
+
+    // 验证岗位是否存在
+    if (positionId) {
+      const position = await this.prisma.position.findUnique({
+        where: { id: positionId },
+      });
+      if (!position) {
+        throw new NotFoundException('岗位不存在');
+      }
+
+      // 如果指定了部门，检查岗位是否属于该部门
+      if (departmentId && position.departmentId !== departmentId) {
+        throw new ConflictException('岗位不属于指定的部门');
+      }
+    }
+
+    const result = await this.prisma.user.updateMany({
+      where: { userId },
+      data: {
+        ...rest,
+        ...(hashedPassword && { password: hashedPassword }),
+        departmentId,
+        positionId,
+      },
+    });
+
+    if (result.count === 0) {
+      throw new NotFoundException('用户不存在');
+    }
+
+    return await this.findOneByUserId(userId);
+  }
+
   async remove(id: number) {
     const user = await this.prisma.user.findUnique({
       where: { id },
@@ -242,10 +348,28 @@ export class UsersService extends BaseService {
     });
   }
 
+  async removeByUserId(userId: string) {
+    const user = await this.prisma.user.findFirst({
+      where: { userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`用户ID ${userId} 不存在`);
+    }
+
+    const result = await this.prisma.user.deleteMany({
+      where: { userId },
+    });
+
+    if (result.count === 0) {
+      throw new NotFoundException('用户不存在');
+    }
+  }
+
   // 为用户分配角色
   async assignRoles(userId: number, roleIds: number[]) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+    const user = await this.prisma.user.findFirst({
+      where: { userId },
     });
 
     if (!user) {
@@ -273,8 +397,8 @@ export class UsersService extends BaseService {
 
   // 移除用户的角色
   async removeRoles(userId: number, roleIds: number[]) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+    const user = await this.prisma.user.findFirst({
+      where: { userId },
     });
 
     if (!user) {

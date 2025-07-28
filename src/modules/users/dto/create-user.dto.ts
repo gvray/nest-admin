@@ -1,15 +1,38 @@
-import { IsEmail, IsString, MinLength, IsOptional, IsBoolean, IsInt } from 'class-validator';
+import {
+  IsEmail,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { UserStatus } from '../../../shared/constants/user-status.constant';
 
 export class CreateUserDto {
-  @ApiProperty({ description: '用户邮箱' })
-  @IsEmail({}, { message: '请输入有效的邮箱地址' })
-  email: string;
+  @ApiPropertyOptional({ 
+    description: '用户唯一标识符（UUID）',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+    readOnly: true 
+  })
+  @IsOptional()
+  @IsString({ message: '用户ID必须是字符串' })
+  userId?: string;
+
+  @ApiProperty({ description: '邮箱', example: 'user@example.com' })
+  @IsEmail({}, { message: '邮箱格式不正确' })
+  email?: string;
 
   @ApiProperty({ description: '用户名' })
   @IsString({ message: '用户名必须是字符串' })
-  @MinLength(2, { message: '用户名至少需要2个字符' })
+  @MinLength(3, { message: '用户名至少3个字符' })
   username: string;
+
+  @ApiProperty({ description: '昵称' })
+  @IsString({ message: '昵称必须是字符串' })
+  @MaxLength(50, { message: '昵称不能超过50个字符' })
+  nickname: string;
 
   @ApiProperty({ description: '密码' })
   @IsString({ message: '密码必须是字符串' })
@@ -21,10 +44,14 @@ export class CreateUserDto {
   @IsString({ message: '头像URL必须是字符串' })
   avatar?: string;
 
-  @ApiPropertyOptional({ description: '是否激活', default: true })
+  @ApiPropertyOptional({
+    description: '用户状态',
+    enum: UserStatus,
+    example: UserStatus.ENABLED,
+  })
   @IsOptional()
-  @IsBoolean({ message: '激活状态必须是布尔值' })
-  isActive?: boolean;
+  @IsEnum(UserStatus, { message: '用户状态必须是有效的枚举值' })
+  status?: UserStatus;
 
   @ApiPropertyOptional({ description: '部门ID' })
   @IsOptional()
@@ -35,4 +62,5 @@ export class CreateUserDto {
   @IsOptional()
   @IsInt({ message: '岗位ID必须是整数' })
   positionId?: number;
-} 
+
+}

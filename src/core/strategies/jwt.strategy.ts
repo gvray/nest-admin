@@ -8,10 +8,11 @@ import { IUser } from '../interfaces/user.interface';
 
 interface DbUser {
   id: number;
-  email: string;
+  email: string | null;
   username: string;
+  nickname: string;
   avatar: string | null;
-  isActive: boolean;
+  status: number;
   createdAt: Date;
   updatedAt: Date;
   roles: Array<{
@@ -69,8 +70,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       id: user.id,
       email: user.email,
       username: user.username,
+      nickname: user.nickname,
       avatar: user.avatar,
-      isActive: user.isActive,
+      status: user.status,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       roles: user.roles.map((role) => ({

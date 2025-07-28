@@ -36,9 +36,14 @@ export class AuthController {
           type: 'object',
           properties: {
             id: { type: 'number', example: 1 },
-            email: { type: 'string', example: 'user@example.com' },
+            email: { type: 'string', example: 'user@example.com', nullable: true, description: '用户邮箱（可选）' },
             username: { type: 'string', example: 'username' },
-            isActive: { type: 'boolean', example: true },
+            nickname: { type: 'string', example: '小明', description: '用户昵称（必须）' },
+            status: {
+              type: 'number',
+              example: 1,
+              description: '用户状态: 0-禁用, 1-启用, 2-审核中, 3-封禁',
+            },
             createdAt: { type: 'string', example: '2024-01-01T00:00:00.000Z' },
           },
         },

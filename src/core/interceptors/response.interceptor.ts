@@ -7,6 +7,7 @@ import {
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Reflector } from '@nestjs/core';
+import { Request } from 'express';
 import { ResponseUtil } from '../../shared/utils/response.util';
 import { ApiResponse } from '../../shared/interfaces/response.interface';
 
@@ -20,15 +21,17 @@ export const SKIP_RESPONSE_FORMAT = 'skipResponseFormat';
  * 自动将控制器返回的数据包装为统一的响应格式
  */
 @Injectable()
-export class ResponseInterceptor<T> implements NestInterceptor<T, ApiResponse<T>> {
+export class ResponseInterceptor<T>
+  implements NestInterceptor<T, ApiResponse<T>>
+{
   constructor(private reflector: Reflector) {}
 
   intercept(
     context: ExecutionContext,
     next: CallHandler,
   ): Observable<ApiResponse<T>> {
-    const request = context.switchToHttp().getRequest();
-    const path = request.url;
+    const request = context.switchToHttp().getRequest<Request>();
+    const path: string = request.url;
 
     // 检查是否跳过响应格式化
     const skipFormat = this.reflector.getAllAndOverride<boolean>(
@@ -37,28 +40,28 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, ApiResponse<T>
     );
 
     if (skipFormat) {
-      return next.handle();
+      return next.handle() as Observable<ApiResponse<T>>;
     }
 
     return next.handle().pipe(
-      map((data) => {
+      map((data: unknown): ApiResponse<T> => {
         // 如果返回的数据已经是统一格式，直接返回
         if (this.isApiResponse(data)) {
-          return data;
+          return data as ApiResponse<T>;
         }
 
         // 根据HTTP方法确定响应类型
-        const method = request.method;
+        const method: string = request.method;
         switch (method) {
           case 'POST':
-            return ResponseUtil.created(data, undefined, path);
+            return ResponseUtil.created(data as T, undefined, path);
           case 'PUT':
           case 'PATCH':
-            return ResponseUtil.updated(data, undefined, path);
+            return ResponseUtil.updated(data as T, undefined, path);
           case 'DELETE':
-            return ResponseUtil.deleted(data, undefined, path);
+            return ResponseUtil.deleted(data as T, undefined, path);
           default:
-            return ResponseUtil.found(data, undefined, path);
+            return ResponseUtil.found(data as T, undefined, path);
         }
       }),
     );
@@ -69,15 +72,16 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, ApiResponse<T>
    * @param data 数据
    * @returns 是否为统一响应格式
    */
-  private isApiResponse(data: any): data is ApiResponse<T> {
+  private isApiResponse(data: unknown): data is ApiResponse<T> {
     return (
-      data &&
+      data !== null &&
+      data !== undefined &&
       typeof data === 'object' &&
+      'success' in data &&
       'code' in data &&
       'message' in data &&
       'data' in data &&
-      'timestamp' in data &&
-      'path' in data
+      'timestamp' in data
     );
   }
 }

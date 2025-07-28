@@ -58,18 +58,29 @@ export class UsersController {
   @Roles('admin')
   @RequirePermissions('user:read')
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '获取指定用户' })
+  @ApiOperation({ summary: '获取指定用户（通过ID）' })
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 404, description: '用户不存在' })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.findOne(id);
   }
 
+  @Get('by-user-id/:userId')
+  @Roles('admin')
+  @RequirePermissions('user:read')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '获取指定用户（通过UserId）' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 404, description: '用户不存在' })
+  async findOneByUserId(@Param('userId') userId: string) {
+    return await this.usersService.findOneByUserId(userId);
+  }
+
   @Patch(':id')
   @Roles('admin')
   @RequirePermissions('user:update')
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '更新用户' })
+  @ApiOperation({ summary: '更新用户（通过ID）' })
   @ApiResponse({ status: 200, description: '更新成功' })
   @ApiResponse({ status: 404, description: '用户不存在' })
   update(
@@ -79,15 +90,40 @@ export class UsersController {
     return this.usersService.update(id, updateUserDto);
   }
 
+  @Patch('by-user-id/:userId')
+  @Roles('admin')
+  @RequirePermissions('user:update')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '更新用户（通过UserId）' })
+  @ApiResponse({ status: 200, description: '更新成功' })
+  @ApiResponse({ status: 404, description: '用户不存在' })
+  async updateByUserId(
+    @Param('userId') userId: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
+    return await this.usersService.updateByUserId(userId, updateUserDto);
+  }
+
   @Delete(':id')
   @Roles('admin')
   @RequirePermissions('user:delete')
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '删除用户' })
+  @ApiOperation({ summary: '删除用户（通过ID）' })
   @ApiResponse({ status: 200, description: '删除成功' })
   @ApiResponse({ status: 404, description: '用户不存在' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.remove(id);
+  }
+
+  @Delete('by-user-id/:userId')
+  @Roles('admin')
+  @RequirePermissions('user:delete')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '删除用户（通过UserId）' })
+  @ApiResponse({ status: 200, description: '删除成功' })
+  @ApiResponse({ status: 404, description: '用户不存在' })
+  async removeByUserId(@Param('userId') userId: string) {
+    return await this.usersService.removeByUserId(userId);
   }
 
   @Post(':id/roles')

@@ -15,12 +15,14 @@ datasource db {
 
 model User {
   id           Int        @id @default(autoincrement())
-  email        String     @unique
+  userId       String     @unique @default(uuid())
+  email        String?    @unique
   username     String     @unique
+  nickname     String     // 昵称，必须
   phone        String?    @unique
   password     String
   avatar       String?
-  isActive     Boolean    @default(true)
+  status       Int        @default(1) // 0: 禁用, 1: 启用, 2: 审核中, 3: 封禁
   departmentId Int?
   department   Department? @relation(fields: [departmentId], references: [id])
   positionId   Int?

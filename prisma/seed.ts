@@ -145,9 +145,10 @@ async function main() {
     create: {
       email: 'admin@example.com',
       username: 'admin',
+      nickname: '管理员',
       phone: '13800138000',
       password: hashedPassword,
-      isActive: true,
+      status: 1, // 启用状态
       departmentId: itDepartment.id,
       positionId: managerPosition.id,
       roles: {
@@ -170,18 +171,19 @@ async function main() {
   console.log(`  手机号: ${adminUser.phone}`);
   console.log(`  密码: admin123`);
   console.log(
-    `  角色: ${adminUser.roles?.map((role) => role.name).join(', ') || ''}`,
+    `  角色: ${(adminUser as any).roles?.map((role: any) => role.name).join(', ') || ''}`,
   );
   console.log(
-    `  权限数量: ${adminUser.roles?.reduce((total, role) => total + (role.permissions?.length || 0), 0) || 0}`,
+    `  权限数量: ${(adminUser as any).roles?.reduce((total: number, role: any) => total + (role.permissions?.length || 0), 0) || 0}`,
   );
 }
 
 main()
-  .catch((e) => {
-    console.error('数据库初始化失败:', e);
-    process.exit(1);
-  })
-  .finally(async () => {
+  .then(async () => {
     await prisma.$disconnect();
+  })
+  .catch(async (e) => {
+    console.error(e);
+    await prisma.$disconnect();
+    process.exit(1);
   });

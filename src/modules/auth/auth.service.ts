@@ -6,6 +6,7 @@ import { RegisterDto } from './dto/register.dto';
 import * as bcrypt from 'bcrypt';
 import { ResponseUtil } from '../../shared/utils/response.util';
 import { ApiResponse } from '../../shared/interfaces/response.interface';
+import { UserStatus } from '../../shared/constants/user-status.constant';
 
 @Injectable()
 export class AuthService {
@@ -15,13 +16,14 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto): Promise<ApiResponse<any>> {
-    const { email, username, password } = registerDto;
+    const { email, username, nickname, password } = registerDto;
 
-    // 检查邮箱是否已存在
-    const existingUser = await this.usersService.findOneByEmail(email);
-
-    if (existingUser) {
-      throw new UnauthorizedException('邮箱已被注册');
+    // 检查邮箱是否已存在（如果提供了邮箱）
+    if (email) {
+      const existingUser = await this.usersService.findOneByEmail(email);
+      if (existingUser) {
+        throw new UnauthorizedException('邮箱已被注册');
+      }
     }
 
     // 加密密码
@@ -32,8 +34,9 @@ export class AuthService {
       data: {
         email,
         username,
+        nickname,
         password: hashedPassword,
-        isActive: true,
+        status: UserStatus.ENABLED,
       },
       include: {
         roles: true,
