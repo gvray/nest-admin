@@ -196,13 +196,8 @@ export class UsersService extends BaseService {
         },
         roles: {
           select: {
-            role: {
-              select: {
-                id: true,
-                name: true,
-                code: true,
-              },
-            },
+            id: true,
+            name: true,
           },
         },
       },
@@ -368,8 +363,8 @@ export class UsersService extends BaseService {
 
   // 为用户分配角色
   async assignRoles(userId: number, roleIds: number[]) {
-    const user = await this.prisma.user.findFirst({
-      where: { userId },
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
     });
 
     if (!user) {
@@ -397,8 +392,8 @@ export class UsersService extends BaseService {
 
   // 移除用户的角色
   async removeRoles(userId: number, roleIds: number[]) {
-    const user = await this.prisma.user.findFirst({
-      where: { userId },
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
     });
 
     if (!user) {
