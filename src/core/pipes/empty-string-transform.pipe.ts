@@ -18,8 +18,9 @@ export class EmptyStringTransformPipe implements PipeTransform {
       const transformed: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(obj)) {
         if (value === '') {
-          // 将空字符串转换为 undefined，这样 class-validator 的 @IsOptional() 就会跳过验证
-          transformed[key] = undefined;
+          // 将空字符串转换为 null，这样 Prisma 会真正更新字段为空值
+          // undefined 在 Prisma 中会被忽略，不会包含在更新查询中
+          transformed[key] = null;
         } else if (value && typeof value === 'object') {
           transformed[key] = this.transformObject(value);
         } else {

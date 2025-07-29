@@ -24,7 +24,7 @@ import { RolesGuard } from '../../core/guards/roles.guard';
 import { PermissionsGuard } from '../../core/guards/permissions.guard';
 import { Roles } from '../../core/decorators/roles.decorator';
 import { RequirePermissions } from '../../core/decorators/permissions.decorator';
-import { PaginationSortDto } from '../../shared/dtos/pagination.dto';
+import { QueryUserDto } from './dto/query-user.dto';
 
 @ApiTags('用户管理')
 @Controller('users')
@@ -49,8 +49,8 @@ export class UsersController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '获取用户列表' })
   @ApiResponse({ status: 200, description: '用户列表' })
-  findAll(@Query() pagination?: PaginationSortDto) {
-    return this.usersService.findAll(pagination);
+  findAll(@Query() query?: QueryUserDto) {
+    return this.usersService.findAll(query);
   }
 
   @Get(':userId')
@@ -64,16 +64,7 @@ export class UsersController {
     return this.usersService.findOneByUserId(userId);
   }
 
-  @Get('by-user-id/:userId')
-  @Roles('admin')
-  @RequirePermissions('user:read')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '获取指定用户（通过UserId）' })
-  @ApiResponse({ status: 200, description: '获取成功' })
-  @ApiResponse({ status: 404, description: '用户不存在' })
-  async findOneByUserId(@Param('userId') userId: string) {
-    return await this.usersService.findOneByUserId(userId);
-  }
+
 
   @Patch(':userId')
   @Roles('admin')
@@ -89,19 +80,7 @@ export class UsersController {
     return this.usersService.updateByUserId(userId, updateUserDto);
   }
 
-  @Patch('by-user-id/:userId')
-  @Roles('admin')
-  @RequirePermissions('user:update')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '更新用户（通过UserId）' })
-  @ApiResponse({ status: 200, description: '更新成功' })
-  @ApiResponse({ status: 404, description: '用户不存在' })
-  async updateByUserId(
-    @Param('userId') userId: string,
-    @Body() updateUserDto: UpdateUserDto,
-  ) {
-    return await this.usersService.updateByUserId(userId, updateUserDto);
-  }
+
 
   @Delete(':userId')
   @Roles('admin')
@@ -114,16 +93,7 @@ export class UsersController {
     return this.usersService.removeByUserId(userId);
   }
 
-  @Delete('by-user-id/:userId')
-  @Roles('admin')
-  @RequirePermissions('user:delete')
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '删除用户（通过UserId）' })
-  @ApiResponse({ status: 200, description: '删除成功' })
-  @ApiResponse({ status: 404, description: '用户不存在' })
-  async removeByUserId(@Param('userId') userId: string) {
-    return await this.usersService.removeByUserId(userId);
-  }
+
 
   @Post(':userId/roles')
   @Roles('admin')

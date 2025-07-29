@@ -22,6 +22,7 @@ model User {
   phone        String?    @unique
   password     String
   avatar       String?
+  remark       String?    // 备注信息
   status       Int        @default(1) // 0: 禁用, 1: 启用, 2: 审核中, 3: 封禁
   departmentId Int?
   department   Department? @relation(fields: [departmentId], references: [id])

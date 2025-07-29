@@ -20,7 +20,8 @@ export class CreateUserDto {
   @IsString({ message: '用户ID必须是字符串' })
   userId?: string;
 
-  @ApiProperty({ description: '邮箱', example: 'user@example.com' })
+  @ApiPropertyOptional({ description: '邮箱', example: 'user@example.com' })
+  @IsOptional()
   @IsEmail({}, { message: '邮箱格式不正确' })
   email?: string;
 
@@ -38,6 +39,12 @@ export class CreateUserDto {
   @IsOptional()
   @IsString({ message: '手机号码必须是字符串' })
   phone?: string;
+
+  @ApiPropertyOptional({ description: '备注信息', example: '这是一个备注' })
+  @IsOptional()
+  @IsString({ message: '备注信息必须是字符串' })
+  @MaxLength(500, { message: '备注信息不能超过500个字符' })
+  remark?: string;
 
   @ApiProperty({ description: '密码' })
   @IsString({ message: '密码必须是字符串' })

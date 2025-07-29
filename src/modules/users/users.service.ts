@@ -9,7 +9,8 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
 import { BaseService } from '../../shared/services/base.service';
 import { ResponseUtil } from '../../shared/utils/response.util';
-import { PaginationSortDto } from '../../shared/dtos/pagination.dto';
+import { QueryUserDto } from './dto/query-user.dto';
+import { Prisma } from '@prisma/client';
 import {
   ApiResponse,
   PaginationResponse,
@@ -73,47 +74,88 @@ export class UsersService extends BaseService {
   }
 
   async findAll(
-    pagination?: PaginationSortDto,
+    query?: QueryUserDto,
   ): Promise<PaginationResponse<unknown> | ApiResponse<unknown>> {
-    if (pagination) {
+    // 构建查询条件
+    const where: Prisma.UserWhereInput = {};
+
+    if (query?.username) {
+      where.username = {
+        contains: query.username,
+      };
+    }
+
+    if (query?.phone) {
+      where.phone = {
+        contains: query.phone,
+      };
+    }
+
+    if (query?.status !== undefined) {
+      where.status = query.status;
+    }
+
+    // 处理日期范围查询
+    if (query?.dateRange) {
+      const [startDate, endDate] = query.dateRange.split('_to_');
+      if (startDate && endDate) {
+        where.createdAt = {
+          gte: new Date(startDate + 'T00:00:00.000Z'),
+          lte: new Date(endDate + 'T23:59:59.999Z'),
+        };
+      }
+    } else if (query?.createdAtStart || query?.createdAtEnd) {
+      where.createdAt = {};
+      if (query.createdAtStart) {
+        where.createdAt.gte = new Date(query.createdAtStart);
+      }
+      if (query.createdAtEnd) {
+        where.createdAt.lte = new Date(query.createdAtEnd);
+      }
+    }
+
+    const include = {
+      roles: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      department: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      position: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    };
+
+    if (query && (query.page || query.pageSize)) {
       return this.paginateWithSortAndResponse(
         this.prisma.user,
-        pagination,
-        undefined, // where 条件
-        {
-          roles: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          department: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          position: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-        }, // include 关联查询
+        query,
+        where,
+        include,
         'createdAt',
         '用户列表查询成功',
       );
     }
 
     const users = await this.prisma.user.findMany({
+      where,
       select: {
         id: true,
-        userId: true,
         email: true,
         username: true,
         nickname: true,
         phone: true,
         avatar: true,
+        remark: true,
         status: true,
         createdAt: true,
         updatedAt: true,
@@ -136,7 +178,9 @@ export class UsersService extends BaseService {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: query?.getOrderBy
+        ? query.getOrderBy('createdAt')
+        : { createdAt: 'desc' },
     });
 
     return ResponseUtil.found(users, '用户列表查询成功');
@@ -147,12 +191,12 @@ export class UsersService extends BaseService {
       where: { id },
       select: {
         id: true,
-        userId: true,
         email: true,
         username: true,
         nickname: true,
         phone: true,
         avatar: true,
+        remark: true,
         status: true,
         createdAt: true,
         updatedAt: true,
@@ -272,15 +316,15 @@ export class UsersService extends BaseService {
 
   async findOneByUserId(userId: string) {
     const user = await this.prisma.user.findFirst({
-      where: { userId },
+      where: { id: parseInt(userId) },
       select: {
         id: true,
-        userId: true,
         email: true,
         username: true,
         nickname: true,
         phone: true,
         avatar: true,
+        remark: true,
         status: true,
         createdAt: true,
         updatedAt: true,
@@ -382,7 +426,7 @@ export class UsersService extends BaseService {
     }
 
     const user = await this.prisma.user.findFirst({
-      where: { userId },
+      where: { id: parseInt(userId) },
     });
 
     if (!user) {
@@ -415,7 +459,7 @@ export class UsersService extends BaseService {
     }
 
     const result = await this.prisma.user.updateMany({
-      where: { userId },
+      where: { id: parseInt(userId) },
       data: {
         ...rest,
         ...(hashedPassword && { password: hashedPassword }),
@@ -447,14 +491,14 @@ export class UsersService extends BaseService {
 
   async removeByUserId(userId: string) {
     const user = await this.prisma.user.findFirst({
-      where: { userId: userId },
+      where: { id: parseInt(userId) },
     });
     if (!user) {
       throw new NotFoundException('用户不存在');
     }
 
     const result = await this.prisma.user.deleteMany({
-      where: { userId: userId },
+      where: { id: parseInt(userId) },
     });
 
     if (result.count === 0) {
@@ -467,7 +511,7 @@ export class UsersService extends BaseService {
   // 为用户分配角色
   async assignRoles(userId: string, roleIds: number[]) {
     const user = await this.prisma.user.findFirst({
-      where: { userId: userId },
+      where: { id: parseInt(userId) },
     });
 
     if (!user) {
@@ -496,7 +540,7 @@ export class UsersService extends BaseService {
   // 移除用户的角色
   async removeRoles(userId: string, roleIds: number[]) {
     const user = await this.prisma.user.findFirst({
-      where: { userId: userId },
+      where: { id: parseInt(userId) },
     });
 
     if (!user) {
