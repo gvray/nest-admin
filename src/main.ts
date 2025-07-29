@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { EmptyStringTransformPipe } from './core/pipes/empty-string-transform.pipe';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -21,8 +22,9 @@ async function bootstrap() {
     });
   }
 
-  // 全局验证管道
+  // 全局管道：先转换空字符串，再进行验证
   app.useGlobalPipes(
+    new EmptyStringTransformPipe(),
     new ValidationPipe({
       whitelist: true,
       transform: true,

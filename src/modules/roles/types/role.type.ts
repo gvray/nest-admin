@@ -19,4 +19,4 @@ export class Role {
 
   @ApiProperty({ description: '角色权限列表', type: [Permission] })
   permissions?: Permission[];
-} 
+}

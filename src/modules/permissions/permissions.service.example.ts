@@ -4,7 +4,10 @@ import { CreatePermissionDto } from './dto/create-permission.dto';
 import { BaseService } from '../../shared/services/base.service';
 import { ResponseUtil } from '../../shared/utils/response.util';
 import { PaginationSortDto } from '../../shared/dtos/pagination.dto';
-import { ApiResponse, PaginationResponse } from '../../shared/interfaces/response.interface';
+import {
+  ApiResponse,
+  PaginationResponse,
+} from '../../shared/interfaces/response.interface';
 
 /**
  * 权限服务示例 - 展示如何使用统一响应格式
@@ -21,7 +24,9 @@ export class PermissionsServiceExample extends BaseService {
    * @param createPermissionDto 创建权限DTO
    * @returns 创建结果
    */
-  async create(createPermissionDto: CreatePermissionDto): Promise<ApiResponse<any>> {
+  async create(
+    createPermissionDto: CreatePermissionDto,
+  ): Promise<ApiResponse<any>> {
     const { name, code, description } = createPermissionDto;
 
     const permission = await this.prisma.permission.create({
@@ -40,7 +45,9 @@ export class PermissionsServiceExample extends BaseService {
    * @param pagination 分页参数
    * @returns 分页结果
    */
-  async findAll(pagination: PaginationSortDto): Promise<PaginationResponse<any>> {
+  async findAll(
+    pagination: PaginationSortDto,
+  ): Promise<PaginationResponse<any>> {
     return this.paginateWithSortAndResponse(
       this.prisma.permission,
       pagination,

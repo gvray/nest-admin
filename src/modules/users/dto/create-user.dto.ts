@@ -11,10 +11,10 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { UserStatus } from '../../../shared/constants/user-status.constant';
 
 export class CreateUserDto {
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     description: '用户唯一标识符（UUID）',
     example: '550e8400-e29b-41d4-a716-446655440000',
-    readOnly: true 
+    readOnly: true,
   })
   @IsOptional()
   @IsString({ message: '用户ID必须是字符串' })
@@ -33,6 +33,11 @@ export class CreateUserDto {
   @IsString({ message: '昵称必须是字符串' })
   @MaxLength(50, { message: '昵称不能超过50个字符' })
   nickname: string;
+
+  @ApiPropertyOptional({ description: '手机号码', example: '13800138000' })
+  @IsOptional()
+  @IsString({ message: '手机号码必须是字符串' })
+  phone?: string;
 
   @ApiProperty({ description: '密码' })
   @IsString({ message: '密码必须是字符串' })
@@ -62,5 +67,4 @@ export class CreateUserDto {
   @IsOptional()
   @IsInt({ message: '岗位ID必须是整数' })
   positionId?: number;
-
 }

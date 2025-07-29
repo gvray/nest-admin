@@ -14,4 +14,4 @@ export interface IPermission {
   description: string | null;
   createdAt: Date;
   updatedAt: Date;
-} 
+}

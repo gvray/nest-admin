@@ -36,4 +36,4 @@ export class QueryDepartmentDto {
   @Type(() => Number)
   @IsInt()
   limit?: number = 10;
-} 
+}

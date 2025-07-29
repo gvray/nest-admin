@@ -22,7 +22,7 @@ export class UsersService extends BaseService {
     super(prisma);
   }
 
-  async create(createUserDto: CreateUserDto): Promise<ApiResponse<any>> {
+  async create(createUserDto: CreateUserDto): Promise<ApiResponse<unknown>> {
     const { password, departmentId, positionId, ...rest } = createUserDto;
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -74,7 +74,7 @@ export class UsersService extends BaseService {
 
   async findAll(
     pagination?: PaginationSortDto,
-  ): Promise<PaginationResponse<any> | ApiResponse<any>> {
+  ): Promise<PaginationResponse<unknown> | ApiResponse<unknown>> {
     if (pagination) {
       return this.paginateWithSortAndResponse(
         this.prisma.user,
@@ -82,12 +82,23 @@ export class UsersService extends BaseService {
         undefined, // where 条件
         {
           roles: {
-            include: {
-              permissions: true,
+            select: {
+              id: true,
+              name: true,
             },
           },
-          department: true,
-          position: true,
+          department: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          position: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
         }, // include 关联查询
         'createdAt',
         '用户列表查询成功',
@@ -95,35 +106,74 @@ export class UsersService extends BaseService {
     }
 
     const users = await this.prisma.user.findMany({
-      include: {
+      select: {
+        id: true,
+        userId: true,
+        email: true,
+        username: true,
+        nickname: true,
+        phone: true,
+        avatar: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
         roles: {
-          include: {
-            permissions: true,
+          select: {
+            id: true,
+            name: true,
           },
         },
-        department: true,
-        position: true,
+        department: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        position: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    // 移除密码字段
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const usersWithoutPassword = users.map(({ password, ...user }) => user);
-    return ResponseUtil.found(usersWithoutPassword, '用户列表查询成功');
+    return ResponseUtil.found(users, '用户列表查询成功');
   }
 
-  async findOne(id: number): Promise<ApiResponse<any>> {
+  async findOne(id: number): Promise<ApiResponse<unknown>> {
     const user = await this.prisma.user.findUnique({
       where: { id },
-      include: {
+      select: {
+        id: true,
+        userId: true,
+        email: true,
+        username: true,
+        nickname: true,
+        phone: true,
+        avatar: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
         roles: {
-          include: {
-            permissions: true,
+          select: {
+            id: true,
+            name: true,
           },
         },
-        department: true,
-        position: true,
+        department: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        position: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 
@@ -131,23 +181,47 @@ export class UsersService extends BaseService {
       throw new NotFoundException(`用户ID ${id} 不存在`);
     }
 
-    // 移除密码字段
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...userWithoutPassword } = user;
-    return ResponseUtil.found(userWithoutPassword, '用户查询成功');
+    return ResponseUtil.found(user, '用户查询成功');
   }
 
   async findOneByEmail(email: string) {
     return this.prisma.user.findUnique({
       where: { email },
-      include: {
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        nickname: true,
+        avatar: true,
+        status: true,
+        password: true,
+        createdAt: true,
+        updatedAt: true,
         roles: {
-          include: {
-            permissions: true,
+          select: {
+            id: true,
+            name: true,
+            permissions: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+              },
+            },
           },
         },
-        department: true,
-        position: true,
+        department: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        position: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
   }
@@ -157,14 +231,41 @@ export class UsersService extends BaseService {
       where: {
         OR: [{ email: account }, { username: account }, { phone: account }],
       },
-      include: {
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        nickname: true,
+        avatar: true,
+        status: true,
+        password: true,
+        createdAt: true,
+        updatedAt: true,
         roles: {
-          include: {
-            permissions: true,
+          select: {
+            id: true,
+            name: true,
+            permissions: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+              },
+            },
           },
         },
-        department: true,
-        position: true,
+        department: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        position: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
   }
@@ -178,6 +279,7 @@ export class UsersService extends BaseService {
         email: true,
         username: true,
         nickname: true,
+        phone: true,
         avatar: true,
         status: true,
         createdAt: true,
@@ -323,7 +425,7 @@ export class UsersService extends BaseService {
     });
 
     if (result.count === 0) {
-      throw new NotFoundException('用户不存在');
+      throw new NotFoundException('用户更新失败');
     }
 
     return await this.findOneByUserId(userId);
@@ -345,26 +447,27 @@ export class UsersService extends BaseService {
 
   async removeByUserId(userId: string) {
     const user = await this.prisma.user.findFirst({
-      where: { userId },
+      where: { userId: userId },
     });
-
     if (!user) {
-      throw new NotFoundException(`用户ID ${userId} 不存在`);
+      throw new NotFoundException('用户不存在');
     }
 
     const result = await this.prisma.user.deleteMany({
-      where: { userId },
+      where: { userId: userId },
     });
 
     if (result.count === 0) {
-      throw new NotFoundException('用户不存在');
+      throw new NotFoundException('用户删除失败');
     }
+
+    return { message: '用户删除成功' };
   }
 
   // 为用户分配角色
-  async assignRoles(userId: number, roleIds: number[]) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+  async assignRoles(userId: string, roleIds: number[]) {
+    const user = await this.prisma.user.findFirst({
+      where: { userId: userId },
     });
 
     if (!user) {
@@ -372,7 +475,7 @@ export class UsersService extends BaseService {
     }
 
     return this.prisma.user.update({
-      where: { id: userId },
+      where: { id: user.id },
       data: {
         roles: {
           set: roleIds.map((id) => ({ id })),
@@ -391,9 +494,9 @@ export class UsersService extends BaseService {
   }
 
   // 移除用户的角色
-  async removeRoles(userId: number, roleIds: number[]) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+  async removeRoles(userId: string, roleIds: number[]) {
+    const user = await this.prisma.user.findFirst({
+      where: { userId: userId },
     });
 
     if (!user) {
@@ -401,7 +504,7 @@ export class UsersService extends BaseService {
     }
 
     return this.prisma.user.update({
-      where: { id: userId },
+      where: { id: user.id },
       data: {
         roles: {
           disconnect: roleIds.map((id) => ({ id })),

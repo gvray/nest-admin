@@ -18,4 +18,4 @@ export class Permission {
 
   @ApiProperty({ description: '更新时间' })
   updatedAt: Date;
-} 
+}

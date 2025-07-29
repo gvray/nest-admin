@@ -6,7 +6,6 @@ import {
   Patch,
   Param,
   Delete,
-  ParseIntPipe,
   UseGuards,
   Query,
 } from '@nestjs/common';
@@ -54,15 +53,15 @@ export class UsersController {
     return this.usersService.findAll(pagination);
   }
 
-  @Get(':id')
+  @Get(':userId')
   @Roles('admin')
   @RequirePermissions('user:read')
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '获取指定用户（通过ID）' })
+  @ApiOperation({ summary: '获取指定用户（通过UserId）' })
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 404, description: '用户不存在' })
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.usersService.findOne(id);
+  findOne(@Param('userId') userId: string) {
+    return this.usersService.findOneByUserId(userId);
   }
 
   @Get('by-user-id/:userId')
@@ -76,18 +75,18 @@ export class UsersController {
     return await this.usersService.findOneByUserId(userId);
   }
 
-  @Patch(':id')
+  @Patch(':userId')
   @Roles('admin')
   @RequirePermissions('user:update')
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '更新用户（通过ID）' })
+  @ApiOperation({ summary: '更新用户（通过UserId）' })
   @ApiResponse({ status: 200, description: '更新成功' })
   @ApiResponse({ status: 404, description: '用户不存在' })
   update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('userId') userId: string,
     @Body() updateUserDto: UpdateUserDto,
   ) {
-    return this.usersService.update(id, updateUserDto);
+    return this.usersService.updateByUserId(userId, updateUserDto);
   }
 
   @Patch('by-user-id/:userId')
@@ -104,15 +103,15 @@ export class UsersController {
     return await this.usersService.updateByUserId(userId, updateUserDto);
   }
 
-  @Delete(':id')
+  @Delete(':userId')
   @Roles('admin')
   @RequirePermissions('user:delete')
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '删除用户（通过ID）' })
+  @ApiOperation({ summary: '删除用户（通过UserId）' })
   @ApiResponse({ status: 200, description: '删除成功' })
   @ApiResponse({ status: 404, description: '用户不存在' })
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.usersService.remove(id);
+  remove(@Param('userId') userId: string) {
+    return this.usersService.removeByUserId(userId);
   }
 
   @Delete('by-user-id/:userId')
@@ -126,7 +125,7 @@ export class UsersController {
     return await this.usersService.removeByUserId(userId);
   }
 
-  @Post(':id/roles')
+  @Post(':userId/roles')
   @Roles('admin')
   @RequirePermissions('user:manage')
   @ApiBearerAuth('JWT-auth')
@@ -134,13 +133,13 @@ export class UsersController {
   @ApiResponse({ status: 200, description: '分配成功' })
   @ApiResponse({ status: 404, description: '用户不存在' })
   assignRoles(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('userId') userId: string,
     @Body() assignRolesDto: AssignRolesDto,
   ) {
-    return this.usersService.assignRoles(id, assignRolesDto.roleIds);
+    return this.usersService.assignRoles(userId, assignRolesDto.roleIds);
   }
 
-  @Delete(':id/roles')
+  @Delete(':userId/roles')
   @Roles('admin')
   @RequirePermissions('user:manage')
   @ApiBearerAuth('JWT-auth')
@@ -148,9 +147,9 @@ export class UsersController {
   @ApiResponse({ status: 200, description: '移除成功' })
   @ApiResponse({ status: 404, description: '用户不存在' })
   removeRoles(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('userId') userId: string,
     @Body() assignRolesDto: AssignRolesDto,
   ) {
-    return this.usersService.removeRoles(id, assignRolesDto.roleIds);
+    return this.usersService.removeRoles(userId, assignRolesDto.roleIds);
   }
 }

@@ -37,4 +37,4 @@ export class CreatePositionDto {
   @Min(0)
   @Max(9999)
   sort?: number;
-} 
+}

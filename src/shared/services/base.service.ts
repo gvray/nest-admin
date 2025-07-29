@@ -22,11 +22,20 @@ export abstract class BaseService {
    * @returns 分页结果
    */
   protected async paginate<T>(
-    model: any,
+    model: {
+      findMany: (args: {
+        where?: Record<string, unknown>;
+        include?: Record<string, unknown>;
+        orderBy?: Record<string, unknown>;
+        skip?: number;
+        take?: number;
+      }) => Promise<T[]>;
+      count: (args: { where?: Record<string, unknown> }) => Promise<number>;
+    },
     pagination: PaginationDto,
-    where?: any,
-    include?: any,
-    orderBy?: any,
+    where?: Record<string, unknown>,
+    include?: Record<string, unknown>,
+    orderBy?: Record<string, unknown>,
   ): Promise<{ items: T[]; total: number; page: number; pageSize: number }> {
     const { page, pageSize } = pagination;
     const skip = pagination.getSkip();
@@ -63,11 +72,20 @@ export abstract class BaseService {
    * @returns 分页响应
    */
   protected async paginateWithResponse<T>(
-    model: any,
+    model: {
+      findMany: (args: {
+        where?: Record<string, unknown>;
+        include?: Record<string, unknown>;
+        orderBy?: Record<string, unknown>;
+        skip?: number;
+        take?: number;
+      }) => Promise<T[]>;
+      count: (args: { where?: Record<string, unknown> }) => Promise<number>;
+    },
     pagination: PaginationDto,
-    where?: any,
-    include?: any,
-    orderBy?: any,
+    where?: Record<string, unknown>,
+    include?: Record<string, unknown>,
+    orderBy?: Record<string, unknown>,
     message?: string,
   ): Promise<PaginationResponse<T>> {
     const result = await this.paginate<T>(
@@ -105,10 +123,19 @@ export abstract class BaseService {
    * @returns 分页结果
    */
   protected async paginateWithSort<T>(
-    model: any,
+    model: {
+      findMany: (args: {
+        where?: Record<string, unknown>;
+        include?: Record<string, unknown>;
+        orderBy?: Record<string, unknown>;
+        skip?: number;
+        take?: number;
+      }) => Promise<T[]>;
+      count: (args: { where?: Record<string, unknown> }) => Promise<number>;
+    },
     pagination: PaginationSortDto,
-    where?: any,
-    include?: any,
+    where?: Record<string, unknown>,
+    include?: Record<string, unknown>,
     defaultSortBy: string = 'createdAt',
   ): Promise<{ items: T[]; total: number; page: number; pageSize: number }> {
     const orderBy = pagination.getOrderBy(defaultSortBy);
@@ -127,10 +154,19 @@ export abstract class BaseService {
    * @returns 分页响应
    */
   protected async paginateWithSortAndResponse<T>(
-    model: any,
+    model: {
+      findMany: (args: {
+        where?: Record<string, unknown>;
+        include?: Record<string, unknown>;
+        orderBy?: Record<string, unknown>;
+        skip?: number;
+        take?: number;
+      }) => Promise<T[]>;
+      count: (args: { where?: Record<string, unknown> }) => Promise<number>;
+    },
     pagination: PaginationSortDto,
-    where?: any,
-    include?: any,
+    where?: Record<string, unknown>,
+    include?: Record<string, unknown>,
     defaultSortBy: string = 'createdAt',
     message?: string,
   ): Promise<PaginationResponse<T>> {
@@ -167,8 +203,12 @@ export abstract class BaseService {
    * @returns 记录
    */
   protected async findOneOrFail<T>(
-    model: any,
-    where: any,
+    model: {
+      findUnique: (args: {
+        where: Record<string, unknown>;
+      }) => Promise<T | null>;
+    },
+    where: Record<string, unknown>,
     errorMessage: string = '记录不存在',
   ): Promise<T> {
     const record = await model.findUnique({ where });
@@ -187,9 +227,14 @@ export abstract class BaseService {
    * @returns 记录
    */
   protected async findOneWithIncludeOrFail<T>(
-    model: any,
-    where: any,
-    include: any,
+    model: {
+      findUnique: (args: {
+        where: Record<string, unknown>;
+        include?: Record<string, unknown>;
+      }) => Promise<T | null>;
+    },
+    where: Record<string, unknown>,
+    include: Record<string, unknown>,
     errorMessage: string = '记录不存在',
   ): Promise<T> {
     const record = await model.findUnique({ where, include });

@@ -95,7 +95,9 @@ export class PaginationSortDto extends PaginationDto {
    * @param defaultSortBy 默认排序字段
    * @returns 排序配置
    */
-  getOrderBy(defaultSortBy: string = 'createdAt'): Record<string, 'asc' | 'desc'> {
+  getOrderBy(
+    defaultSortBy: string = 'createdAt',
+  ): Record<string, 'asc' | 'desc'> {
     const sortBy = this.sortBy || defaultSortBy;
     return { [sortBy]: this.sortOrder || 'desc' };
   }

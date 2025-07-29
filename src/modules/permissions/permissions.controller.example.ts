@@ -10,7 +10,12 @@ import {
   UseGuards,
   Query,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { PermissionsServiceExample } from './permissions.service.example';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 import { PaginationSortDto } from '../../shared/dtos/pagination.dto';
@@ -28,9 +33,7 @@ import { SkipResponseFormat } from '../../core/decorators/skip-response-format.d
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth('JWT-auth')
 export class PermissionsControllerExample {
-  constructor(
-    private readonly permissionsService: PermissionsServiceExample,
-  ) {}
+  constructor(private readonly permissionsService: PermissionsServiceExample) {}
 
   @Post()
   @Roles('admin')
@@ -88,8 +91,14 @@ export class PermissionsControllerExample {
                   name: { type: 'string', example: '用户管理' },
                   code: { type: 'string', example: 'user:manage' },
                   description: { type: 'string', example: '用户管理权限' },
-                  createdAt: { type: 'string', example: '2024-01-01T00:00:00.000Z' },
-                  updatedAt: { type: 'string', example: '2024-01-01T00:00:00.000Z' },
+                  createdAt: {
+                    type: 'string',
+                    example: '2024-01-01T00:00:00.000Z',
+                  },
+                  updatedAt: {
+                    type: 'string',
+                    example: '2024-01-01T00:00:00.000Z',
+                  },
                 },
               },
             },

@@ -36,4 +36,4 @@ export class QueryPositionDto {
   @Type(() => Number)
   @IsInt()
   limit?: number = 10;
-} 
+}

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
@@ -9,7 +13,9 @@ import { DepartmentEntity } from './entities/department.entity';
 export class DepartmentsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createDepartmentDto: CreateDepartmentDto): Promise<DepartmentEntity> {
+  async create(
+    createDepartmentDto: CreateDepartmentDto,
+  ): Promise<DepartmentEntity> {
     // 检查部门名称和编码是否已存在
     const existingDepartment = await this.prisma.department.findFirst({
       where: {
@@ -50,7 +56,7 @@ export class DepartmentsService {
     const { name, code, isActive, parentId, page = 1, limit = 10 } = query;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Record<string, unknown> = {};
 
     if (name) {
       where.name = { contains: name };
@@ -81,10 +87,7 @@ export class DepartmentsService {
             },
           },
         },
-        orderBy: [
-          { sort: 'asc' },
-          { createdAt: 'desc' },
-        ],
+        orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
         skip,
         take: limit,
       }),
@@ -127,7 +130,10 @@ export class DepartmentsService {
     return department;
   }
 
-  async update(id: number, updateDepartmentDto: UpdateDepartmentDto): Promise<DepartmentEntity> {
+  async update(
+    id: number,
+    updateDepartmentDto: UpdateDepartmentDto,
+  ): Promise<DepartmentEntity> {
     // 检查部门是否存在
     const existingDepartment = await this.prisma.department.findUnique({
       where: { id },
@@ -142,8 +148,12 @@ export class DepartmentsService {
       const conflictDepartment = await this.prisma.department.findFirst({
         where: {
           OR: [
-            ...(updateDepartmentDto.name ? [{ name: updateDepartmentDto.name }] : []),
-            ...(updateDepartmentDto.code ? [{ code: updateDepartmentDto.code }] : []),
+            ...(updateDepartmentDto.name
+              ? [{ name: updateDepartmentDto.name }]
+              : []),
+            ...(updateDepartmentDto.code
+              ? [{ code: updateDepartmentDto.code }]
+              : []),
           ],
           NOT: { id },
         },
@@ -169,7 +179,10 @@ export class DepartmentsService {
       }
 
       // 检查是否形成循环引用
-      const isCircular = await this.checkCircularReference(id, updateDepartmentDto.parentId);
+      const isCircular = await this.checkCircularReference(
+        id,
+        updateDepartmentDto.parentId,
+      );
       if (isCircular) {
         throw new ConflictException('不能形成循环引用');
       }
@@ -235,17 +248,17 @@ export class DepartmentsService {
           },
         },
       },
-      orderBy: [
-        { sort: 'asc' },
-        { createdAt: 'asc' },
-      ],
+      orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
     });
 
     // 只返回顶级部门
-    return departments.filter(dept => !dept.parentId);
+    return departments.filter((dept) => !dept.parentId);
   }
 
-  private async checkCircularReference(departmentId: number, parentId: number): Promise<boolean> {
+  private async checkCircularReference(
+    departmentId: number,
+    parentId: number,
+  ): Promise<boolean> {
     let currentParentId: number | null = parentId;
     const visited = new Set<number>();
 
@@ -256,10 +269,11 @@ export class DepartmentsService {
 
       visited.add(currentParentId);
 
-      const parent = await this.prisma.department.findUnique({
-        where: { id: currentParentId },
-        select: { parentId: true },
-      });
+      const parent: { parentId: number | null } | null =
+        await this.prisma.department.findUnique({
+          where: { id: currentParentId },
+          select: { parentId: true },
+        });
 
       if (!parent) {
         break;
@@ -270,4 +284,4 @@ export class DepartmentsService {
 
     return false;
   }
-} 
+}

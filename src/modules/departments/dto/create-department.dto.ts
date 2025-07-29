@@ -38,4 +38,4 @@ export class CreateDepartmentDto {
   @Min(0)
   @Max(9999)
   sort?: number;
-} 
+}

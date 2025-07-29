@@ -1,7 +1,7 @@
 /**
  * 统一响应格式接口
  */
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   /** 成功状态 */
   success: boolean;
   /** 响应状态码 */
@@ -19,7 +19,7 @@ export interface ApiResponse<T = any> {
 /**
  * 分页响应数据接口
  */
-export interface PaginationData<T = any> {
+export interface PaginationData<T = unknown> {
   /** 数据列表 */
   items: T[];
   /** 总数量 */
@@ -39,10 +39,7 @@ export interface PaginationData<T = any> {
 /**
  * 分页响应接口
  */
-export interface PaginationResponse<T = any>
-  extends ApiResponse<PaginationData<T>> {
-  // 继承ApiResponse，专门用于分页数据
-}
+export type PaginationResponse<T = unknown> = ApiResponse<PaginationData<T>>;
 
 /**
  * 响应状态码枚举

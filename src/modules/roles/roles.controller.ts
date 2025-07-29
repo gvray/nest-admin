@@ -9,7 +9,12 @@ import {
   ParseIntPipe,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { RolesService } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
@@ -88,7 +93,10 @@ export class RolesController {
     @Param('id', ParseIntPipe) id: number,
     @Body() assignPermissionsDto: AssignPermissionsDto,
   ) {
-    return this.rolesService.assignPermissions(id, assignPermissionsDto.permissionIds);
+    return this.rolesService.assignPermissions(
+      id,
+      assignPermissionsDto.permissionIds,
+    );
   }
 
   @Delete(':id/permissions')
@@ -101,6 +109,9 @@ export class RolesController {
     @Param('id', ParseIntPipe) id: number,
     @Body() assignPermissionsDto: AssignPermissionsDto,
   ) {
-    return this.rolesService.removePermissions(id, assignPermissionsDto.permissionIds);
+    return this.rolesService.removePermissions(
+      id,
+      assignPermissionsDto.permissionIds,
+    );
   }
-} 
+}

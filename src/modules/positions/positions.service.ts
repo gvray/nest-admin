@@ -51,7 +51,7 @@ export class PositionsService {
     const { name, code, isActive, departmentId, page = 1, limit = 10 } = query;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Record<string, unknown> = {};
 
     if (name) {
       where.name = { contains: name };
@@ -80,10 +80,7 @@ export class PositionsService {
             },
           },
         },
-        orderBy: [
-          { sort: 'asc' },
-          { createdAt: 'desc' },
-        ],
+        orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
         skip,
         take: limit,
       }),
@@ -138,8 +135,12 @@ export class PositionsService {
       const conflictPosition = await this.prisma.position.findFirst({
         where: {
           OR: [
-            ...(updatePositionDto.name ? [{ name: updatePositionDto.name }] : []),
-            ...(updatePositionDto.code ? [{ code: updatePositionDto.code }] : []),
+            ...(updatePositionDto.name
+              ? [{ name: updatePositionDto.name }]
+              : []),
+            ...(updatePositionDto.code
+              ? [{ code: updatePositionDto.code }]
+              : []),
           ],
           NOT: { id },
         },
@@ -204,12 +205,9 @@ export class PositionsService {
       include: {
         department: true,
       },
-      orderBy: [
-        { sort: 'asc' },
-        { createdAt: 'asc' },
-      ],
+      orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
     });
 
     return positions;
   }
-} 
+}

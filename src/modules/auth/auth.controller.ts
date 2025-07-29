@@ -36,9 +36,18 @@ export class AuthController {
           type: 'object',
           properties: {
             id: { type: 'number', example: 1 },
-            email: { type: 'string', example: 'user@example.com', nullable: true, description: '用户邮箱（可选）' },
+            email: {
+              type: 'string',
+              example: 'user@example.com',
+              nullable: true,
+              description: '用户邮箱（可选）',
+            },
             username: { type: 'string', example: 'username' },
-            nickname: { type: 'string', example: '小明', description: '用户昵称（必须）' },
+            nickname: {
+              type: 'string',
+              example: '小明',
+              description: '用户昵称（必须）',
+            },
             status: {
               type: 'number',
               example: 1,

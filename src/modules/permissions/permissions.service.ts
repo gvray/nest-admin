@@ -4,7 +4,10 @@ import { CreatePermissionDto } from './dto/create-permission.dto';
 import { BaseService } from '../../shared/services/base.service';
 import { ResponseUtil } from '../../shared/utils/response.util';
 import { PaginationSortDto } from '../../shared/dtos/pagination.dto';
-import { ApiResponse, PaginationResponse } from '../../shared/interfaces/response.interface';
+import {
+  ApiResponse,
+  PaginationResponse,
+} from '../../shared/interfaces/response.interface';
 
 @Injectable()
 export class PermissionsService extends BaseService {
@@ -12,7 +15,9 @@ export class PermissionsService extends BaseService {
     super(prisma);
   }
 
-  async create(createPermissionDto: CreatePermissionDto): Promise<ApiResponse<any>> {
+  async create(
+    createPermissionDto: CreatePermissionDto,
+  ): Promise<ApiResponse<unknown>> {
     const { name, code, description } = createPermissionDto;
 
     const permission = await this.prisma.permission.create({
@@ -26,7 +31,9 @@ export class PermissionsService extends BaseService {
     return ResponseUtil.created(permission, '权限创建成功');
   }
 
-  async findAll(pagination?: PaginationSortDto): Promise<PaginationResponse<any> | ApiResponse<any>> {
+  async findAll(
+    pagination?: PaginationSortDto,
+  ): Promise<PaginationResponse<unknown> | ApiResponse<unknown>> {
     if (pagination) {
       return this.paginateWithSortAndResponse(
         this.prisma.permission,
@@ -37,15 +44,15 @@ export class PermissionsService extends BaseService {
         '权限列表查询成功',
       );
     }
-    
+
     const permissions = await this.prisma.permission.findMany({
       orderBy: { createdAt: 'desc' },
     });
-    
+
     return ResponseUtil.found(permissions, '权限列表查询成功');
   }
 
-  async findOne(id: number): Promise<ApiResponse<any>> {
+  async findOne(id: number): Promise<ApiResponse<unknown>> {
     const permission = await this.prisma.permission.findUnique({
       where: { id },
     });
@@ -57,7 +64,10 @@ export class PermissionsService extends BaseService {
     return ResponseUtil.found(permission, '权限查询成功');
   }
 
-  async update(id: number, updatePermissionDto: Partial<CreatePermissionDto>): Promise<ApiResponse<any>> {
+  async update(
+    id: number,
+    updatePermissionDto: Partial<CreatePermissionDto>,
+  ): Promise<ApiResponse<unknown>> {
     const { name, code, description } = updatePermissionDto;
 
     const permission = await this.prisma.permission.findUnique({
@@ -80,7 +90,7 @@ export class PermissionsService extends BaseService {
     return ResponseUtil.updated(updatedPermission, '权限更新成功');
   }
 
-  async remove(id: number): Promise<ApiResponse<any>> {
+  async remove(id: number): Promise<ApiResponse<unknown>> {
     const permission = await this.prisma.permission.findUnique({
       where: { id },
     });

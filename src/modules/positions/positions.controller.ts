@@ -92,4 +92,4 @@ export class PositionsController {
   remove(@Param('id') id: string) {
     return this.positionsService.remove(+id);
   }
-} 
+}

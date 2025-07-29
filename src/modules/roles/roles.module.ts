@@ -9,4 +9,4 @@ import { PrismaModule } from '../../prisma/prisma.module';
   providers: [RolesService],
   exports: [RolesService],
 })
-export class RolesModule {} 
+export class RolesModule {}

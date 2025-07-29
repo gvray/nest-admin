@@ -20,7 +20,9 @@ export class PermissionsGuard implements CanActivate {
 
     // 获取用户所有角色的所有权限代码
     const userPermissions = user.roles.reduce((permissions: string[], role) => {
-      const rolePermissions = role.permissions.map((permission) => permission.code);
+      const rolePermissions = role.permissions.map(
+        (permission) => permission.code,
+      );
       return [...permissions, ...rolePermissions];
     }, []);
 
@@ -29,4 +31,4 @@ export class PermissionsGuard implements CanActivate {
       userPermissions.includes(permission),
     );
   }
-} 
+}

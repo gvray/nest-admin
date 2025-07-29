@@ -16,4 +16,4 @@ export class CreateRoleDto {
   @IsArray({ message: '权限ID必须是数组' })
   @IsNumber({}, { each: true, message: '权限ID必须是数字' })
   permissionIds?: number[];
-} 
+}

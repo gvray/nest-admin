@@ -38,8 +38,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         exceptionResponse !== null
       ) {
         const responseObj = exceptionResponse as Record<string, any>;
-        message =
-          responseObj.message || responseObj.error || exception.message;
+        message = responseObj.message || responseObj.error || exception.message;
 
         // 如果是验证错误，聚合详细信息到message中
         if (Array.isArray(responseObj.message)) {

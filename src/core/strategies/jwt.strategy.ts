@@ -51,7 +51,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload): Promise<IUser> {
-    const user = await this.prisma.user.findUnique({
+    const user = (await this.prisma.user.findUnique({
       where: { id: payload.sub },
       include: {
         roles: {
@@ -60,7 +60,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
           },
         },
       },
-    }) as DbUser | null;
+    })) as DbUser | null;
 
     if (!user) {
       throw new UnauthorizedException('用户不存在或已被禁用');

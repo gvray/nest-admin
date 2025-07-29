@@ -47,7 +47,7 @@ export class ResponseInterceptor<T>
       map((data: unknown): ApiResponse<T> => {
         // 如果返回的数据已经是统一格式，直接返回
         if (this.isApiResponse(data)) {
-          return data as ApiResponse<T>;
+          return data;
         }
 
         // 根据HTTP方法确定响应类型

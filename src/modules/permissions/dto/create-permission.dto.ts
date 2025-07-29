@@ -14,4 +14,4 @@ export class CreatePermissionDto {
   @IsOptional()
   @IsString({ message: '权限描述必须是字符串' })
   description?: string;
-} 
+}

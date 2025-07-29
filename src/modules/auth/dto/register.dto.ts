@@ -1,5 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsString, MinLength, IsOptional, MaxLength } from 'class-validator';
+import {
+  IsEmail,
+  IsString,
+  MinLength,
+  IsOptional,
+  MaxLength,
+} from 'class-validator';
 
 export class RegisterDto {
   @ApiPropertyOptional({ description: '用户邮箱' })

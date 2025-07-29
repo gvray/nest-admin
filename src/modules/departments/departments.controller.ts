@@ -7,14 +7,12 @@ import {
   Param,
   Delete,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
-  ApiQuery,
 } from '@nestjs/swagger';
 import { DepartmentsService } from './departments.service';
 import { CreateDepartmentDto } from './dto/create-department.dto';
@@ -94,4 +92,4 @@ export class DepartmentsController {
   remove(@Param('id') id: string) {
     return this.departmentsService.remove(+id);
   }
-} 
+}

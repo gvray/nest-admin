@@ -15,7 +15,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async register(registerDto: RegisterDto): Promise<ApiResponse<any>> {
+  async register(registerDto: RegisterDto): Promise<ApiResponse<unknown>> {
     const { email, username, nickname, password } = registerDto;
 
     // 检查邮箱是否已存在（如果提供了邮箱）
@@ -74,7 +74,7 @@ export class AuthService {
     return null;
   }
 
-  async login(loginDto: LoginDto): Promise<ApiResponse<any>> {
+  async login(loginDto: LoginDto): Promise<ApiResponse<unknown>> {
     const user = await this.validateUser(loginDto.account, loginDto.password);
     if (!user) {
       throw new UnauthorizedException('用户名/邮箱/手机号或密码错误');
@@ -93,7 +93,7 @@ export class AuthService {
     return ResponseUtil.success(result, '登录成功');
   }
 
-  async getCurrentUser(userId: number): Promise<ApiResponse<any>> {
+  async getCurrentUser(userId: number): Promise<ApiResponse<unknown>> {
     const user = await this.usersService['prisma'].user.findUnique({
       where: { id: userId },
       include: {
@@ -118,7 +118,7 @@ export class AuthService {
     return ResponseUtil.success(userWithoutPassword, '获取用户信息成功');
   }
 
-  logout(): ApiResponse<any> {
+  logout(): ApiResponse<unknown> {
     // 在无状态JWT系统中，logout主要是客户端删除token
     // 这里返回成功响应，实际的token失效由客户端处理
     return ResponseUtil.success(null, '退出登录成功');

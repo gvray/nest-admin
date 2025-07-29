@@ -17,10 +17,21 @@ export class PositionEntity {
   departmentId: number;
 
   @ApiPropertyOptional({ description: '所属部门信息' })
-  department?: any;
+  department?: {
+    id: number;
+    name: string;
+    code: string;
+    description?: string | null;
+  };
 
   @ApiPropertyOptional({ description: '用户列表' })
-  users?: any[];
+  users?: {
+    id: number;
+    userId: string;
+    username: string;
+    nickname: string;
+    email?: string | null;
+  }[];
 
   @ApiProperty({ description: '是否激活' })
   isActive: boolean;
@@ -33,4 +44,4 @@ export class PositionEntity {
 
   @ApiProperty({ description: '更新时间' })
   updatedAt: Date;
-} 
+}

@@ -6,4 +6,4 @@ export class AssignRolesDto {
   @IsArray({ message: '角色ID必须是数组' })
   @IsNumber({}, { each: true, message: '角色ID必须是数字' })
   roleIds: number[];
-} 
+}
