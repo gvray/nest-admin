@@ -25,6 +25,7 @@ import { PermissionsGuard } from '../../core/guards/permissions.guard';
 import { Roles } from '../../core/decorators/roles.decorator';
 import { RequirePermissions } from '../../core/decorators/permissions.decorator';
 import { QueryUserDto } from './dto/query-user.dto';
+import { UserResponseDto } from './dto/user-response.dto';
 
 @ApiTags('用户管理')
 @Controller('users')
@@ -38,7 +39,7 @@ export class UsersController {
   @RequirePermissions('user:create')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '创建用户' })
-  @ApiResponse({ status: 201, description: '创建成功' })
+  @ApiResponse({ status: 201, description: '创建成功', type: UserResponseDto })
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
@@ -48,7 +49,11 @@ export class UsersController {
   @RequirePermissions('user:read')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '获取用户列表' })
-  @ApiResponse({ status: 200, description: '用户列表' })
+  @ApiResponse({
+    status: 200,
+    description: '用户列表',
+    type: [UserResponseDto],
+  })
   findAll(@Query() query?: QueryUserDto) {
     return this.usersService.findAll(query);
   }
@@ -58,29 +63,29 @@ export class UsersController {
   @RequirePermissions('user:read')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '获取指定用户（通过UserId）' })
-  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({
+    status: 200,
+    description: '获取成功',
+    type: [UserResponseDto],
+  })
   @ApiResponse({ status: 404, description: '用户不存在' })
   findOne(@Param('userId') userId: string) {
-    return this.usersService.findOneByUserId(userId);
+    return this.usersService.findOne(userId);
   }
-
-
 
   @Patch(':userId')
   @Roles('admin')
   @RequirePermissions('user:update')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '更新用户（通过UserId）' })
-  @ApiResponse({ status: 200, description: '更新成功' })
+  @ApiResponse({ status: 200, description: '获取成功', type: UserResponseDto })
   @ApiResponse({ status: 404, description: '用户不存在' })
   update(
     @Param('userId') userId: string,
     @Body() updateUserDto: UpdateUserDto,
   ) {
-    return this.usersService.updateByUserId(userId, updateUserDto);
+    return this.usersService.update(userId, updateUserDto);
   }
-
-
 
   @Delete(':userId')
   @Roles('admin')
@@ -93,14 +98,16 @@ export class UsersController {
     return this.usersService.removeByUserId(userId);
   }
 
-
-
   @Post(':userId/roles')
   @Roles('admin')
   @RequirePermissions('user:manage')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '为用户分配角色' })
-  @ApiResponse({ status: 200, description: '分配成功' })
+  @ApiResponse({
+    status: 200,
+    description: '角色分配成功',
+    type: UserResponseDto,
+  })
   @ApiResponse({ status: 404, description: '用户不存在' })
   assignRoles(
     @Param('userId') userId: string,
@@ -114,7 +121,11 @@ export class UsersController {
   @RequirePermissions('user:manage')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '移除用户的角色' })
-  @ApiResponse({ status: 200, description: '移除成功' })
+  @ApiResponse({
+    status: 200,
+    description: '角色移除成功',
+    type: UserResponseDto,
+  })
   @ApiResponse({ status: 404, description: '用户不存在' })
   removeRoles(
     @Param('userId') userId: string,

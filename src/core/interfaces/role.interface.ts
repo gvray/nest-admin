@@ -1,5 +1,5 @@
 export interface IRole {
-  id: number;
+  roleId: string;
   name: string;
   description: string | null;
   createdAt: Date;
@@ -8,7 +8,7 @@ export interface IRole {
 }
 
 export interface IPermission {
-  id: number;
+  permissionId: string;
   name: string;
   code: string;
   description: string | null;

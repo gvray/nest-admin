@@ -47,7 +47,7 @@ export class AuthService {
 
     // 生成 token
     const payload = {
-      sub: user.id,
+      sub: user.userId,
       email: user.email,
       username: user.username,
     };
@@ -81,7 +81,7 @@ export class AuthService {
     }
 
     const payload = {
-      sub: user.id,
+      sub: user.userId,
       email: user.email,
       username: user.username,
     };
@@ -93,9 +93,9 @@ export class AuthService {
     return ResponseUtil.success(result, '登录成功');
   }
 
-  async getCurrentUser(userId: number): Promise<ApiResponse<unknown>> {
+  async getCurrentUser(userId: string): Promise<ApiResponse<unknown>> {
     const user = await this.usersService['prisma'].user.findUnique({
-      where: { id: userId },
+      where: { userId: userId },
       include: {
         roles: {
           include: {

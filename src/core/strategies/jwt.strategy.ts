@@ -7,7 +7,7 @@ import { JwtPayload } from '../types/jwt-payload.type';
 import { IUser } from '../interfaces/user.interface';
 
 interface DbUser {
-  id: number;
+  userId: string;
   email: string | null;
   username: string;
   nickname: string;
@@ -16,13 +16,13 @@ interface DbUser {
   createdAt: Date;
   updatedAt: Date;
   roles: Array<{
-    id: number;
+    roleId: string;
     name: string;
     description: string | null;
     createdAt: Date;
     updatedAt: Date;
     permissions: Array<{
-      id: number;
+      permissionId: string;
       name: string;
       code: string;
       description: string | null;
@@ -52,11 +52,33 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: JwtPayload): Promise<IUser> {
     const user = (await this.prisma.user.findUnique({
-      where: { id: payload.sub },
-      include: {
+      where: { userId: payload.sub },
+      select: {
+        userId: true,
+        email: true,
+        username: true,
+        nickname: true,
+        avatar: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
         roles: {
-          include: {
-            permissions: true,
+          select: {
+            roleId: true,
+            name: true,
+            description: true,
+            createdAt: true,
+            updatedAt: true,
+            permissions: {
+              select: {
+                permissionId: true,
+                name: true,
+                code: true,
+                description: true,
+                createdAt: true,
+                updatedAt: true,
+              },
+            },
           },
         },
       },
@@ -67,7 +89,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     return {
-      id: user.id,
+      userId: user.userId,
       email: user.email,
       username: user.username,
       nickname: user.nickname,
@@ -76,13 +98,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       roles: user.roles.map((role) => ({
-        id: role.id,
+        roleId: role.roleId,
         name: role.name,
         description: role.description,
         createdAt: role.createdAt,
         updatedAt: role.updatedAt,
         permissions: role.permissions.map((permission) => ({
-          id: permission.id,
+          permissionId: permission.permissionId,
           name: permission.name,
           code: permission.code,
           description: permission.description,

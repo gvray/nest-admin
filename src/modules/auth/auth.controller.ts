@@ -196,8 +196,8 @@ export class AuthController {
       },
     },
   })
-  profile(@CurrentUser() user: { id: number }) {
-    return this.authService.getCurrentUser(user.id);
+  profile(@CurrentUser() user: { userId: string }) {
+    return this.authService.getCurrentUser(user.userId);
   }
 
   @Post('logout')

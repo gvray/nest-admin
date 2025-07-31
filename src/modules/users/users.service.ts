@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UserResponseDto } from './dto/user-response.dto';
 import * as bcrypt from 'bcrypt';
 import { BaseService } from '../../shared/services/base.service';
 import { ResponseUtil } from '../../shared/utils/response.util';
@@ -16,6 +17,7 @@ import {
   PaginationResponse,
 } from '../../shared/interfaces/response.interface';
 import { UserStatus } from '../../shared/constants/user-status.constant';
+import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class UsersService extends BaseService {
@@ -23,7 +25,9 @@ export class UsersService extends BaseService {
     super(prisma);
   }
 
-  async create(createUserDto: CreateUserDto): Promise<ApiResponse<unknown>> {
+  async create(
+    createUserDto: CreateUserDto,
+  ): Promise<ApiResponse<UserResponseDto>> {
     const { password, departmentId, positionId, ...rest } = createUserDto;
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -70,12 +74,17 @@ export class UsersService extends BaseService {
     // 移除密码字段
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _, ...userWithoutPassword } = user;
-    return ResponseUtil.created(userWithoutPassword, '用户创建成功');
+    const userResponse = plainToInstance(UserResponseDto, userWithoutPassword, {
+      excludeExtraneousValues: true,
+    });
+    return ResponseUtil.created(userResponse, '用户创建成功');
   }
 
   async findAll(
     query?: QueryUserDto,
-  ): Promise<PaginationResponse<unknown> | ApiResponse<unknown>> {
+  ): Promise<
+    PaginationResponse<UserResponseDto> | ApiResponse<UserResponseDto[]>
+  > {
     // 构建查询条件
     const where: Prisma.UserWhereInput = {};
 
@@ -136,14 +145,37 @@ export class UsersService extends BaseService {
     };
 
     if (query && (query.page || query.pageSize)) {
-      return this.paginateWithSortAndResponse(
+      const result = (await this.paginateWithSortAndResponse(
         this.prisma.user,
         query,
         where,
         include,
         'createdAt',
         '用户列表查询成功',
-      );
+      )) as PaginationResponse<any>;
+
+      if (
+        'data' in result &&
+        result.data &&
+        'items' in result.data &&
+        Array.isArray(result.data.items)
+      ) {
+        const transformedItems = plainToInstance(
+          UserResponseDto,
+          result.data.items,
+          {
+            excludeExtraneousValues: true,
+          },
+        );
+        return {
+          ...result,
+          data: {
+            ...result.data,
+            items: transformedItems,
+          },
+        } as PaginationResponse<UserResponseDto>;
+      }
+      return result as PaginationResponse<UserResponseDto>;
     }
 
     const users = await this.prisma.user.findMany({
@@ -155,7 +187,6 @@ export class UsersService extends BaseService {
         nickname: true,
         phone: true,
         avatar: true,
-        remark: true,
         status: true,
         createdAt: true,
         updatedAt: true,
@@ -183,12 +214,15 @@ export class UsersService extends BaseService {
         : { createdAt: 'desc' },
     });
 
-    return ResponseUtil.found(users, '用户列表查询成功');
+    const userResponses = plainToInstance(UserResponseDto, users, {
+      excludeExtraneousValues: true,
+    });
+    return ResponseUtil.found(userResponses, '用户列表查询成功');
   }
 
-  async findOne(id: number): Promise<ApiResponse<unknown>> {
+  async findOne(userId: string): Promise<ApiResponse<UserResponseDto>> {
     const user = await this.prisma.user.findUnique({
-      where: { id },
+      where: { userId: userId },
       select: {
         id: true,
         email: true,
@@ -222,10 +256,13 @@ export class UsersService extends BaseService {
     });
 
     if (!user) {
-      throw new NotFoundException(`用户ID ${id} 不存在`);
+      throw new NotFoundException(`用户ID ${userId} 不存在`);
     }
 
-    return ResponseUtil.found(user, '用户查询成功');
+    const userResponse = plainToInstance(UserResponseDto, user, {
+      excludeExtraneousValues: true,
+    });
+    return ResponseUtil.found(userResponse, '用户查询成功');
   }
 
   async findOneByEmail(email: string) {
@@ -233,6 +270,7 @@ export class UsersService extends BaseService {
       where: { email },
       select: {
         id: true,
+        userId: true,
         email: true,
         username: true,
         nickname: true,
@@ -277,6 +315,7 @@ export class UsersService extends BaseService {
       },
       select: {
         id: true,
+        userId: true,
         email: true,
         username: true,
         nickname: true,
@@ -314,119 +353,14 @@ export class UsersService extends BaseService {
     });
   }
 
-  async findOneByUserId(userId: string) {
-    const user = await this.prisma.user.findFirst({
-      where: { id: parseInt(userId) },
-      select: {
-        id: true,
-        email: true,
-        username: true,
-        nickname: true,
-        phone: true,
-        avatar: true,
-        remark: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-        department: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        position: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        roles: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
-
-    if (!user) {
-      throw new NotFoundException('用户不存在');
-    }
-
-    return user;
-  }
-
-  async update(id: number, updateUserDto: UpdateUserDto) {
-    const { password, departmentId, positionId, ...rest } = updateUserDto;
-    let hashedPassword: string | undefined;
-
-    if (password) {
-      hashedPassword = await bcrypt.hash(password, 10);
-    }
+  async update(
+    userId: string,
+    updateUserDto: UpdateUserDto,
+  ): Promise<UserResponseDto> {
+    const { departmentId, positionId, ...rest } = updateUserDto;
 
     const user = await this.prisma.user.findUnique({
-      where: { id },
-    });
-
-    if (!user) {
-      throw new NotFoundException(`用户ID ${id} 不存在`);
-    }
-
-    // 验证部门是否存在
-    if (departmentId) {
-      const department = await this.prisma.department.findUnique({
-        where: { id: departmentId },
-      });
-      if (!department) {
-        throw new NotFoundException('部门不存在');
-      }
-    }
-
-    // 验证岗位是否存在
-    if (positionId) {
-      const position = await this.prisma.position.findUnique({
-        where: { id: positionId },
-      });
-      if (!position) {
-        throw new NotFoundException('岗位不存在');
-      }
-
-      // 如果指定了部门，检查岗位是否属于该部门
-      if (departmentId && position.departmentId !== departmentId) {
-        throw new ConflictException('岗位不属于指定的部门');
-      }
-    }
-
-    return this.prisma.user.update({
-      where: { id },
-      data: {
-        ...rest,
-        ...(hashedPassword && { password: hashedPassword }),
-        departmentId,
-        positionId,
-      },
-      include: {
-        roles: {
-          include: {
-            permissions: true,
-          },
-        },
-        department: true,
-        position: true,
-      },
-    });
-  }
-
-  async updateByUserId(userId: string, updateUserDto: UpdateUserDto) {
-    const { password, departmentId, positionId, ...rest } = updateUserDto;
-    let hashedPassword: string | undefined;
-
-    if (password) {
-      hashedPassword = await bcrypt.hash(password, 10);
-    }
-
-    const user = await this.prisma.user.findFirst({
-      where: { id: parseInt(userId) },
+      where: { userId: userId },
     });
 
     if (!user) {
@@ -458,21 +392,49 @@ export class UsersService extends BaseService {
       }
     }
 
-    const result = await this.prisma.user.updateMany({
-      where: { id: parseInt(userId) },
+    const updatedUser = await this.prisma.user.update({
+      where: { userId: userId },
       data: {
         ...rest,
-        ...(hashedPassword && { password: hashedPassword }),
         departmentId,
         positionId,
       },
+      select: {
+        id: true,
+        userId: true,
+        email: true,
+        username: true,
+        nickname: true,
+        phone: true,
+        avatar: true,
+        remark: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        roles: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        department: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        position: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     });
 
-    if (result.count === 0) {
-      throw new NotFoundException('用户更新失败');
-    }
-
-    return await this.findOneByUserId(userId);
+    return plainToInstance(UserResponseDto, updatedUser, {
+      excludeExtraneousValues: true,
+    });
   }
 
   async remove(id: number) {
@@ -491,14 +453,14 @@ export class UsersService extends BaseService {
 
   async removeByUserId(userId: string) {
     const user = await this.prisma.user.findFirst({
-      where: { id: parseInt(userId) },
+      where: { userId: userId },
     });
     if (!user) {
       throw new NotFoundException('用户不存在');
     }
 
     const result = await this.prisma.user.deleteMany({
-      where: { id: parseInt(userId) },
+      where: { userId: userId },
     });
 
     if (result.count === 0) {
@@ -509,60 +471,116 @@ export class UsersService extends BaseService {
   }
 
   // 为用户分配角色
-  async assignRoles(userId: string, roleIds: number[]) {
+  async assignRoles(
+    userId: string,
+    roleIds: number[],
+  ): Promise<UserResponseDto> {
     const user = await this.prisma.user.findFirst({
-      where: { id: parseInt(userId) },
+      where: { userId: userId },
     });
 
     if (!user) {
       throw new NotFoundException(`用户ID ${userId} 不存在`);
     }
 
-    return this.prisma.user.update({
+    const updatedUser = await this.prisma.user.update({
       where: { id: user.id },
       data: {
         roles: {
           set: roleIds.map((id) => ({ id })),
         },
       },
-      include: {
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        nickname: true,
+        phone: true,
+        avatar: true,
+        remark: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
         roles: {
-          include: {
-            permissions: true,
+          select: {
+            id: true,
+            name: true,
           },
         },
-        department: true,
-        position: true,
+        department: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        position: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
+    });
+
+    return plainToInstance(UserResponseDto, updatedUser, {
+      excludeExtraneousValues: true,
     });
   }
 
   // 移除用户的角色
-  async removeRoles(userId: string, roleIds: number[]) {
+  async removeRoles(
+    userId: string,
+    roleIds: number[],
+  ): Promise<UserResponseDto> {
     const user = await this.prisma.user.findFirst({
-      where: { id: parseInt(userId) },
+      where: { userId: userId },
     });
 
     if (!user) {
       throw new NotFoundException(`用户ID ${userId} 不存在`);
     }
 
-    return this.prisma.user.update({
+    const updatedUser = await this.prisma.user.update({
       where: { id: user.id },
       data: {
         roles: {
           disconnect: roleIds.map((id) => ({ id })),
         },
       },
-      include: {
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        nickname: true,
+        phone: true,
+        avatar: true,
+        remark: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
         roles: {
-          include: {
-            permissions: true,
+          select: {
+            id: true,
+            name: true,
           },
         },
-        department: true,
-        position: true,
+        department: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        position: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
+    });
+
+    return plainToInstance(UserResponseDto, updatedUser, {
+      excludeExtraneousValues: true,
     });
   }
 }

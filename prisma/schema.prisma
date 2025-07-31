@@ -14,29 +14,30 @@ datasource db {
 }
 
 model User {
-  id           Int        @id @default(autoincrement())
-  userId       String     @unique @default(uuid())
-  email        String?    @unique
-  username     String     @unique
-  nickname     String     // 昵称，必须
-  phone        String?    @unique
+  id           Int         @id @default(autoincrement())
+  userId       String      @unique @default(uuid())
+  email        String?     @unique
+  username     String      @unique
+  nickname     String // 昵称，必须
+  phone        String?     @unique
   password     String
   avatar       String?
-  remark       String?    // 备注信息
-  status       Int        @default(1) // 0: 禁用, 1: 启用, 2: 审核中, 3: 封禁
+  remark       String? // 备注信息
+  status       Int         @default(1) // 0: 禁用, 1: 启用, 2: 审核中, 3: 封禁
   departmentId Int?
   department   Department? @relation(fields: [departmentId], references: [id])
   positionId   Int?
-  position     Position?  @relation(fields: [positionId], references: [id])
+  position     Position?   @relation(fields: [positionId], references: [id])
   roles        Role[]
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
   @@map("users")
 }
 
 model Role {
   id          Int          @id @default(autoincrement())
+  roleId      String       @unique @default(uuid())
   name        String       @unique
   description String?
   users       User[]
@@ -49,6 +50,7 @@ model Role {
 
 model Permission {
   id          Int      @id @default(autoincrement())
+  permissionId String   @unique @default(uuid())
   name        String   @unique
   code        String   @unique
   description String?
@@ -60,25 +62,27 @@ model Permission {
 }
 
 model Department {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  code        String   @unique
-  description String?
-  parentId    Int?
-  parent      Department? @relation("DepartmentHierarchy", fields: [parentId], references: [id])
-  children    Department[] @relation("DepartmentHierarchy")
-  positions   Position[]
-  users       User[]
-  isActive    Boolean  @default(true)
-  sort        Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           Int          @id @default(autoincrement())
+  departmentId String       @unique @default(uuid())
+  name         String       @unique
+  code         String       @unique
+  description  String?
+  parentId     Int?
+  parent       Department?  @relation("DepartmentHierarchy", fields: [parentId], references: [id])
+  children     Department[] @relation("DepartmentHierarchy")
+  positions    Position[]
+  users        User[]
+  isActive     Boolean      @default(true)
+  sort         Int          @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
   @@map("departments")
 }
 
 model Position {
   id           Int        @id @default(autoincrement())
+  positionId   String     @unique @default(uuid())
   name         String     @unique
   code         String     @unique
   description  String?

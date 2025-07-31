@@ -1,7 +1,7 @@
 import { IRole } from './role.interface';
 
 export interface IUser {
-  id: number;
+  userId: string;
   email?: string | null;
   username: string;
   nickname: string;
