@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Get, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import {
   ApiOperation,
   ApiResponse,
@@ -8,6 +8,8 @@ import {
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { CurrentUserResponseDto } from './dto/current-user-response.dto';
+import { ApiResponse as IApiResponse } from '../../shared/interfaces/response.interface';
 import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
 import { CurrentUser } from '../../core/decorators/current-user.decorator';
 
@@ -61,7 +63,7 @@ export class AuthController {
   })
   @ApiResponse({ status: 400, description: '请求参数错误' })
   @ApiResponse({ status: 401, description: '邮箱已被注册' })
-  async register(@Body() registerDto: RegisterDto) {
+  async register(@Body() registerDto: RegisterDto): Promise<any> {
     return this.authService.register(registerDto);
   }
 
@@ -85,7 +87,7 @@ export class AuthController {
     },
   })
   @ApiResponse({ status: 401, description: '用户名/邮箱或密码错误' })
-  async login(@Body() loginDto: LoginDto) {
+  async login(@Body() loginDto: LoginDto): Promise<any> {
     return this.authService.login(loginDto);
   }
 
@@ -96,49 +98,7 @@ export class AuthController {
   @ApiResponse({
     status: 200,
     description: '成功获取当前用户信息',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'number', description: '用户ID' },
-        username: { type: 'string', description: '用户名' },
-        email: { type: 'string', description: '邮箱' },
-        name: { type: 'string', description: '姓名' },
-        phone: { type: 'string', description: '电话' },
-        avatar: { type: 'string', description: '头像' },
-        status: { type: 'string', description: '状态' },
-        departmentId: { type: 'number', description: '部门ID' },
-        positionId: { type: 'number', description: '职位ID' },
-        createdAt: { type: 'string', description: '创建时间' },
-        updatedAt: { type: 'string', description: '更新时间' },
-        roles: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              id: { type: 'number', description: '角色ID' },
-              name: { type: 'string', description: '角色名称' },
-              description: { type: 'string', description: '角色描述' },
-            },
-          },
-        },
-        department: {
-          type: 'object',
-          properties: {
-            id: { type: 'number', description: '部门ID' },
-            name: { type: 'string', description: '部门名称' },
-            description: { type: 'string', description: '部门描述' },
-          },
-        },
-        position: {
-          type: 'object',
-          properties: {
-            id: { type: 'number', description: '职位ID' },
-            name: { type: 'string', description: '职位名称' },
-            description: { type: 'string', description: '职位描述' },
-          },
-        },
-      },
-    },
+    type: CurrentUserResponseDto,
   })
   @ApiResponse({
     status: 401,
@@ -196,7 +156,9 @@ export class AuthController {
       },
     },
   })
-  profile(@CurrentUser() user: { userId: string }) {
+  profile(
+    @CurrentUser() user: { userId: string },
+  ): Promise<IApiResponse<CurrentUserResponseDto>> {
     return this.authService.getCurrentUser(user.userId);
   }
 

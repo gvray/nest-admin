@@ -3,9 +3,11 @@ import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
-import * as bcrypt from 'bcrypt';
+import { CurrentUserResponseDto } from './dto/current-user-response.dto';
 import { ResponseUtil } from '../../shared/utils/response.util';
 import { ApiResponse } from '../../shared/interfaces/response.interface';
+import { plainToInstance } from 'class-transformer';
+import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UserStatus } from '../../shared/constants/user-status.constant';
 
@@ -75,24 +77,24 @@ export class AuthService {
     try {
       // 直接从数据库查询用户，包含密码字段
       const user = await this.prisma.user.findFirst({
-         where: {
-           OR: [{ email: account }, { username: account }, { phone: account }],
-         },
-         include: {
-           roles: true,
-           department: true,
-           position: true,
-         },
-       });
+        where: {
+          OR: [{ email: account }, { username: account }, { phone: account }],
+        },
+        include: {
+          roles: true,
+          department: true,
+          position: true,
+        },
+      });
 
-       if (user && (await bcrypt.compare(password, user.password))) {
-         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-         const { password: _, ...result } = user;
-         return result;
-       }
-     } catch {
-       // 查询出错
-     }
+      if (user && (await bcrypt.compare(password, user.password))) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { password: _, ...result } = user;
+        return result;
+      }
+    } catch {
+      // 查询出错
+    }
     return null;
   }
 
@@ -115,17 +117,50 @@ export class AuthService {
     return ResponseUtil.success(result, '登录成功');
   }
 
-  async getCurrentUser(userId: string): Promise<ApiResponse<unknown>> {
+  async getCurrentUser(
+    userId: string,
+  ): Promise<ApiResponse<CurrentUserResponseDto>> {
     const user = await this.usersService['prisma'].user.findUnique({
       where: { userId: userId },
-      include: {
+      select: {
+        userId: true,
+        username: true,
+        nickname: true,
+        email: true,
+        phone: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        avatar: true,
         roles: {
-          include: {
-            permissions: true,
+          select: {
+            roleId: true,
+            name: true,
+            description: true,
+            permissions: {
+              select: {
+                permissionId: true,
+                name: true,
+                code: true,
+                description: true,
+              },
+            },
           },
         },
-        department: true,
-        position: true,
+        department: {
+          select: {
+            departmentId: true,
+            name: true,
+            description: true,
+          },
+        },
+        position: {
+          select: {
+            positionId: true,
+            name: true,
+            description: true,
+          },
+        },
       },
     });
 
@@ -133,11 +168,11 @@ export class AuthService {
       throw new UnauthorizedException('用户不存在');
     }
 
-    // 移除密码字段
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password: _, ...userWithoutPassword } = user;
+    const userResponse = plainToInstance(CurrentUserResponseDto, user, {
+      excludeExtraneousValues: true,
+    });
 
-    return ResponseUtil.success(userWithoutPassword, '获取用户信息成功');
+    return ResponseUtil.success(userResponse, '获取用户信息成功');
   }
 
   logout(): ApiResponse<unknown> {
