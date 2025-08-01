@@ -34,7 +34,7 @@ export class UsersService extends BaseService {
     // 验证部门是否存在
     if (departmentId) {
       const department = await this.prisma.department.findUnique({
-        where: { id: departmentId },
+        where: { departmentId: departmentId },
       });
       if (!department) {
         throw new NotFoundException('部门不存在');
@@ -44,14 +44,15 @@ export class UsersService extends BaseService {
     // 验证岗位是否存在
     if (positionId) {
       const position = await this.prisma.position.findUnique({
-        where: { id: positionId },
+        where: { positionId: positionId },
+        include: { department: true },
       });
       if (!position) {
         throw new NotFoundException('岗位不存在');
       }
 
       // 如果指定了部门，检查岗位是否属于该部门
-      if (departmentId && position.departmentId !== departmentId) {
+      if (departmentId && position.department.departmentId !== departmentId) {
         throw new ConflictException('岗位不属于指定的部门');
       }
     }
@@ -60,8 +61,8 @@ export class UsersService extends BaseService {
       data: {
         ...rest,
         password: hashedPassword,
-        departmentId,
-        positionId,
+        department: departmentId ? { connect: { departmentId } } : undefined,
+        position: positionId ? { connect: { positionId } } : undefined,
         status: rest.status ?? UserStatus.ENABLED,
       },
       include: {
@@ -126,19 +127,19 @@ export class UsersService extends BaseService {
     const include = {
       roles: {
         select: {
-          id: true,
+          roleId: true,
           name: true,
         },
       },
       department: {
         select: {
-          id: true,
+          departmentId: true,
           name: true,
         },
       },
       position: {
         select: {
-          id: true,
+          positionId: true,
           name: true,
         },
       },
@@ -181,7 +182,7 @@ export class UsersService extends BaseService {
     const users = await this.prisma.user.findMany({
       where,
       select: {
-        id: true,
+        userId: true,
         email: true,
         username: true,
         nickname: true,
@@ -192,19 +193,19 @@ export class UsersService extends BaseService {
         updatedAt: true,
         roles: {
           select: {
-            id: true,
+            roleId: true,
             name: true,
           },
         },
         department: {
           select: {
-            id: true,
+            departmentId: true,
             name: true,
           },
         },
         position: {
           select: {
-            id: true,
+            positionId: true,
             name: true,
           },
         },
@@ -224,31 +225,30 @@ export class UsersService extends BaseService {
     const user = await this.prisma.user.findUnique({
       where: { userId: userId },
       select: {
-        id: true,
+        userId: true,
         email: true,
         username: true,
         nickname: true,
         phone: true,
         avatar: true,
-        remark: true,
         status: true,
         createdAt: true,
         updatedAt: true,
         roles: {
           select: {
-            id: true,
+            roleId: true,
             name: true,
           },
         },
         department: {
           select: {
-            id: true,
+            departmentId: true,
             name: true,
           },
         },
         position: {
           select: {
-            id: true,
+            positionId: true,
             name: true,
           },
         },
@@ -265,94 +265,6 @@ export class UsersService extends BaseService {
     return ResponseUtil.found(userResponse, '用户查询成功');
   }
 
-  async findOneByEmail(email: string) {
-    return this.prisma.user.findUnique({
-      where: { email },
-      select: {
-        id: true,
-        userId: true,
-        email: true,
-        username: true,
-        nickname: true,
-        avatar: true,
-        status: true,
-        password: true,
-        createdAt: true,
-        updatedAt: true,
-        roles: {
-          select: {
-            id: true,
-            name: true,
-            permissions: {
-              select: {
-                id: true,
-                name: true,
-                code: true,
-              },
-            },
-          },
-        },
-        department: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        position: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
-  }
-
-  async findOneByAccount(account: string) {
-    return this.prisma.user.findFirst({
-      where: {
-        OR: [{ email: account }, { username: account }, { phone: account }],
-      },
-      select: {
-        id: true,
-        userId: true,
-        email: true,
-        username: true,
-        nickname: true,
-        avatar: true,
-        status: true,
-        password: true,
-        createdAt: true,
-        updatedAt: true,
-        roles: {
-          select: {
-            id: true,
-            name: true,
-            permissions: {
-              select: {
-                id: true,
-                name: true,
-                code: true,
-              },
-            },
-          },
-        },
-        department: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        position: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
-  }
-
   async update(
     userId: string,
     updateUserDto: UpdateUserDto,
@@ -360,7 +272,7 @@ export class UsersService extends BaseService {
     const { departmentId, positionId, ...rest } = updateUserDto;
 
     const user = await this.prisma.user.findUnique({
-      where: { userId: userId },
+      where: { userId },
     });
 
     if (!user) {
@@ -370,7 +282,7 @@ export class UsersService extends BaseService {
     // 验证部门是否存在
     if (departmentId) {
       const department = await this.prisma.department.findUnique({
-        where: { id: departmentId },
+        where: { departmentId: departmentId },
       });
       if (!department) {
         throw new NotFoundException('部门不存在');
@@ -380,52 +292,51 @@ export class UsersService extends BaseService {
     // 验证岗位是否存在
     if (positionId) {
       const position = await this.prisma.position.findUnique({
-        where: { id: positionId },
+        where: { positionId: positionId },
+        include: { department: true },
       });
       if (!position) {
         throw new NotFoundException('岗位不存在');
       }
 
       // 如果指定了部门，检查岗位是否属于该部门
-      if (departmentId && position.departmentId !== departmentId) {
+      if (departmentId && position.department.departmentId !== departmentId) {
         throw new ConflictException('岗位不属于指定的部门');
       }
     }
 
     const updatedUser = await this.prisma.user.update({
-      where: { userId: userId },
+      where: { userId: user.userId },
       data: {
         ...rest,
-        departmentId,
-        positionId,
+        department: departmentId ? { connect: { departmentId } } : undefined,
+        position: positionId ? { connect: { positionId } } : undefined,
       },
       select: {
-        id: true,
         userId: true,
         email: true,
         username: true,
         nickname: true,
         phone: true,
         avatar: true,
-        remark: true,
         status: true,
         createdAt: true,
         updatedAt: true,
         roles: {
           select: {
-            id: true,
+            roleId: true,
             name: true,
           },
         },
         department: {
           select: {
-            id: true,
+            departmentId: true,
             name: true,
           },
         },
         position: {
           select: {
-            id: true,
+            positionId: true,
             name: true,
           },
         },
@@ -437,46 +348,27 @@ export class UsersService extends BaseService {
     });
   }
 
-  async remove(id: number) {
+  async remove(userId: string) {
     const user = await this.prisma.user.findUnique({
-      where: { id },
+      where: { userId },
     });
 
     if (!user) {
-      throw new NotFoundException(`用户ID ${id} 不存在`);
+      throw new NotFoundException(`用户ID ${userId} 不存在`);
     }
 
     return this.prisma.user.delete({
-      where: { id },
+      where: { userId: user.userId },
     });
-  }
-
-  async removeByUserId(userId: string) {
-    const user = await this.prisma.user.findFirst({
-      where: { userId: userId },
-    });
-    if (!user) {
-      throw new NotFoundException('用户不存在');
-    }
-
-    const result = await this.prisma.user.deleteMany({
-      where: { userId: userId },
-    });
-
-    if (result.count === 0) {
-      throw new NotFoundException('用户删除失败');
-    }
-
-    return { message: '用户删除成功' };
   }
 
   // 为用户分配角色
   async assignRoles(
     userId: string,
-    roleIds: number[],
+    roleIds: string[],
   ): Promise<UserResponseDto> {
-    const user = await this.prisma.user.findFirst({
-      where: { userId: userId },
+    const user = await this.prisma.user.findUnique({
+      where: { userId },
     });
 
     if (!user) {
@@ -484,38 +376,37 @@ export class UsersService extends BaseService {
     }
 
     const updatedUser = await this.prisma.user.update({
-      where: { id: user.id },
+      where: { userId: user.userId },
       data: {
         roles: {
-          set: roleIds.map((id) => ({ id })),
+          set: roleIds.map((roleId) => ({ roleId: roleId })),
         },
       },
       select: {
-        id: true,
+        userId: true,
         email: true,
         username: true,
         nickname: true,
         phone: true,
         avatar: true,
-        remark: true,
         status: true,
         createdAt: true,
         updatedAt: true,
         roles: {
           select: {
-            id: true,
+            roleId: true,
             name: true,
           },
         },
         department: {
           select: {
-            id: true,
+            departmentId: true,
             name: true,
           },
         },
         position: {
           select: {
-            id: true,
+            positionId: true,
             name: true,
           },
         },
@@ -530,10 +421,10 @@ export class UsersService extends BaseService {
   // 移除用户的角色
   async removeRoles(
     userId: string,
-    roleIds: number[],
+    roleIds: string[],
   ): Promise<UserResponseDto> {
-    const user = await this.prisma.user.findFirst({
-      where: { userId: userId },
+    const user = await this.prisma.user.findUnique({
+      where: { userId },
     });
 
     if (!user) {
@@ -541,38 +432,37 @@ export class UsersService extends BaseService {
     }
 
     const updatedUser = await this.prisma.user.update({
-      where: { id: user.id },
+      where: { userId: user.userId },
       data: {
         roles: {
-          disconnect: roleIds.map((id) => ({ id })),
+          disconnect: roleIds.map((roleId) => ({ roleId: roleId })),
         },
       },
       select: {
-        id: true,
+        userId: true,
         email: true,
         username: true,
         nickname: true,
         phone: true,
         avatar: true,
-        remark: true,
         status: true,
         createdAt: true,
         updatedAt: true,
         roles: {
           select: {
-            id: true,
+            roleId: true,
             name: true,
           },
         },
         department: {
           select: {
-            id: true,
+            departmentId: true,
             name: true,
           },
         },
         position: {
           select: {
-            id: true,
+            positionId: true,
             name: true,
           },
         },

@@ -1,7 +1,6 @@
 import {
   IsEmail,
   IsEnum,
-  IsInt,
   IsOptional,
   IsString,
   MaxLength,
@@ -65,13 +64,19 @@ export class CreateUserDto {
   @IsEnum(UserStatus, { message: '用户状态必须是有效的枚举值' })
   status?: UserStatus;
 
-  @ApiPropertyOptional({ description: '部门ID' })
+  @ApiPropertyOptional({
+    description: '部门ID（UUID）',
+    example: '550e8400-e29b-41d4-a716-446655440001',
+  })
   @IsOptional()
-  @IsInt({ message: '部门ID必须是整数' })
-  departmentId?: number;
+  @IsString({ message: '部门ID必须是字符串' })
+  departmentId?: string;
 
-  @ApiPropertyOptional({ description: '岗位ID' })
+  @ApiPropertyOptional({
+    description: '岗位ID（UUID）',
+    example: '550e8400-e29b-41d4-a716-446655440002',
+  })
   @IsOptional()
-  @IsInt({ message: '岗位ID必须是整数' })
-  positionId?: number;
+  @IsString({ message: '岗位ID必须是字符串' })
+  positionId?: string;
 }

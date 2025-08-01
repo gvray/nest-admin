@@ -12,7 +12,7 @@ export class RoleResponseDto {
     example: 'a3d7d76e-5a4e-4f0a-93c3-d0b2b27d471e',
   })
   @Expose()
-  roleId: string
+  roleId: string;
 
   @ApiProperty({ description: '角色名称' })
   @Expose()

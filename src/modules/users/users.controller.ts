@@ -95,7 +95,7 @@ export class UsersController {
   @ApiResponse({ status: 200, description: '删除成功' })
   @ApiResponse({ status: 404, description: '用户不存在' })
   remove(@Param('userId') userId: string) {
-    return this.usersService.removeByUserId(userId);
+    return this.usersService.remove(userId);
   }
 
   @Post(':userId/roles')

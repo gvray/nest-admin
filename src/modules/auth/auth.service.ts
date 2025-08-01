@@ -6,6 +6,7 @@ import { RegisterDto } from './dto/register.dto';
 import * as bcrypt from 'bcrypt';
 import { ResponseUtil } from '../../shared/utils/response.util';
 import { ApiResponse } from '../../shared/interfaces/response.interface';
+import { PrismaService } from '../../prisma/prisma.service';
 import { UserStatus } from '../../shared/constants/user-status.constant';
 
 @Injectable()
@@ -13,6 +14,7 @@ export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async register(registerDto: RegisterDto): Promise<ApiResponse<unknown>> {
@@ -20,9 +22,14 @@ export class AuthService {
 
     // 检查邮箱是否已存在（如果提供了邮箱）
     if (email) {
-      const existingUser = await this.usersService.findOneByEmail(email);
-      if (existingUser) {
+      try {
+        await this.usersService.findOne(email);
         throw new UnauthorizedException('邮箱已被注册');
+      } catch (error) {
+        // 用户不存在是正常情况，可以继续注册
+        if (error instanceof UnauthorizedException) {
+          throw error;
+        }
       }
     }
 
@@ -65,12 +72,27 @@ export class AuthService {
   }
 
   async validateUser(account: string, password: string) {
-    const user = await this.usersService.findOneByAccount(account);
-    if (user && (await bcrypt.compare(password, user.password))) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { password: _, ...result } = user;
-      return result;
-    }
+    try {
+      // 直接从数据库查询用户，包含密码字段
+      const user = await this.prisma.user.findFirst({
+         where: {
+           OR: [{ email: account }, { username: account }, { phone: account }],
+         },
+         include: {
+           roles: true,
+           department: true,
+           position: true,
+         },
+       });
+
+       if (user && (await bcrypt.compare(password, user.password))) {
+         // eslint-disable-next-line @typescript-eslint/no-unused-vars
+         const { password: _, ...result } = user;
+         return result;
+       }
+     } catch {
+       // 查询出错
+     }
     return null;
   }
 
