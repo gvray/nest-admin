@@ -2,18 +2,27 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
+import { QueryRoleDto } from './dto/query-role.dto';
+import { BaseService } from '../../shared/services/base.service';
+import { Prisma } from '@prisma/client';
+import { ApiResponse, PaginationResponse } from '../../shared/interfaces/response.interface';
 
 @Injectable()
-export class RolesService {
-  constructor(private readonly prisma: PrismaService) {}
+export class RolesService extends BaseService {
+  constructor(protected readonly prisma: PrismaService) {
+    super(prisma);
+  }
 
-  async create(createRoleDto: CreateRoleDto) {
-    const { name, description, permissionIds } = createRoleDto;
+  async create(createRoleDto: CreateRoleDto, currentUserId?: string) {
+    const { name, description, remark, sort, permissionIds } = createRoleDto;
 
     const role = await this.prisma.role.create({
       data: {
         name,
         description,
+        remark,
+        sort: sort ?? 0,
+        createdById: currentUserId,
       },
     });
 
@@ -23,6 +32,7 @@ export class RolesService {
         data: permissionIds.map((permissionId) => ({
           roleId: role.id,
           permissionId,
+          createdById: currentUserId,
         })),
       });
     }
@@ -43,27 +53,91 @@ export class RolesService {
     });
   }
 
-  async findAll() {
-    return this.prisma.role.findMany({
-      include: {
-        rolePermissions: {
-          include: {
-            permission: {
-              include: {
-                resource: true,
-              },
-            },
-          },
+  async findAll(
+    query?: QueryRoleDto,
+  ): Promise<PaginationResponse<any> | ApiResponse<any[]>> {
+    // 构建查询条件
+    const where: Prisma.RoleWhereInput = {};
+
+    if (query?.name) {
+      where.name = {
+        contains: query.name,
+      };
+    }
+
+    if (query?.description) {
+      where.description = {
+        contains: query.description,
+      };
+    }
+
+    // 基本字段选择，不包含关联数据
+    const select = {
+      id: true,
+      name: true,
+      description: true,
+      remark: true,
+      sort: true,
+      createdAt: true,
+      updatedAt: true,
+    };
+
+    if (query && (query.page || query.pageSize)) {
+      // 分页查询
+      const page = query.page || 1;
+      const pageSize = query.pageSize || 10;
+      const skip = (page - 1) * pageSize;
+
+      const [roles, totalItems] = await Promise.all([
+        this.prisma.role.findMany({
+          where,
+          select,
+          skip,
+          take: pageSize,
+          orderBy: [
+            { sort: 'asc' },
+            { createdAt: 'desc' },
+          ],
+        }),
+        this.prisma.role.count({ where }),
+      ]);
+
+      const totalPages = Math.ceil(totalItems / pageSize);
+
+      return {
+        success: true,
+        code: 200,
+        message: '角色列表查询成功',
+        data: {
+          items: roles,
+          total: totalItems,
+          page,
+          pageSize,
+          totalPages,
+          hasNext: page < totalPages,
+          hasPrev: page > 1,
         },
-        users: {
-          select: {
-            id: true,
-            username: true,
-            nickname: true,
-          },
-        },
-      },
+        timestamp: new Date().toISOString(),
+      };
+    }
+
+    // 返回所有结果（不分页）
+    const roles = await this.prisma.role.findMany({
+      where,
+      select,
+      orderBy: [
+        { sort: 'asc' },
+        { createdAt: 'desc' },
+      ],
     });
+
+    return {
+      success: true,
+      code: 200,
+      message: '角色列表查询成功',
+      data: roles,
+      timestamp: new Date().toISOString(),
+    };
   }
 
   async findOne(id: number) {
@@ -97,8 +171,8 @@ export class RolesService {
     return role;
   }
 
-  async update(id: number, updateRoleDto: UpdateRoleDto) {
-    const { name, description, permissionIds } = updateRoleDto;
+  async update(id: number, updateRoleDto: UpdateRoleDto, currentUserId?: string) {
+    const { name, description, remark, sort, permissionIds } = updateRoleDto;
 
     const role = await this.prisma.role.findUnique({
       where: { id },
@@ -114,6 +188,9 @@ export class RolesService {
       data: {
         name,
         description,
+        remark,
+        sort,
+        updatedById: currentUserId,
       },
     });
 

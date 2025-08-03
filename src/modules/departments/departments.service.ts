@@ -93,7 +93,6 @@ export class DepartmentsService {
           _count: {
             select: {
               users: true,
-              positions: true,
             },
           },
         },
@@ -124,11 +123,6 @@ export class DepartmentsService {
           include: {
             roles: true,
             position: true,
-          },
-        },
-        positions: {
-          include: {
-            users: true,
           },
         },
       },
@@ -231,7 +225,6 @@ export class DepartmentsService {
       include: {
         children: true,
         users: true,
-        positions: true,
       },
     });
 
@@ -249,10 +242,7 @@ export class DepartmentsService {
       throw new ConflictException('该部门下还有用户，无法删除');
     }
 
-    // 检查是否有岗位
-    if (department.positions && department.positions.length > 0) {
-      throw new ConflictException('该部门下还有岗位，无法删除');
-    }
+
 
     await this.prisma.department.delete({
       where: { id },

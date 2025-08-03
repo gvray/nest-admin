@@ -45,15 +45,9 @@ export class UsersService extends BaseService {
     if (positionId) {
       const position = await this.prisma.position.findUnique({
         where: { positionId: positionId },
-        include: { department: true },
       });
       if (!position) {
         throw new NotFoundException('岗位不存在');
-      }
-
-      // 如果指定了部门，检查岗位是否属于该部门
-      if (departmentId && position.department.departmentId !== departmentId) {
-        throw new ConflictException('岗位不属于指定的部门');
       }
     }
 
@@ -293,15 +287,9 @@ export class UsersService extends BaseService {
     if (positionId) {
       const position = await this.prisma.position.findUnique({
         where: { positionId: positionId },
-        include: { department: true },
       });
       if (!position) {
         throw new NotFoundException('岗位不存在');
-      }
-
-      // 如果指定了部门，检查岗位是否属于该部门
-      if (departmentId && position.department.departmentId !== departmentId) {
-        throw new ConflictException('岗位不属于指定的部门');
       }
     }
 

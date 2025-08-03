@@ -1,8 +1,9 @@
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { EmptyStringTransformPipe } from './core/pipes/empty-string-transform.pipe';
+import { AuditInterceptor } from './core/interceptors/audit.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -63,6 +64,9 @@ async function bootstrap() {
     );
     console.log('💡 Tip: Configure CORS in your nginx.conf or apache.conf');
   }
+
+  // 全局拦截器：审计拦截器
+  app.useGlobalInterceptors(new AuditInterceptor(app.get(Reflector)));
 
   // 全局管道：先转换空字符串，再进行验证
   app.useGlobalPipes(

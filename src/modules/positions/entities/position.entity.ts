@@ -13,16 +13,8 @@ export class PositionEntity {
   @ApiPropertyOptional({ description: '岗位描述' })
   description?: string | null;
 
-  @ApiProperty({ description: '所属部门ID' })
-  departmentId: number;
-
-  @ApiPropertyOptional({ description: '所属部门信息' })
-  department?: {
-    id: number;
-    name: string;
-    code: string;
-    description?: string | null;
-  };
+  @ApiPropertyOptional({ description: '备注信息' })
+  remark?: string | null;
 
   @ApiPropertyOptional({ description: '用户列表' })
   users?: {

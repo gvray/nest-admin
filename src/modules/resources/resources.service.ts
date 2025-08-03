@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateResourceDto } from './dto/create-resource.dto';
 import { UpdateResourceDto } from './dto/update-resource.dto';
 import { ResourceResponseDto } from './dto/resource-response.dto';
+import { QueryResourceDto } from './dto/query-resource.dto';
 import { ApiResponse } from '../../shared/interfaces/response.interface';
 import { plainToInstance } from 'class-transformer';
 import { ResourceType } from '@prisma/client';
@@ -35,6 +36,12 @@ export class ResourcesService {
     if (existingNameResource) {
       throw new ConflictException('资源名称已存在');
     }
+
+    // 验证资源层级关系
+    await this.validateResourceHierarchy(
+      createResourceDto.type,
+      createResourceDto.parentResourceId,
+    );
 
     // 如果有父级资源，检查父级资源是否存在
     let parentId: string | null = null;
@@ -86,9 +93,6 @@ export class ResourcesService {
         { sort: 'asc' },
         { createdAt: 'asc' },
       ],
-      include: {
-        parent: true,
-      },
     });
 
     const responseData = resources.map(resource => plainToInstance(
@@ -105,38 +109,76 @@ export class ResourcesService {
     };
   }
 
-  async findTree(): Promise<ApiResponse<ResourceResponseDto[]>> {
-    const allResources = await this.prisma.resource.findMany({
-      where: { status: 1 },
-      orderBy: [
-        { parentId: 'asc' },
-        { sort: 'asc' },
-        { createdAt: 'asc' },
-      ],
-      include: {
-        parent: true,
-        children: {
-          where: { status: 1 },
-          orderBy: [
-            { sort: 'asc' },
-            { createdAt: 'asc' },
-          ],
-        },
-      },
-    });
+  async findTree(queryDto?: QueryResourceDto): Promise<ApiResponse<ResourceResponseDto[]>> {
+    const hasFilters = queryDto?.name || queryDto?.code || queryDto?.type;
+    const filterMode = queryDto?.filterMode || 'strict';
 
-    const treeResources = this.buildMenuTree(allResources.map(resource => plainToInstance(
-      ResourceResponseDto,
-      resource,
-    )));
+    if (!hasFilters) {
+      // 没有过滤条件，返回所有资源
+      const allResources = await this.prisma.resource.findMany({
+        where: { status: queryDto?.status ?? 1 },
+        orderBy: [
+          { parentId: 'asc' },
+          { sort: 'asc' },
+          { createdAt: 'asc' },
+        ],
+      });
 
-    return {
-      success: true,
-      code: 200,
-      message: '查询成功',
-      data: treeResources,
-      timestamp: new Date().toISOString(),
-    };
+      const treeResources = this.buildMenuTreeForResponse(allResources.map(resource => plainToInstance(
+        ResourceResponseDto,
+        resource,
+      )));
+
+      return {
+        success: true,
+        code: 200,
+        message: '查询成功',
+        data: treeResources,
+        timestamp: new Date().toISOString(),
+      };
+    }
+
+    if (filterMode === 'strict') {
+      // 严格模式：只返回匹配条件的资源
+      const whereConditions: any = { status: queryDto?.status ?? 1 };
+
+      if (queryDto?.name) {
+        whereConditions.name = { contains: queryDto.name };
+      }
+
+      if (queryDto?.code) {
+        whereConditions.code = { contains: queryDto.code };
+      }
+
+      if (queryDto?.type) {
+        whereConditions.type = queryDto.type;
+      }
+
+      const filteredResources = await this.prisma.resource.findMany({
+        where: whereConditions,
+        orderBy: [
+          { parentId: 'asc' },
+          { sort: 'asc' },
+          { createdAt: 'asc' },
+        ],
+      });
+
+      const treeResources = this.buildMenuTreeForResponse(filteredResources.map(resource => plainToInstance(
+        ResourceResponseDto,
+        resource,
+      )));
+
+      return {
+        success: true,
+        code: 200,
+        message: '查询成功',
+        data: treeResources,
+        timestamp: new Date().toISOString(),
+      };
+    } else {
+      // 宽松模式：返回匹配的资源及其完整父级路径
+      return this.findTreeWithLooseFilter(queryDto);
+    }
   }
 
   async findMenus(): Promise<ApiResponse<ResourceResponseDto[]>> {
@@ -152,21 +194,6 @@ export class ResourcesService {
         { sort: 'asc' },
         { createdAt: 'asc' },
       ],
-      include: {
-        parent: true,
-        children: {
-          where: {
-            status: 1,
-            type: {
-              in: ['DIRECTORY', 'MENU'],
-            },
-          },
-          orderBy: [
-            { sort: 'asc' },
-            { createdAt: 'asc' },
-          ],
-        },
-      },
     });
 
     const treeMenuResources = this.buildMenuTreeForResponse(allMenuResources.map(resource => plainToInstance(
@@ -186,9 +213,6 @@ export class ResourcesService {
   async findOne(resourceId: string): Promise<ApiResponse<ResourceResponseDto>> {
     const resource = await this.prisma.resource.findUnique({
       where: { resourceId },
-      include: {
-        parent: true,
-      },
     });
 
     if (!resource) {
@@ -251,6 +275,17 @@ export class ResourcesService {
       }
     }
 
+    // 验证资源层级关系（如果类型或父级资源发生变化）
+    if (updateResourceDto.type || updateResourceDto.parentResourceId !== undefined) {
+      const typeToValidate = updateResourceDto.type || existingResource.type;
+      const parentResourceIdToValidate = 
+        updateResourceDto.parentResourceId !== undefined 
+          ? updateResourceDto.parentResourceId
+          : existingResource.parentId;
+      
+      await this.validateResourceHierarchy(typeToValidate, parentResourceIdToValidate);
+    }
+
     // 处理父级资源
     let parentId: string | null = existingResource.parentId;
     if (updateResourceDto.parentResourceId !== undefined) {
@@ -268,10 +303,10 @@ export class ResourcesService {
           throw new NotFoundException('父级资源不存在');
         }
 
-        // 检查是否会形成循环引用
+        // 检查是否会形成循环引用：不能将一个子级资源设置为父级
         const wouldCreateCycle = await this.isDescendant(
-          parentResource.resourceId,
           existingResource.resourceId,
+          parentResource.resourceId,
         );
         if (wouldCreateCycle) {
           throw new ConflictException('不能设置子级资源为父级资源');
@@ -371,7 +406,20 @@ export class ResourcesService {
       }
     });
 
-    return rootResources;
+    // 清理空的children数组
+    const cleanupEmptyChildren = (nodes: any[]): any[] => {
+      return nodes.map(node => {
+        const cleanNode = { ...node };
+        if (cleanNode.children && cleanNode.children.length > 0) {
+          cleanNode.children = cleanupEmptyChildren(cleanNode.children);
+        } else {
+          delete cleanNode.children;
+        }
+        return cleanNode;
+      });
+    };
+
+    return cleanupEmptyChildren(rootResources);
   }
 
   private buildMenuTreeForResponse(resources: any[]): any[] {
@@ -396,7 +444,96 @@ export class ResourcesService {
       }
     });
 
-    return rootResources;
+    // 清理空的children数组
+    const cleanupEmptyChildren = (nodes: any[]): any[] => {
+      return nodes.map(node => {
+        const cleanNode = { ...node };
+        if (cleanNode.children && cleanNode.children.length > 0) {
+          cleanNode.children = cleanupEmptyChildren(cleanNode.children);
+        } else {
+          delete cleanNode.children;
+        }
+        return cleanNode;
+      });
+    };
+
+    return cleanupEmptyChildren(rootResources);
+  }
+
+  /**
+   * 验证资源层级关系
+   * 规则：
+   * - 目录(DIRECTORY): 只能创建在顶级或目录下
+   * - 菜单(MENU): 只能创建在目录下
+   * - 按钮(BUTTON): 只能创建在菜单下
+   * - API: 只能创建在菜单下
+   * - 数据(DATA): 只能创建在菜单下
+   */
+  private async validateResourceHierarchy(
+    resourceType: string,
+    parentResourceId?: string | null,
+  ): Promise<void> {
+    // 如果没有父级资源，只有目录可以创建在顶级
+    if (!parentResourceId) {
+      if (resourceType !== 'DIRECTORY') {
+        throw new BadRequestException('只有目录可以创建在顶级');
+      }
+      return;
+    }
+
+    // 获取父级资源信息
+    const parentResource = await this.prisma.resource.findUnique({
+      where: { resourceId: parentResourceId },
+    });
+
+    if (!parentResource) {
+      throw new NotFoundException('父级资源不存在');
+    }
+
+    // 验证层级关系
+    switch (resourceType) {
+      case 'DIRECTORY':
+        // 目录只能创建在顶级或目录下
+        if (parentResource.type !== 'DIRECTORY') {
+          throw new BadRequestException('目录只能创建在顶级或目录下');
+        }
+        break;
+
+      case 'MENU':
+        // 菜单只能创建在目录下
+        if (parentResource.type !== 'DIRECTORY') {
+          throw new BadRequestException('菜单只能创建在目录下');
+        }
+        break;
+
+      case 'BUTTON':
+      case 'API':
+      case 'DATA':
+        // 按钮、API、数据只能创建在菜单下
+        if (parentResource.type !== 'MENU') {
+          throw new BadRequestException(
+            `${this.getResourceTypeName(resourceType)}只能创建在菜单下`,
+          );
+        }
+        break;
+
+      default:
+        throw new BadRequestException('无效的资源类型');
+    }
+  }
+
+  /**
+   * 获取资源类型的中文名称
+   */
+  private getResourceTypeName(type: string): string {
+    const typeNames = {
+      DIRECTORY: '目录',
+      MENU: '菜单',
+      BUTTON: '按钮',
+      API: 'API',
+      DATA: '数据',
+    };
+    return typeNames[type] || type;
   }
 
   private async isDescendant(
@@ -419,5 +556,99 @@ export class ResourcesService {
     }
 
     return this.isDescendant(ancestorId, resource.parent.resourceId);
+  }
+
+  /**
+   * 宽松过滤模式：返回匹配的资源及其完整父级路径
+   */
+  private async findTreeWithLooseFilter(queryDto: QueryResourceDto): Promise<ApiResponse<ResourceResponseDto[]>> {
+    // 构建过滤条件
+    const whereConditions: any = { status: queryDto?.status ?? 1 };
+
+    if (queryDto?.name) {
+      whereConditions.name = { contains: queryDto.name };
+    }
+
+    if (queryDto?.code) {
+      whereConditions.code = { contains: queryDto.code };
+    }
+
+    if (queryDto?.type) {
+      whereConditions.type = queryDto.type;
+    }
+
+    // 找到所有匹配的资源
+    const matchedResources = await this.prisma.resource.findMany({
+      where: whereConditions,
+      orderBy: [
+        { parentId: 'asc' },
+        { sort: 'asc' },
+        { createdAt: 'asc' },
+      ],
+    });
+
+    if (matchedResources.length === 0) {
+      return {
+        success: true,
+        code: 200,
+        message: '查询成功',
+        data: [],
+        timestamp: new Date().toISOString(),
+      };
+    }
+
+    // 收集所有需要包含的资源ID（匹配的资源 + 它们的所有祖先）
+    const resourceIdsToInclude = new Set<string>();
+    
+    for (const resource of matchedResources) {
+      resourceIdsToInclude.add(resource.resourceId);
+      
+      // 添加所有祖先资源
+      await this.addAncestorIds(resource.parentId, resourceIdsToInclude);
+    }
+
+    // 获取所有需要包含的资源
+    const allIncludedResources = await this.prisma.resource.findMany({
+      where: {
+        resourceId: { in: Array.from(resourceIdsToInclude) },
+        status: queryDto?.status ?? 1,
+      },
+      orderBy: [
+        { parentId: 'asc' },
+        { sort: 'asc' },
+        { createdAt: 'asc' },
+      ],
+    });
+
+    const treeResources = this.buildMenuTreeForResponse(allIncludedResources.map(resource => plainToInstance(
+      ResourceResponseDto,
+      resource,
+    )));
+
+    return {
+      success: true,
+      code: 200,
+      message: '查询成功',
+      data: treeResources,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * 递归添加祖先资源ID
+   */
+  private async addAncestorIds(parentId: string | null, resourceIds: Set<string>): Promise<void> {
+    if (!parentId) return;
+
+    resourceIds.add(parentId);
+    
+    const parentResource = await this.prisma.resource.findUnique({
+      where: { resourceId: parentId },
+      select: { parentId: true },
+    });
+
+    if (parentResource?.parentId) {
+      await this.addAncestorIds(parentResource.parentId, resourceIds);
+    }
   }
 }

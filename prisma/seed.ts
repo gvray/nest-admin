@@ -62,7 +62,6 @@ async function main() {
       name: '开发工程师',
       code: 'DEVELOPER',
       description: '负责系统开发',
-      departmentId: itDepartment.id,
       status: 1,
       sort: 1,
     },
@@ -75,7 +74,6 @@ async function main() {
       name: '部门经理',
       code: 'MANAGER',
       description: '负责部门管理',
-      departmentId: itDepartment.id,
       status: 1,
       sort: 2,
     },
@@ -88,7 +86,6 @@ async function main() {
       name: 'HR专员',
       code: 'HR_SPECIALIST',
       description: '负责人力资源相关工作',
-      departmentId: hrDepartment.id,
       status: 1,
       sort: 1,
     },
@@ -101,7 +98,6 @@ async function main() {
       name: '会计',
       code: 'ACCOUNTANT',
       description: '负责财务核算',
-      departmentId: financeDepartment.id,
       status: 1,
       sort: 1,
     },
@@ -125,7 +121,6 @@ async function main() {
       name: '系统管理员',
       code: 'admin',
       description: '负责系统管理和维护',
-      departmentId: department.id,
       sort: 1,
     },
   });
@@ -137,6 +132,8 @@ async function main() {
     create: {
       name: 'admin',
       description: '系统管理员角色，拥有所有权限',
+      remark: '系统默认管理员角色，具有最高权限',
+      sort: 1,
     },
   });
 
@@ -327,6 +324,8 @@ async function main() {
       create: {
         name: 'user',
         description: '普通用户角色，拥有基础权限',
+        remark: '系统默认普通用户角色，具有基础查看权限',
+        sort: 10,
       },
     });
 

@@ -22,6 +22,11 @@ export class CreateDepartmentDto {
   @IsString()
   description?: string;
 
+  @ApiPropertyOptional({ description: '备注信息' })
+  @IsOptional()
+  @IsString()
+  remark?: string;
+
   @ApiPropertyOptional({ description: '父部门ID' })
   @IsOptional()
   @IsInt()

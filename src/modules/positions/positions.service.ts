@@ -8,14 +8,18 @@ import { CreatePositionDto } from './dto/create-position.dto';
 import { UpdatePositionDto } from './dto/update-position.dto';
 import { QueryPositionDto } from './dto/query-position.dto';
 import { PositionEntity } from './entities/position.entity';
-import { ApiResponse } from '../../shared/interfaces/response.interface';
+import { BaseService } from '../../shared/services/base.service';
+import { PaginationResponse } from '../../shared/interfaces/response.interface';
 
 @Injectable()
-export class PositionsService {
-  constructor(private readonly prisma: PrismaService) {}
+export class PositionsService extends BaseService {
+  constructor(protected readonly prisma: PrismaService) {
+    super(prisma);
+  }
 
   async create(
     createPositionDto: CreatePositionDto,
+    currentUserId?: string,
   ): Promise<PositionEntity> {
     // 检查名称和编码是否已存在
     const existingPosition = await this.prisma.position.findFirst({
@@ -36,19 +40,12 @@ export class PositionsService {
       }
     }
 
-    // 检查部门是否存在
-    const department = await this.prisma.department.findUnique({
-      where: { id: createPositionDto.departmentId },
-    });
 
-    if (!department) {
-      throw new NotFoundException('部门不存在');
-    }
 
     const position = await this.prisma.position.create({
-      data: createPositionDto,
-      include: {
-        department: true,
+      data: {
+        ...createPositionDto,
+        createdById: currentUserId,
       },
     });
 
@@ -58,9 +55,8 @@ export class PositionsService {
     } as PositionEntity;
   }
 
-  async findAll(query: QueryPositionDto) {
-    const { name, code, status, departmentId, page = 1, limit = 10 } = query;
-    const skip = (page - 1) * limit;
+  async findAll(query: QueryPositionDto): Promise<PaginationResponse<PositionEntity>> {
+    const { name, code, status } = query;
 
     const where: Record<string, unknown> = {};
 
@@ -76,55 +72,34 @@ export class PositionsService {
       where.status = status;
     }
 
-    if (departmentId) {
-      where.departmentId = departmentId;
-    }
-
-    const [positions, total] = await Promise.all([
-      this.prisma.position.findMany({
-        where,
-        skip,
-        take: limit,
-        include: {
-          department: true,
-          users: {
-            select: {
-              id: true,
-              userId: true,
-              username: true,
-              nickname: true,
-              email: true,
-            },
-          },
+    const include = {
+      users: {
+        select: {
+          id: true,
+          userId: true,
+          username: true,
+          nickname: true,
+          email: true,
         },
-        orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
-      }),
-      this.prisma.position.count({ where }),
-    ]);
-
-    return {
-      success: true,
-      code: 200,
-      message: '获取岗位列表成功',
-      data: positions.map(position => ({
-        ...position,
-        status: position.status,
-      })),
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
       },
-      timestamp: new Date().toISOString(),
     };
+
+    const orderBy = { sort: 'asc', createdAt: 'desc' };
+
+    return this.paginateWithResponse<PositionEntity>(
+      this.prisma.position,
+      query,
+      where,
+      include,
+      orderBy,
+      '获取岗位列表成功',
+    );
   }
 
   async findOne(id: number): Promise<PositionEntity> {
     const position = await this.prisma.position.findUnique({
       where: { id },
       include: {
-        department: true,
         users: {
           include: {
             roles: true,
@@ -147,6 +122,7 @@ export class PositionsService {
   async update(
     id: number,
     updatePositionDto: UpdatePositionDto,
+    currentUserId?: string,
   ): Promise<PositionEntity> {
     // 检查岗位是否存在
     const existingPosition = await this.prisma.position.findUnique({
@@ -189,22 +165,13 @@ export class PositionsService {
       }
     }
 
-    // 如果更新部门，检查部门是否存在
-    if (updatePositionDto.departmentId) {
-      const department = await this.prisma.department.findUnique({
-        where: { id: updatePositionDto.departmentId },
-      });
 
-      if (!department) {
-        throw new NotFoundException('部门不存在');
-      }
-    }
 
     const position = await this.prisma.position.update({
       where: { id },
-      data: updatePositionDto,
-      include: {
-        department: true,
+      data: {
+        ...updatePositionDto,
+        updatedById: currentUserId,
       },
     });
 
@@ -237,20 +204,5 @@ export class PositionsService {
     });
   }
 
-  async findByDepartment(departmentId: number): Promise<PositionEntity[]> {
-    const positions = await this.prisma.position.findMany({
-      where: {
-        departmentId,
-        status: 1,
-      },
-      include: {
-        department: true,
-      },
-    });
 
-    return positions.map(position => ({
-      ...position,
-      status: position.status,
-    })) as PositionEntity[];
-  }
 }

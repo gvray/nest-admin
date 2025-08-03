@@ -29,6 +29,28 @@ model User {
   positionId   Int?
   position     Position?   @relation(fields: [positionId], references: [id])
   roles        Role[]
+  
+  // 审计字段
+  createdById  String?     // 创建者ID
+  createdBy    User?       @relation("UserCreatedBy", fields: [createdById], references: [userId])
+  updatedById  String?     // 更新者ID  
+  updatedBy    User?       @relation("UserUpdatedBy", fields: [updatedById], references: [userId])
+  
+  // 反向关联 - 作为创建者/更新者的记录
+  createdUsers     User[]            @relation("UserCreatedBy")
+  updatedUsers     User[]            @relation("UserUpdatedBy")
+  createdRoles     Role[]            @relation("RoleCreatedBy")
+  updatedRoles     Role[]            @relation("RoleUpdatedBy")
+  createdRolePerms RolePermission[]  @relation("RolePermissionCreatedBy")
+  createdResources Resource[]        @relation("ResourceCreatedBy")
+  updatedResources Resource[]        @relation("ResourceUpdatedBy")
+  createdPerms     Permission[]      @relation("PermissionCreatedBy")
+  updatedPerms     Permission[]      @relation("PermissionUpdatedBy")
+  createdDepts     Department[]      @relation("DepartmentCreatedBy")
+  updatedDepts     Department[]      @relation("DepartmentUpdatedBy")
+  createdPositions Position[]        @relation("PositionCreatedBy")
+  updatedPositions Position[]        @relation("PositionUpdatedBy")
+  
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
@@ -40,8 +62,17 @@ model Role {
   roleId          String           @unique @default(uuid())
   name            String           @unique
   description     String?
+  remark          String?          // 备注信息
+  sort            Int              @default(0) // 排序权重
   users           User[]
   rolePermissions RolePermission[]
+  
+  // 审计字段
+  createdById     String?          // 创建者ID
+  createdBy       User?            @relation("RoleCreatedBy", fields: [createdById], references: [userId])
+  updatedById     String?          // 更新者ID
+  updatedBy       User?            @relation("RoleUpdatedBy", fields: [updatedById], references: [userId])
+  
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
@@ -54,6 +85,11 @@ model RolePermission {
   permissionId Int
   role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
   permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  
+  // 审计字段
+  createdById  String?    // 创建者ID
+  createdBy    User?      @relation("RolePermissionCreatedBy", fields: [createdById], references: [userId])
+  
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
@@ -77,6 +113,13 @@ model Resource {
   status      Int          @default(1) // 0: 禁用, 1: 启用
   sort        Int          @default(0)
   description String?
+  
+  // 审计字段
+  createdById String?      // 创建者ID
+  createdBy   User?        @relation("ResourceCreatedBy", fields: [createdById], references: [userId])
+  updatedById String?      // 更新者ID
+  updatedBy   User?        @relation("ResourceUpdatedBy", fields: [updatedById], references: [userId])
+  
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
@@ -101,6 +144,13 @@ model Permission {
   resource        Resource         @relation(fields: [resourceId], references: [id], onDelete: Cascade)
   rolePermissions RolePermission[]
   description     String?
+  
+  // 审计字段
+  createdById     String?          // 创建者ID
+  createdBy       User?            @relation("PermissionCreatedBy", fields: [createdById], references: [userId])
+  updatedById     String?          // 更新者ID
+  updatedBy       User?            @relation("PermissionUpdatedBy", fields: [updatedById], references: [userId])
+  
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
@@ -113,13 +163,20 @@ model Department {
   name         String       @unique
   code         String       @unique
   description  String?
+  remark       String?      // 备注信息
   parentId     Int?
   parent       Department?  @relation("DepartmentHierarchy", fields: [parentId], references: [id])
   children     Department[] @relation("DepartmentHierarchy")
-  positions    Position[]
   users        User[]
   status       Int          @default(1) // 0: 禁用, 1: 启用
   sort         Int          @default(0)
+  
+  // 审计字段
+  createdById  String?      // 创建者ID
+  createdBy    User?        @relation("DepartmentCreatedBy", fields: [createdById], references: [userId])
+  updatedById  String?      // 更新者ID
+  updatedBy    User?        @relation("DepartmentUpdatedBy", fields: [updatedById], references: [userId])
+  
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
@@ -132,11 +189,17 @@ model Position {
   name         String     @unique
   code         String     @unique
   description  String?
-  departmentId Int
-  department   Department @relation(fields: [departmentId], references: [id])
+  remark       String?    // 备注信息
   users        User[]
   status       Int        @default(1) // 0: 禁用, 1: 启用
   sort         Int        @default(0)
+  
+  // 审计字段
+  createdById  String?    // 创建者ID
+  createdBy    User?      @relation("PositionCreatedBy", fields: [createdById], references: [userId])
+  updatedById  String?    // 更新者ID
+  updatedBy    User?      @relation("PositionUpdatedBy", fields: [updatedById], references: [userId])
+  
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 

@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -19,6 +20,7 @@ import { ResourcesService } from './resources.service';
 import { CreateResourceDto } from './dto/create-resource.dto';
 import { UpdateResourceDto } from './dto/update-resource.dto';
 import { ResourceResponseDto } from './dto/resource-response.dto';
+import { QueryResourceDto } from './dto/query-resource.dto';
 import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
 import { ApiResponse as IApiResponse } from '../../shared/interfaces/response.interface';
 
@@ -60,8 +62,8 @@ export class ResourcesController {
     description: '获取资源树成功',
     type: [ResourceResponseDto],
   })
-  findTree(): Promise<IApiResponse<ResourceResponseDto[]>> {
-    return this.resourcesService.findTree();
+  findTree(@Query() queryDto: QueryResourceDto): Promise<IApiResponse<ResourceResponseDto[]>> {
+    return this.resourcesService.findTree(queryDto);
   }
 
   @Get('menus')

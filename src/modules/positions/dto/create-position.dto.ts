@@ -22,9 +22,10 @@ export class CreatePositionDto {
   @IsString()
   description?: string;
 
-  @ApiProperty({ description: '所属部门ID' })
-  @IsInt()
-  departmentId: number;
+  @ApiPropertyOptional({ description: '备注信息' })
+  @IsOptional()
+  @IsString()
+  remark?: string;
 
   @ApiPropertyOptional({ description: '状态', default: 1 })
   @IsOptional()
