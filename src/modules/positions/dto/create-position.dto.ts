@@ -3,7 +3,7 @@ import {
   IsString,
   IsOptional,
   IsInt,
-  IsBoolean,
+  IsNotEmpty,
   Min,
   Max,
 } from 'class-validator';
@@ -26,10 +26,10 @@ export class CreatePositionDto {
   @IsInt()
   departmentId: number;
 
-  @ApiPropertyOptional({ description: '是否激活', default: true })
+  @ApiPropertyOptional({ description: '状态', default: 1 })
   @IsOptional()
-  @IsBoolean()
-  isActive?: boolean;
+  @IsInt()
+  status?: number;
 
   @ApiPropertyOptional({ description: '排序', default: 0 })
   @IsOptional()

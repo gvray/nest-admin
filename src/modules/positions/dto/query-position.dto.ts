@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsBoolean, IsInt } from 'class-validator';
+import { IsOptional, IsString, IsInt } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class QueryPositionDto {
@@ -13,11 +13,11 @@ export class QueryPositionDto {
   @IsString()
   code?: string;
 
-  @ApiPropertyOptional({ description: '是否激活' })
+  @ApiPropertyOptional({ description: '状态' })
   @IsOptional()
-  @Type(() => Boolean)
-  @IsBoolean()
-  isActive?: boolean;
+  @Type(() => Number)
+  @IsInt()
+  status?: number;
 
   @ApiPropertyOptional({ description: '部门ID' })
   @IsOptional()

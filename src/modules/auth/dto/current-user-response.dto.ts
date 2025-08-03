@@ -55,6 +55,24 @@ export class CurrentUserRoleResponseDto {
   })
   @Expose()
   @Type(() => PermissionResponseDto)
+  @Transform(({ obj }: { obj: any }): PermissionResponseDto[] => {
+    try {
+      if (!obj || !obj?.rolePermissions || !Array.isArray(obj?.rolePermissions)) {
+        return [];
+      }
+      return obj.rolePermissions
+        .map((rp: any) => {
+          if (!rp || !rp?.permission) {
+            return null;
+          }
+          return rp.permission;
+        })
+        .filter((permission: any) => permission !== null);
+    } catch (error) {
+      console.error('Transform permissions error:', error);
+      return [];
+    }
+  })
   permissions?: PermissionResponseDto[];
 }
 

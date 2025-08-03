@@ -6,6 +6,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './modules/users/users.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
+import { ResourcesModule } from './modules/resources/resources.module';
 import { DepartmentsModule } from './modules/departments/departments.module';
 import { PositionsModule } from './modules/positions/positions.module';
 import configuration from './config/configuration';
@@ -27,6 +28,7 @@ import { HttpExceptionFilter } from './core/filters/http-exception.filter';
     UsersModule,
     RolesModule,
     PermissionsModule,
+    ResourcesModule,
     DepartmentsModule,
     PositionsModule,
   ],

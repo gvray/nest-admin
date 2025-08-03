@@ -15,11 +15,53 @@ async function bootstrap() {
   console.log('JWT_SECRET:', process.env.JWT_SECRET);
   console.log('ENABLE_CORS:', process.env.ENABLE_CORS);
 
-  if (process.env.ENABLE_CORS === 'true') {
+  // CORS 配置 - 仅在开发环境启用
+  if (process.env.NODE_ENV === 'development') {
+    const corsOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:8080',
+      'http://localhost:9000',
+      'http://localhost:9527',
+      'http://localhost:9528',
+      'http://localhost:9529',
+    ];
+
     app.enableCors({
-      origin: true,
+      origin: (origin, callback) => {
+        // 允许没有 origin 的请求（如 Postman、Swagger）
+        if (!origin) return callback(null, true);
+        
+        // 检查是否在允许的源列表中
+        if (corsOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          console.warn(`🚫 CORS blocked origin: ${origin}`);
+          callback(null, false);
+        }
+      },
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+      allowedHeaders: [
+        'Origin',
+        'X-Requested-With',
+        'Content-Type',
+        'Accept',
+        'Authorization',
+        'X-Access-Token',
+        'Cache-Control',
+      ],
       credentials: true,
+      maxAge: 3600, // 开发环境1小时缓存预检请求
     });
+
+    console.log('🌐 CORS enabled for development environment');
+    console.log('📍 Allowed origins:', corsOrigins);
+  } else {
+    // 生产环境提示：CORS应在反向代理层处理
+    console.log(
+      '🔒 Production mode: CORS should be handled by reverse proxy (Nginx/Apache)',
+    );
+    console.log('💡 Tip: Configure CORS in your nginx.conf or apache.conf');
   }
 
   // 全局管道：先转换空字符串，再进行验证

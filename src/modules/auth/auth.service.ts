@@ -137,12 +137,18 @@ export class AuthService {
             roleId: true,
             name: true,
             description: true,
-            permissions: {
+            rolePermissions: {
               select: {
-                permissionId: true,
-                name: true,
-                code: true,
-                description: true,
+                permission: {
+                  select: {
+                    permissionId: true,
+                    name: true,
+                    code: true,
+                    action: true,
+                    resourceId: true,
+                    description: true,
+                  },
+                },
               },
             },
           },

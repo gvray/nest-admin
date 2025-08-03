@@ -46,7 +46,7 @@ export class UsersController {
 
   @Get()
   @Roles('admin')
-  @RequirePermissions('user:read')
+  @RequirePermissions('user:view')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '获取用户列表' })
   @ApiResponse({
@@ -60,7 +60,7 @@ export class UsersController {
 
   @Get(':userId')
   @Roles('admin')
-  @RequirePermissions('user:read')
+  @RequirePermissions('user:view')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '获取指定用户（通过UserId）' })
   @ApiResponse({

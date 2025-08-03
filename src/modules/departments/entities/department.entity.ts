@@ -22,8 +22,8 @@ export class DepartmentEntity {
   @ApiPropertyOptional({ description: '子部门列表' })
   children?: DepartmentEntity[];
 
-  @ApiProperty({ description: '是否激活' })
-  isActive: boolean;
+  @ApiProperty({ description: '状态' })
+  status: number;
 
   @ApiProperty({ description: '排序' })
   sort: number;

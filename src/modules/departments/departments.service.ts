@@ -16,7 +16,7 @@ export class DepartmentsService {
   async create(
     createDepartmentDto: CreateDepartmentDto,
   ): Promise<DepartmentEntity> {
-    // 检查部门名称和编码是否已存在
+    // 检查名称和编码是否已存在
     const existingDepartment = await this.prisma.department.findFirst({
       where: {
         OR: [
@@ -27,7 +27,12 @@ export class DepartmentsService {
     });
 
     if (existingDepartment) {
-      throw new ConflictException('部门名称或编码已存在');
+      if (existingDepartment.name === createDepartmentDto.name) {
+        throw new ConflictException('部门名称已存在');
+      }
+      if (existingDepartment.code === createDepartmentDto.code) {
+        throw new ConflictException('部门编码已存在');
+      }
     }
 
     // 如果有父部门，检查父部门是否存在
@@ -49,11 +54,14 @@ export class DepartmentsService {
       },
     });
 
-    return department;
+    return {
+      ...department,
+      status: department.status,
+    } as DepartmentEntity;
   }
 
   async findAll(query: QueryDepartmentDto) {
-    const { name, code, isActive, parentId, page = 1, limit = 10 } = query;
+    const { name, code, status, parentId, page = 1, limit = 10 } = query;
     const skip = (page - 1) * limit;
 
     const where: Record<string, unknown> = {};
@@ -66,8 +74,8 @@ export class DepartmentsService {
       where.code = { contains: code };
     }
 
-    if (isActive !== undefined) {
-      where.isActive = isActive;
+    if (status !== undefined) {
+      where.status = status;
     }
 
     if (parentId !== undefined) {
@@ -77,6 +85,8 @@ export class DepartmentsService {
     const [departments, total] = await Promise.all([
       this.prisma.department.findMany({
         where,
+        skip,
+        take: limit,
         include: {
           parent: true,
           children: true,
@@ -88,14 +98,15 @@ export class DepartmentsService {
           },
         },
         orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
-        skip,
-        take: limit,
       }),
       this.prisma.department.count({ where }),
     ]);
 
     return {
-      data: departments,
+      data: departments.map(department => ({
+        ...department,
+        status: department.status,
+      })),
       total,
       page,
       limit,
@@ -127,7 +138,10 @@ export class DepartmentsService {
       throw new NotFoundException('部门不存在');
     }
 
-    return department;
+    return {
+      ...department,
+      status: department.status,
+    } as DepartmentEntity;
   }
 
   async update(
@@ -160,16 +174,23 @@ export class DepartmentsService {
       });
 
       if (conflictDepartment) {
-        throw new ConflictException('部门名称或编码已存在');
+        if (
+          updateDepartmentDto.name &&
+          conflictDepartment.name === updateDepartmentDto.name
+        ) {
+          throw new ConflictException('部门名称已存在');
+        }
+        if (
+          updateDepartmentDto.code &&
+          conflictDepartment.code === updateDepartmentDto.code
+        ) {
+          throw new ConflictException('部门编码已存在');
+        }
       }
     }
 
-    // 检查父部门
+    // 如果更新父部门，检查父部门是否存在且不形成循环引用
     if (updateDepartmentDto.parentId) {
-      if (updateDepartmentDto.parentId === id) {
-        throw new ConflictException('不能将自己设为父部门');
-      }
-
       const parentDepartment = await this.prisma.department.findUnique({
         where: { id: updateDepartmentDto.parentId },
       });
@@ -197,7 +218,10 @@ export class DepartmentsService {
       },
     });
 
-    return department;
+    return {
+      ...department,
+      status: department.status,
+    } as DepartmentEntity;
   }
 
   async remove(id: number): Promise<void> {
@@ -216,18 +240,18 @@ export class DepartmentsService {
     }
 
     // 检查是否有子部门
-    if (department.children.length > 0) {
-      throw new ConflictException('请先删除子部门');
+    if (department.children && department.children.length > 0) {
+      throw new ConflictException('该部门下还有子部门，无法删除');
     }
 
     // 检查是否有用户
-    if (department.users.length > 0) {
-      throw new ConflictException('请先移除部门下的用户');
+    if (department.users && department.users.length > 0) {
+      throw new ConflictException('该部门下还有用户，无法删除');
     }
 
     // 检查是否有岗位
-    if (department.positions.length > 0) {
-      throw new ConflictException('请先删除部门下的岗位');
+    if (department.positions && department.positions.length > 0) {
+      throw new ConflictException('该部门下还有岗位，无法删除');
     }
 
     await this.prisma.department.delete({
@@ -237,13 +261,13 @@ export class DepartmentsService {
 
   async getTree(): Promise<DepartmentEntity[]> {
     const departments = await this.prisma.department.findMany({
-      where: { isActive: true },
+      where: { status: 1 },
       include: {
         children: {
-          where: { isActive: true },
+          where: { status: 1 },
           include: {
             children: {
-              where: { isActive: true },
+              where: { status: 1 },
             },
           },
         },
@@ -252,7 +276,10 @@ export class DepartmentsService {
     });
 
     // 只返回顶级部门
-    return departments.filter((dept) => !dept.parentId);
+    return departments.filter((dept) => !dept.parentId).map(dept => ({
+      ...dept,
+      status: dept.status,
+    })) as DepartmentEntity[];
   }
 
   private async checkCircularReference(
@@ -267,19 +294,18 @@ export class DepartmentsService {
         return true; // 发现循环
       }
 
-      visited.add(currentParentId);
-
-      const parent: { parentId: number | null } | null =
-        await this.prisma.department.findUnique({
-          where: { id: currentParentId },
-          select: { parentId: true },
-        });
-
-      if (!parent) {
-        break;
+      if (currentParentId === departmentId) {
+        return true; // 发现循环
       }
 
-      currentParentId = parent.parentId;
+      visited.add(currentParentId);
+
+      const parent = await this.prisma.department.findUnique({
+        where: { id: currentParentId },
+        select: { parentId: true },
+      });
+
+      currentParentId = parent?.parentId || null;
     }
 
     return false;

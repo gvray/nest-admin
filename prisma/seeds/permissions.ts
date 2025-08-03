@@ -1,148 +1,87 @@
 import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+export async function seedPermissions(prisma: PrismaClient) {
+  // 获取已创建的资源
+  const systemResource = await prisma.resource.findFirst({
+    where: { code: 'system' },
+  });
+  const userResource = await prisma.resource.findFirst({
+    where: { code: 'user' },
+  });
+  const roleResource = await prisma.resource.findFirst({
+    where: { code: 'role' },
+  });
+  const permissionResource = await prisma.resource.findFirst({
+    where: { code: 'permission' },
+  });
+  const resourceResource = await prisma.resource.findFirst({
+    where: { code: 'resource' },
+  });
+  const departmentResource = await prisma.resource.findFirst({
+    where: { code: 'department' },
+  });
+  const positionResource = await prisma.resource.findFirst({
+    where: { code: 'position' },
+  });
 
-export async function seedPermissions() {
-  const permissions = [
-    // 用户管理权限
-    {
-      name: '用户管理',
-      code: 'user:manage',
-      description: '用户的增删改查权限',
-    },
-    {
-      name: '查看用户',
-      code: 'user:read',
-      description: '查看用户信息的权限',
-    },
-    {
-      name: '创建用户',
-      code: 'user:create',
-      description: '创建用户的权限',
-    },
-    {
-      name: '更新用户',
-      code: 'user:update',
-      description: '更新用户信息的权限',
-    },
-    {
-      name: '删除用户',
-      code: 'user:delete',
-      description: '删除用户的权限',
-    },
-    // 角色管理权限
-    {
-      name: '角色管理',
-      code: 'role:manage',
-      description: '角色的增删改查权限',
-    },
-    {
-      name: '查看角色',
-      code: 'role:read',
-      description: '查看角色信息的权限',
-    },
-    {
-      name: '创建角色',
-      code: 'role:create',
-      description: '创建角色的权限',
-    },
-    {
-      name: '更新角色',
-      code: 'role:update',
-      description: '更新角色信息的权限',
-    },
-    {
-      name: '删除角色',
-      code: 'role:delete',
-      description: '删除角色的权限',
-    },
-    // 权限管理权限
-    {
-      name: '权限管理',
-      code: 'permission:manage',
-      description: '权限的增删改查权限',
-    },
-    {
-      name: '查看权限',
-      code: 'permission:read',
-      description: '查看权限信息的权限',
-    },
-    {
-      name: '创建权限',
-      code: 'permission:create',
-      description: '创建权限的权限',
-    },
-    {
-      name: '更新权限',
-      code: 'permission:update',
-      description: '更新权限信息的权限',
-    },
-    {
-      name: '删除权限',
-      code: 'permission:delete',
-      description: '删除权限的权限',
-    },
-    // 部门管理权限
-    {
-      name: '部门管理',
-      code: 'department:manage',
-      description: '部门的增删改查权限',
-    },
-    {
-      name: '查看部门',
-      code: 'department:read',
-      description: '查看部门信息的权限',
-    },
-    {
-      name: '创建部门',
-      code: 'department:create',
-      description: '创建部门的权限',
-    },
-    {
-      name: '更新部门',
-      code: 'department:update',
-      description: '更新部门信息的权限',
-    },
-    {
-      name: '删除部门',
-      code: 'department:delete',
-      description: '删除部门的权限',
-    },
-    // 岗位管理权限
-    {
-      name: '岗位管理',
-      code: 'position:manage',
-      description: '岗位的增删改查权限',
-    },
-    {
-      name: '查看岗位',
-      code: 'position:read',
-      description: '查看岗位信息的权限',
-    },
-    {
-      name: '创建岗位',
-      code: 'position:create',
-      description: '创建岗位的权限',
-    },
-    {
-      name: '更新岗位',
-      code: 'position:update',
-      description: '更新岗位信息的权限',
-    },
-    {
-      name: '删除岗位',
-      code: 'position:delete',
-      description: '删除岗位的权限',
-    },
-  ];
-
-  for (const permission of permissions) {
-    await prisma.permission.upsert({
-      where: { code: permission.code },
-      update: permission,
-      create: permission,
+  if (
+    !systemResource ||
+    !userResource ||
+    !roleResource ||
+    !permissionResource ||
+    !resourceResource ||
+    !departmentResource ||
+    !positionResource
+  ) {
+    console.error('找不到资源：', {
+      systemResource,
+      userResource,
+      roleResource,
+      permissionResource,
+      resourceResource,
+      departmentResource,
+      positionResource,
     });
+    throw new Error('资源未找到，请先运行资源种子数据');
   }
 
-  console.log('权限数据初始化完成');
-} 
+  // 定义操作类型
+  const actions = [
+    { action: 'view', name: '查看' },
+    { action: 'create', name: '创建' },
+    { action: 'update', name: '更新' },
+    { action: 'delete', name: '删除' },
+    { action: 'export', name: '导出' },
+    { action: 'import', name: '导入' },
+  ];
+
+  // 为每个资源创建权限
+  const resources = [
+    { resource: userResource, name: '用户' },
+    { resource: roleResource, name: '角色' },
+    { resource: permissionResource, name: '权限' },
+    { resource: resourceResource, name: '资源' },
+    { resource: departmentResource, name: '部门' },
+    { resource: positionResource, name: '岗位' },
+  ];
+
+  for (const { resource, name } of resources) {
+    for (const { action, name: actionName } of actions) {
+      const permission = await prisma.permission.upsert({
+        where: {
+          code: `${resource.code}:${action}`,
+        },
+        update: {},
+        create: {
+          name: `${resource.name}${actionName}`,
+          code: `${resource.code}:${action}`,
+          action,
+          resourceId: resource.id,
+          description: `${resource.name}的${actionName}权限`,
+        },
+      });
+    }
+  }
+
+  console.log('权限初始化完成');
+}

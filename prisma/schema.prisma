@@ -36,27 +36,73 @@ model User {
 }
 
 model Role {
-  id          Int          @id @default(autoincrement())
-  roleId      String       @unique @default(uuid())
-  name        String       @unique
-  description String?
-  users       User[]
-  permissions Permission[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id              Int              @id @default(autoincrement())
+  roleId          String           @unique @default(uuid())
+  name            String           @unique
+  description     String?
+  users           User[]
+  rolePermissions RolePermission[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   @@map("roles")
 }
 
-model Permission {
-  id          Int      @id @default(autoincrement())
-  permissionId String   @unique @default(uuid())
-  name        String   @unique
-  code        String   @unique
+model RolePermission {
+  id           Int        @id @default(autoincrement())
+  roleId       Int
+  permissionId Int
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model Resource {
+  id          Int          @id @default(autoincrement())
+  resourceId  String       @unique @default(uuid())
+  name        String       @unique // 资源名称，如：用户管理、角色管理
+  code        String       @unique // 资源代码，如：user, role, department
+  type        ResourceType @default(MENU) // 资源类型：directory(目录), menu(菜单), button(按钮), api(接口), data(数据)
+  path        String?      // 资源路径，如：/users, /api/users
+  method      String?      // HTTP方法，如：GET, POST, PUT, DELETE
+  icon        String?      // 图标
+  parentId    String?
+  parent      Resource?    @relation("ResourceHierarchy", fields: [parentId], references: [resourceId])
+  children    Resource[]   @relation("ResourceHierarchy")
+  permissions Permission[]
+  status      Int          @default(1) // 0: 禁用, 1: 启用
+  sort        Int          @default(0)
   description String?
-  roles       Role[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("resources")
+}
+
+enum ResourceType {
+  DIRECTORY // 目录（仅作结构分组，不跳页面）
+  MENU      // 菜单项（跳转页面）
+  BUTTON    // 页面内操作按钮
+  API       // 接口权限
+  DATA      // 数据权限
+}
+
+model Permission {
+  id              Int              @id @default(autoincrement())
+  permissionId    String           @unique @default(uuid())
+  name            String           @unique // 权限名称，如：查看用户、创建用户
+  code            String           @unique // 权限代码，如：user:view, user:create
+  action          String           // 操作类型：view(查看), create(创建), update(更新), delete(删除), export(导出), import(导入)
+  resourceId      Int
+  resource        Resource         @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  rolePermissions RolePermission[]
+  description     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   @@map("permissions")
 }
@@ -72,7 +118,7 @@ model Department {
   children     Department[] @relation("DepartmentHierarchy")
   positions    Position[]
   users        User[]
-  isActive     Boolean      @default(true)
+  status       Int          @default(1) // 0: 禁用, 1: 启用
   sort         Int          @default(0)
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
@@ -89,7 +135,7 @@ model Position {
   departmentId Int
   department   Department @relation(fields: [departmentId], references: [id])
   users        User[]
-  isActive     Boolean    @default(true)
+  status       Int        @default(1) // 0: 禁用, 1: 启用
   sort         Int        @default(0)
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt

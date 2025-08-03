@@ -33,8 +33,8 @@ export class PositionEntity {
     email?: string | null;
   }[];
 
-  @ApiProperty({ description: '是否激活' })
-  isActive: boolean;
+  @ApiProperty({ description: '状态' })
+  status: number;
 
   @ApiProperty({ description: '排序' })
   sort: number;

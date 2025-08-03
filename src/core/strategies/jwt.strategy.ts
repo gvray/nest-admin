@@ -21,13 +21,17 @@ interface DbUser {
     description: string | null;
     createdAt: Date;
     updatedAt: Date;
-    permissions: Array<{
-      permissionId: string;
-      name: string;
-      code: string;
-      description: string | null;
-      createdAt: Date;
-      updatedAt: Date;
+    rolePermissions: Array<{
+      permission: {
+        permissionId: string;
+        name: string;
+        code: string;
+        action: string;
+        resourceId: string;
+        description: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+      };
     }>;
   }>;
 }
@@ -69,14 +73,20 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
             description: true,
             createdAt: true,
             updatedAt: true,
-            permissions: {
+            rolePermissions: {
               select: {
-                permissionId: true,
-                name: true,
-                code: true,
-                description: true,
-                createdAt: true,
-                updatedAt: true,
+                permission: {
+                  select: {
+                    permissionId: true,
+                    name: true,
+                    code: true,
+                    action: true,
+                    resourceId: true,
+                    description: true,
+                    createdAt: true,
+                    updatedAt: true,
+                  },
+                },
               },
             },
           },
@@ -103,13 +113,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         description: role.description,
         createdAt: role.createdAt,
         updatedAt: role.updatedAt,
-        permissions: role.permissions.map((permission) => ({
-          permissionId: permission.permissionId,
-          name: permission.name,
-          code: permission.code,
-          description: permission.description,
-          createdAt: permission.createdAt,
-          updatedAt: permission.updatedAt,
+        permissions: role.rolePermissions.map((rp) => ({
+          permissionId: rp.permission.permissionId,
+          name: rp.permission.name,
+          code: rp.permission.code,
+          action: rp.permission.action,
+          resourceId: rp.permission.resourceId,
+          description: rp.permission.description,
+          createdAt: rp.permission.createdAt,
+          updatedAt: rp.permission.updatedAt,
         })),
       })),
     };

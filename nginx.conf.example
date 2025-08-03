@@ -1,0 +1,123 @@
+# NestAdmin 生产环境 Nginx 配置示例
+# 复制到 /etc/nginx/sites-available/ 并创建软链接到 sites-enabled
+
+server {
+    listen 80;
+    server_name your-domain.com;  # 替换为你的域名
+
+    # 强制重定向到 HTTPS (推荐)
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name your-domain.com;  # 替换为你的域名
+
+    # SSL 配置 (使用 Let's Encrypt 或其他证书)
+    ssl_certificate /path/to/your/cert.pem;
+    ssl_certificate_key /path/to/your/private.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+
+    # CORS 配置 - 根据实际需求调整
+    add_header 'Access-Control-Allow-Origin' 'https://your-frontend-domain.com' always;
+    add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS' always;
+    add_header 'Access-Control-Allow-Headers' 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Access-Token, Cache-Control' always;
+    add_header 'Access-Control-Allow-Credentials' 'true' always;
+    add_header 'Access-Control-Max-Age' '86400' always;
+
+    # 处理预检请求
+    if ($request_method = 'OPTIONS') {
+        add_header 'Access-Control-Allow-Origin' 'https://your-frontend-domain.com' always;
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS' always;
+        add_header 'Access-Control-Allow-Headers' 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Access-Token, Cache-Control' always;
+        add_header 'Access-Control-Allow-Credentials' 'true' always;
+        add_header 'Access-Control-Max-Age' '86400' always;
+        add_header 'Content-Type' 'text/plain charset=UTF-8';
+        add_header 'Content-Length' 0;
+        return 204;
+    }
+
+    # 安全头
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
+    add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'" always;
+
+    # 限制请求体大小
+    client_max_body_size 10M;
+
+    # 代理到 NestJS 应用
+    location / {
+        proxy_pass http://127.0.0.1:8001;  # NestJS 应用地址
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+
+        # 超时配置
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+
+    # API 文档路径 (可选择性禁用或限制访问)
+    location /api {
+        # 仅允许内网访问 API 文档 (可选)
+        # allow 192.168.1.0/24;
+        # allow 10.0.0.0/8;
+        # deny all;
+        
+        proxy_pass http://127.0.0.1:8001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # 健康检查端点
+    location /health {
+        proxy_pass http://127.0.0.1:8001;
+        access_log off;
+    }
+
+    # 静态文件缓存 (如果有)
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        try_files $uri @proxy;
+    }
+
+    location @proxy {
+        proxy_pass http://127.0.0.1:8001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # 日志配置
+    access_log /var/log/nginx/nestadmin.access.log;
+    error_log /var/log/nginx/nestadmin.error.log;
+}
+
+# 负载均衡配置示例 (多实例部署)
+# upstream nestadmin_backend {
+#     least_conn;
+#     server 127.0.0.1:8001 max_fails=3 fail_timeout=30s;
+#     server 127.0.0.1:8002 max_fails=3 fail_timeout=30s;
+#     server 127.0.0.1:8003 max_fails=3 fail_timeout=30s;
+# }

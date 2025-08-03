@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 import { BaseService } from '../../shared/services/base.service';
@@ -18,13 +18,36 @@ export class PermissionsService extends BaseService {
   async create(
     createPermissionDto: CreatePermissionDto,
   ): Promise<ApiResponse<unknown>> {
-    const { name, code, description } = createPermissionDto;
+    const { name, code, description, resourceId, action } = createPermissionDto;
+
+    // 检查资源是否存在
+    const resource = await this.prisma.resource.findUnique({
+      where: { id: resourceId },
+    });
+
+    if (!resource) {
+      throw new NotFoundException('关联的资源不存在');
+    }
+
+    // 检查权限代码是否已存在
+    const existingPermission = await this.prisma.permission.findUnique({
+      where: { code },
+    });
+
+    if (existingPermission) {
+      throw new ConflictException('权限代码已存在');
+    }
 
     const permission = await this.prisma.permission.create({
       data: {
         name,
         code,
         description,
+        resourceId,
+        action,
+      },
+      include: {
+        resource: true,
       },
     });
 
@@ -34,18 +57,23 @@ export class PermissionsService extends BaseService {
   async findAll(
     pagination?: PaginationSortDto,
   ): Promise<PaginationResponse<unknown> | ApiResponse<unknown>> {
+    const include = {
+      resource: true,
+    };
+
     if (pagination) {
       return this.paginateWithSortAndResponse(
         this.prisma.permission,
         pagination,
         undefined,
-        undefined,
+        include,
         'createdAt',
         '权限列表查询成功',
       );
     }
 
     const permissions = await this.prisma.permission.findMany({
+      include,
       orderBy: { createdAt: 'desc' },
     });
 
@@ -55,6 +83,14 @@ export class PermissionsService extends BaseService {
   async findOne(id: number): Promise<ApiResponse<unknown>> {
     const permission = await this.prisma.permission.findUnique({
       where: { id },
+      include: {
+        resource: true,
+        rolePermissions: {
+          include: {
+            role: true,
+          },
+        },
+      },
     });
 
     if (!permission) {
@@ -68,7 +104,7 @@ export class PermissionsService extends BaseService {
     id: number,
     updatePermissionDto: Partial<CreatePermissionDto>,
   ): Promise<ApiResponse<unknown>> {
-    const { name, code, description } = updatePermissionDto;
+    const { name, code, description, resourceId, action } = updatePermissionDto;
 
     const permission = await this.prisma.permission.findUnique({
       where: { id },
@@ -78,12 +114,39 @@ export class PermissionsService extends BaseService {
       throw new NotFoundException(`权限ID ${id} 不存在`);
     }
 
+    // 如果更新资源ID，检查资源是否存在
+    if (resourceId && resourceId !== permission.resourceId) {
+      const resource = await this.prisma.resource.findUnique({
+        where: { id: resourceId },
+      });
+
+      if (!resource) {
+        throw new NotFoundException('关联的资源不存在');
+      }
+    }
+
+    // 如果更新权限代码，检查是否已存在
+    if (code && code !== permission.code) {
+      const existingPermission = await this.prisma.permission.findUnique({
+        where: { code },
+      });
+
+      if (existingPermission) {
+        throw new ConflictException('权限代码已存在');
+      }
+    }
+
     const updatedPermission = await this.prisma.permission.update({
       where: { id },
       data: {
         name,
         code,
         description,
+        resourceId,
+        action,
+      },
+      include: {
+        resource: true,
       },
     });
 
