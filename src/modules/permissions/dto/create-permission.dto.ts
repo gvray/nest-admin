@@ -16,14 +16,9 @@ export class CreatePermissionDto {
   @IsString({ message: '权限名称必须是字符串' })
   name: string;
 
-  @ApiProperty({ description: '权限代码' })
-  @IsString({ message: '权限代码必须是字符串' })
-  code: string;
-
-  @ApiProperty({ description: '资源ID' })
-  @IsNumber({}, { message: '资源ID必须是数字' })
-  @Type(() => Number)
-  resourceId: number;
+  @ApiProperty({ description: '资源ID（支持UUID或数字ID）' })
+  @IsString({ message: '资源ID必须是字符串' })
+  resourceId: string;
 
   @ApiProperty({ description: '操作类型', enum: ActionType })
   @IsEnum(ActionType, { message: '操作类型必须是有效的枚举值' })

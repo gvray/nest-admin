@@ -84,7 +84,7 @@ export class PositionsService extends BaseService {
       },
     };
 
-    const orderBy = { sort: 'asc', createdAt: 'desc' };
+    const orderBy = [{ sort: 'asc' }, { createdAt: 'desc' }];
 
     return this.paginateWithResponse<PositionEntity>(
       this.prisma.position,

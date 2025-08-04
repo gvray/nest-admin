@@ -76,7 +76,7 @@ export async function seedPermissions(prisma: PrismaClient) {
           name: `${resource.name}${actionName}`,
           code: `${resource.code}:${action}`,
           action,
-          resourceId: resource.id,
+          resourceId: resource.resourceId,
           description: `${resource.name}的${actionName}权限`,
         },
       });

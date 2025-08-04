@@ -26,7 +26,7 @@ export abstract class BaseService {
       findMany: (args: {
         where?: Record<string, unknown>;
         include?: Record<string, unknown>;
-        orderBy?: Record<string, unknown>;
+        orderBy?: Record<string, unknown> | Record<string, unknown>[];
         skip?: number;
         take?: number;
       }) => Promise<T[]>;
@@ -35,7 +35,7 @@ export abstract class BaseService {
     pagination: PaginationDto,
     where?: Record<string, unknown>,
     include?: Record<string, unknown>,
-    orderBy?: Record<string, unknown>,
+    orderBy?: Record<string, unknown> | Record<string, unknown>[],
   ): Promise<{ items: T[]; total: number; page: number; pageSize: number }> {
     const { page, pageSize } = pagination;
     const skip = pagination.getSkip();
@@ -76,7 +76,7 @@ export abstract class BaseService {
       findMany: (args: {
         where?: Record<string, unknown>;
         include?: Record<string, unknown>;
-        orderBy?: Record<string, unknown>;
+        orderBy?: any;
         skip?: number;
         take?: number;
       }) => Promise<T[]>;
@@ -85,7 +85,7 @@ export abstract class BaseService {
     pagination: PaginationDto,
     where?: Record<string, unknown>,
     include?: Record<string, unknown>,
-    orderBy?: Record<string, unknown>,
+    orderBy?: any,
     message?: string,
   ): Promise<PaginationResponse<T>> {
     const result = await this.paginate<T>(

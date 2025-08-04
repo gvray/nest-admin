@@ -102,7 +102,7 @@ model Resource {
   resourceId  String       @unique @default(uuid())
   name        String       @unique // 资源名称，如：用户管理、角色管理
   code        String       @unique // 资源代码，如：user, role, department
-  type        ResourceType @default(MENU) // 资源类型：directory(目录), menu(菜单), button(按钮), api(接口), data(数据)
+  type        ResourceType @default(MENU) // 资源类型：directory(目录)用于分组, menu(菜单)挂载权限点
   path        String?      // 资源路径，如：/users, /api/users
   method      String?      // HTTP方法，如：GET, POST, PUT, DELETE
   icon        String?      // 图标
@@ -129,9 +129,6 @@ model Resource {
 enum ResourceType {
   DIRECTORY // 目录（仅作结构分组，不跳页面）
   MENU      // 菜单项（跳转页面）
-  BUTTON    // 页面内操作按钮
-  API       // 接口权限
-  DATA      // 数据权限
 }
 
 model Permission {
@@ -140,8 +137,8 @@ model Permission {
   name            String           @unique // 权限名称，如：查看用户、创建用户
   code            String           @unique // 权限代码，如：user:view, user:create
   action          String           // 操作类型：view(查看), create(创建), update(更新), delete(删除), export(导出), import(导入)
-  resourceId      Int
-  resource        Resource         @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  resourceId      String           // 关联的菜单资源UUID（只能挂在MENU类型的资源上）
+  resource        Resource         @relation(fields: [resourceId], references: [resourceId], onDelete: Cascade)
   rolePermissions RolePermission[]
   description     String?
   
