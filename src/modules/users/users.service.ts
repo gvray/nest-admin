@@ -139,7 +139,13 @@ export class UsersService extends BaseService {
       },
     };
 
-    if (query && (query.page || query.pageSize)) {
+    // 判断是否需要分页 - 检查URL中是否真的传入了分页参数
+    const hasPaginationParams = query && (
+      (query.page !== undefined && query.page !== 1) || 
+      (query.pageSize !== undefined && query.pageSize !== 10)
+    );
+    
+    if (hasPaginationParams) {
       const result = (await this.paginateWithSortAndResponse(
         this.prisma.user,
         query,

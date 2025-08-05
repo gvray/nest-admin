@@ -3,10 +3,12 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
 import { QueryPermissionDto } from './dto/query-permission.dto';
+import { PermissionResponseDto } from './dto/permission-response.dto';
 import { BaseService } from '../../shared/services/base.service';
 import { ResponseUtil } from '../../shared/utils/response.util';
 import {
@@ -108,7 +110,7 @@ export class PermissionsService extends BaseService {
 
   async findAll(
     query: QueryPermissionDto,
-  ): Promise<PaginationResponse<unknown>> {
+  ): Promise<PaginationResponse<PermissionResponseDto> | ApiResponse<PermissionResponseDto[]>> {
     const { name, code, action, resourceId } = query;
 
     const where: Record<string, unknown> = {};
@@ -133,16 +135,57 @@ export class PermissionsService extends BaseService {
       resource: true,
     };
 
-    const orderBy = [{ createdAt: 'desc' }];
+    // 判断是否需要分页 - 检查URL中是否真的传入了分页参数
+    const hasPaginationParams = query && (
+      (query.page !== undefined && query.page !== 1) || 
+      (query.pageSize !== undefined && query.pageSize !== 10)
+    );
+    
+    if (hasPaginationParams) {
+      const result = (await this.paginateWithSortAndResponse(
+        this.prisma.permission,
+        query,
+        where,
+        include,
+        'createdAt',
+        '权限列表查询成功',
+      )) as PaginationResponse<any>;
 
-    return this.paginateWithResponse(
-      this.prisma.permission,
-      query,
+      if (
+        'data' in result &&
+        result.data &&
+        'items' in result.data &&
+        Array.isArray(result.data.items)
+      ) {
+        const transformedItems = plainToInstance(
+          PermissionResponseDto,
+          result.data.items,
+          {
+            excludeExtraneousValues: true,
+          },
+        );
+        return {
+          ...result,
+          data: {
+            ...result.data,
+            items: transformedItems,
+          },
+        } as PaginationResponse<PermissionResponseDto>;
+      }
+      return result as PaginationResponse<PermissionResponseDto>;
+    }
+
+    // 返回全量数据
+    const permissions = await this.prisma.permission.findMany({
       where,
       include,
-      orderBy,
-      '获取权限列表成功',
-    );
+      orderBy: [{ createdAt: 'desc' }],
+    });
+
+    const permissionResponses = plainToInstance(PermissionResponseDto, permissions, {
+      excludeExtraneousValues: true,
+    });
+    return ResponseUtil.found(permissionResponses, '权限列表查询成功');
   }
 
   async findOne(id: string): Promise<ApiResponse<unknown>> {

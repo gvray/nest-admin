@@ -9,7 +9,6 @@ import {
   Query,
   UseGuards,
   Request,
-  ParseIntPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -21,7 +20,7 @@ import { PositionsService } from './positions.service';
 import { CreatePositionDto } from './dto/create-position.dto';
 import { UpdatePositionDto } from './dto/update-position.dto';
 import { QueryPositionDto } from './dto/query-position.dto';
-import { PositionEntity } from './entities/position.entity';
+import { PositionResponseDto } from './dto/position-response.dto';
 import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
 import { RolesGuard } from '../../core/guards/roles.guard';
 import { PermissionsGuard } from '../../core/guards/permissions.guard';
@@ -44,7 +43,7 @@ export class PositionsController {
   @ApiResponse({
     status: 201,
     description: '岗位创建成功',
-    type: PositionEntity,
+    type: PositionResponseDto,
   })
   create(@Body() createPositionDto: CreatePositionDto, @Request() req: any) {
     const currentUserId = req.user?.userId;
@@ -72,9 +71,9 @@ export class PositionsController {
   @ApiResponse({
     status: 200,
     description: '获取岗位详情成功',
-    type: PositionEntity,
+    type: PositionResponseDto,
   })
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  findOne(@Param('id') id: string) {
     return this.positionsService.findOne(id);
   }
 
@@ -86,10 +85,10 @@ export class PositionsController {
   @ApiResponse({
     status: 200,
     description: '岗位更新成功',
-    type: PositionEntity,
+    type: PositionResponseDto,
   })
   update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id') id: string,
     @Body() updatePositionDto: UpdatePositionDto,
     @Request() req: any,
   ) {
@@ -106,7 +105,7 @@ export class PositionsController {
     status: 200,
     description: '岗位删除成功',
   })
-  remove(@Param('id', ParseIntPipe) id: number) {
+  remove(@Param('id') id: string) {
     return this.positionsService.remove(id);
   }
 }

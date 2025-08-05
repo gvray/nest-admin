@@ -3,13 +3,15 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreatePositionDto } from './dto/create-position.dto';
 import { UpdatePositionDto } from './dto/update-position.dto';
 import { QueryPositionDto } from './dto/query-position.dto';
-import { PositionEntity } from './entities/position.entity';
+import { PositionResponseDto } from './dto/position-response.dto';
 import { BaseService } from '../../shared/services/base.service';
-import { PaginationResponse } from '../../shared/interfaces/response.interface';
+import { ResponseUtil } from '../../shared/utils/response.util';
+import { ApiResponse, PaginationResponse } from '../../shared/interfaces/response.interface';
 
 @Injectable()
 export class PositionsService extends BaseService {
@@ -20,7 +22,7 @@ export class PositionsService extends BaseService {
   async create(
     createPositionDto: CreatePositionDto,
     currentUserId?: string,
-  ): Promise<PositionEntity> {
+  ): Promise<PositionResponseDto> {
     // 检查名称和编码是否已存在
     const existingPosition = await this.prisma.position.findFirst({
       where: {
@@ -49,13 +51,14 @@ export class PositionsService extends BaseService {
       },
     });
 
-    return {
-      ...position,
-      status: position.status,
-    } as PositionEntity;
+    return plainToInstance(PositionResponseDto, position, {
+      excludeExtraneousValues: true,
+    });
   }
 
-  async findAll(query: QueryPositionDto): Promise<PaginationResponse<PositionEntity>> {
+  async findAll(
+    query: QueryPositionDto,
+  ): Promise<PaginationResponse<PositionResponseDto> | ApiResponse<PositionResponseDto[]>> {
     const { name, code, status } = query;
 
     const where: Record<string, unknown> = {};
@@ -84,21 +87,68 @@ export class PositionsService extends BaseService {
       },
     };
 
-    const orderBy = [{ sort: 'asc' }, { createdAt: 'desc' }];
+    // 判断是否需要分页 - 检查URL中是否真的传入了分页参数
+    const hasPaginationParams = query && (
+      (query.page !== undefined && query.page !== 1) || 
+      (query.pageSize !== undefined && query.pageSize !== 10)
+    );
+    
+    if (hasPaginationParams) {
+      const result = (await this.paginateWithResponse(
+        this.prisma.position,
+        query,
+        where,
+        include,
+        [{ sort: 'asc' }, { createdAt: 'desc' }],
+        '岗位列表查询成功',
+      )) as PaginationResponse<any>;
 
-    return this.paginateWithResponse<PositionEntity>(
-      this.prisma.position,
-      query,
+      if (
+        'data' in result &&
+        result.data &&
+        'items' in result.data &&
+        Array.isArray(result.data.items)
+      ) {
+        const transformedItems = plainToInstance(
+          PositionResponseDto,
+          result.data.items,
+          {
+            excludeExtraneousValues: true,
+          },
+        );
+        return {
+          ...result,
+          data: {
+            ...result.data,
+            items: transformedItems,
+          },
+        } as PaginationResponse<PositionResponseDto>;
+      }
+      return result as PaginationResponse<PositionResponseDto>;
+    }
+
+    // 返回全量数据
+    const positions = await this.prisma.position.findMany({
       where,
       include,
-      orderBy,
-      '获取岗位列表成功',
-    );
+      orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
+    });
+
+    const positionResponses = plainToInstance(PositionResponseDto, positions, {
+      excludeExtraneousValues: true,
+    });
+    return ResponseUtil.found(positionResponses, '岗位列表查询成功');
   }
 
-  async findOne(id: number): Promise<PositionEntity> {
+  async findOne(id: string): Promise<PositionResponseDto> {
+    // 判断是数字ID还是UUID
+    const isNumericId = !isNaN(Number(id));
+    const whereClause = isNumericId 
+      ? { id: Number(id) } 
+      : { positionId: id };
+
     const position = await this.prisma.position.findUnique({
-      where: { id },
+      where: whereClause,
       include: {
         users: {
           include: {
@@ -113,20 +163,25 @@ export class PositionsService extends BaseService {
       throw new NotFoundException('岗位不存在');
     }
 
-    return {
-      ...position,
-      status: position.status,
-    } as PositionEntity;
+    return plainToInstance(PositionResponseDto, position, {
+      excludeExtraneousValues: true,
+    });
   }
 
   async update(
-    id: number,
+    id: string,
     updatePositionDto: UpdatePositionDto,
     currentUserId?: string,
-  ): Promise<PositionEntity> {
+  ): Promise<PositionResponseDto> {
+    // 判断是数字ID还是UUID
+    const isNumericId = !isNaN(Number(id));
+    const whereClause = isNumericId 
+      ? { id: Number(id) } 
+      : { positionId: id };
+
     // 检查岗位是否存在
     const existingPosition = await this.prisma.position.findUnique({
-      where: { id },
+      where: whereClause,
     });
 
     if (!existingPosition) {
@@ -145,7 +200,7 @@ export class PositionsService extends BaseService {
               ? [{ code: updatePositionDto.code }]
               : []),
           ],
-          NOT: { id },
+          NOT: { id: existingPosition.id },
         },
       });
 
@@ -168,23 +223,28 @@ export class PositionsService extends BaseService {
 
 
     const position = await this.prisma.position.update({
-      where: { id },
+      where: { id: existingPosition.id },
       data: {
         ...updatePositionDto,
         updatedById: currentUserId,
       },
     });
 
-    return {
-      ...position,
-      status: position.status,
-    } as PositionEntity;
+    return plainToInstance(PositionResponseDto, position, {
+      excludeExtraneousValues: true,
+    });
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: string): Promise<void> {
+    // 判断是数字ID还是UUID
+    const isNumericId = !isNaN(Number(id));
+    const whereClause = isNumericId 
+      ? { id: Number(id) } 
+      : { positionId: id };
+
     // 检查岗位是否存在
     const position = await this.prisma.position.findUnique({
-      where: { id },
+      where: whereClause,
       include: {
         users: true,
       },
@@ -200,7 +260,7 @@ export class PositionsService extends BaseService {
     }
 
     await this.prisma.position.delete({
-      where: { id },
+      where: { id: position.id },
     });
   }
 

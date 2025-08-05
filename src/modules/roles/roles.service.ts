@@ -1,8 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { QueryRoleDto } from './dto/query-role.dto';
+import { RoleResponseDto } from './dto/role-response.dto';
 import { BaseService } from '../../shared/services/base.service';
 import { Prisma } from '@prisma/client';
 import { ApiResponse, PaginationResponse } from '../../shared/interfaces/response.interface';
@@ -13,7 +15,7 @@ export class RolesService extends BaseService {
     super(prisma);
   }
 
-  async create(createRoleDto: CreateRoleDto, currentUserId?: string) {
+  async create(createRoleDto: CreateRoleDto, currentUserId?: string): Promise<RoleResponseDto> {
     const { name, description, remark, sort, permissionIds } = createRoleDto;
 
     const role = await this.prisma.role.create({
@@ -37,7 +39,7 @@ export class RolesService extends BaseService {
       });
     }
 
-    return this.prisma.role.findUnique({
+    const result = await this.prisma.role.findUnique({
       where: { id: role.id },
       include: {
         rolePermissions: {
@@ -51,11 +53,15 @@ export class RolesService extends BaseService {
         },
       },
     });
+    
+    return plainToInstance(RoleResponseDto, result, {
+      excludeExtraneousValues: true,
+    });
   }
 
   async findAll(
     query?: QueryRoleDto,
-  ): Promise<PaginationResponse<any> | ApiResponse<any[]>> {
+  ): Promise<PaginationResponse<RoleResponseDto> | ApiResponse<RoleResponseDto[]>> {
     // 构建查询条件
     const where: Prisma.RoleWhereInput = {};
 
@@ -82,7 +88,13 @@ export class RolesService extends BaseService {
       updatedAt: true,
     };
 
-    if (query && (query.page || query.pageSize)) {
+    // 判断是否需要分页 - 检查URL中是否真的传入了分页参数
+    const hasPaginationParams = query && (
+      (query.page !== undefined && query.page !== 1) || 
+      (query.pageSize !== undefined && query.pageSize !== 10)
+    );
+    
+    if (hasPaginationParams) {
       // 分页查询
       const page = query.page || 1;
       const pageSize = query.pageSize || 10;
@@ -109,7 +121,9 @@ export class RolesService extends BaseService {
         code: 200,
         message: '角色列表查询成功',
         data: {
-          items: roles,
+          items: plainToInstance(RoleResponseDto, roles, {
+            excludeExtraneousValues: true,
+          }),
           total: totalItems,
           page,
           pageSize,
@@ -135,12 +149,14 @@ export class RolesService extends BaseService {
       success: true,
       code: 200,
       message: '角色列表查询成功',
-      data: roles,
+      data: plainToInstance(RoleResponseDto, roles, {
+        excludeExtraneousValues: true,
+      }),
       timestamp: new Date().toISOString(),
     };
   }
 
-  async findOne(id: number) {
+  async findOne(id: number): Promise<RoleResponseDto> {
     const role = await this.prisma.role.findUnique({
       where: { id },
       include: {
@@ -168,10 +184,12 @@ export class RolesService extends BaseService {
       throw new NotFoundException(`角色ID ${id} 不存在`);
     }
 
-    return role;
+    return plainToInstance(RoleResponseDto, role, {
+      excludeExtraneousValues: true,
+    });
   }
 
-  async update(id: number, updateRoleDto: UpdateRoleDto, currentUserId?: string) {
+  async update(id: number, updateRoleDto: UpdateRoleDto, currentUserId?: string): Promise<RoleResponseDto> {
     const { name, description, remark, sort, permissionIds } = updateRoleDto;
 
     const role = await this.prisma.role.findUnique({
@@ -212,7 +230,7 @@ export class RolesService extends BaseService {
       }
     }
 
-    return this.prisma.role.findUnique({
+    const result = await this.prisma.role.findUnique({
       where: { id },
       include: {
         rolePermissions: {
@@ -226,9 +244,13 @@ export class RolesService extends BaseService {
         },
       },
     });
+    
+    return plainToInstance(RoleResponseDto, result, {
+      excludeExtraneousValues: true,
+    });
   }
 
-  async remove(id: number) {
+  async remove(id: number): Promise<void> {
     const role = await this.prisma.role.findUnique({
       where: { id },
     });
@@ -237,13 +259,13 @@ export class RolesService extends BaseService {
       throw new NotFoundException(`角色ID ${id} 不存在`);
     }
 
-    return this.prisma.role.delete({
+    await this.prisma.role.delete({
       where: { id },
     });
   }
 
   // 为角色分配权限
-  async assignPermissions(roleId: number, permissionIds: number[]) {
+  async assignPermissions(roleId: number, permissionIds: number[]): Promise<RoleResponseDto> {
     const role = await this.prisma.role.findUnique({
       where: { id: roleId },
     });
@@ -267,7 +289,7 @@ export class RolesService extends BaseService {
       });
     }
 
-    return this.prisma.role.findUnique({
+    const result = await this.prisma.role.findUnique({
       where: { id: roleId },
       include: {
         rolePermissions: {
@@ -281,10 +303,14 @@ export class RolesService extends BaseService {
         },
       },
     });
+    
+    return plainToInstance(RoleResponseDto, result, {
+      excludeExtraneousValues: true,
+    });
   }
 
   // 移除角色的权限
-  async removePermissions(roleId: number, permissionIds: number[]) {
+  async removePermissions(roleId: number, permissionIds: number[]): Promise<RoleResponseDto> {
     const role = await this.prisma.role.findUnique({
       where: { id: roleId },
     });
@@ -303,7 +329,7 @@ export class RolesService extends BaseService {
       },
     });
 
-    return this.prisma.role.findUnique({
+    const result = await this.prisma.role.findUnique({
       where: { id: roleId },
       include: {
         rolePermissions: {
@@ -316,6 +342,10 @@ export class RolesService extends BaseService {
           },
         },
       },
+    });
+    
+    return plainToInstance(RoleResponseDto, result, {
+      excludeExtraneousValues: true,
     });
   }
 }

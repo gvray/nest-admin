@@ -3,19 +3,25 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
 import { QueryDepartmentDto } from './dto/query-department.dto';
-import { DepartmentEntity } from './entities/department.entity';
+import { DepartmentResponseDto } from './dto/department-response.dto';
+import { BaseService } from '../../shared/services/base.service';
+import { ResponseUtil } from '../../shared/utils/response.util';
+import { ApiResponse, PaginationResponse } from '../../shared/interfaces/response.interface';
 
 @Injectable()
-export class DepartmentsService {
-  constructor(private readonly prisma: PrismaService) {}
+export class DepartmentsService extends BaseService {
+  constructor(protected readonly prisma: PrismaService) {
+    super(prisma);
+  }
 
   async create(
     createDepartmentDto: CreateDepartmentDto,
-  ): Promise<DepartmentEntity> {
+  ): Promise<DepartmentResponseDto> {
     // 检查名称和编码是否已存在
     const existingDepartment = await this.prisma.department.findFirst({
       where: {
@@ -54,15 +60,15 @@ export class DepartmentsService {
       },
     });
 
-    return {
-      ...department,
-      status: department.status,
-    } as DepartmentEntity;
+    return plainToInstance(DepartmentResponseDto, department, {
+      excludeExtraneousValues: true,
+    });
   }
 
-  async findAll(query: QueryDepartmentDto) {
-    const { name, code, status, parentId, page = 1, limit = 10 } = query;
-    const skip = (page - 1) * limit;
+  async findAll(
+    query: QueryDepartmentDto,
+  ): Promise<PaginationResponse<DepartmentResponseDto> | ApiResponse<DepartmentResponseDto[]>> {
+    const { name, code, status, parentId } = query;
 
     const where: Record<string, unknown> = {};
 
@@ -82,38 +88,70 @@ export class DepartmentsService {
       where.parentId = parentId;
     }
 
-    const [departments, total] = await Promise.all([
-      this.prisma.department.findMany({
-        where,
-        skip,
-        take: limit,
-        include: {
-          parent: true,
-          children: true,
-          _count: {
-            select: {
-              users: true,
-            },
-          },
+    const include = {
+      parent: true,
+      children: true,
+      _count: {
+        select: {
+          users: true,
         },
-        orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
-      }),
-      this.prisma.department.count({ where }),
-    ]);
-
-    return {
-      data: departments.map(department => ({
-        ...department,
-        status: department.status,
-      })),
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      },
     };
+
+    // 判断是否需要分页 - 检查URL中是否真的传入了分页参数
+    const hasPaginationParams = query && (
+      (query.page !== undefined && query.page !== 1) || 
+      (query.pageSize !== undefined && query.pageSize !== 10)
+    );
+    
+    if (hasPaginationParams) {
+      const result = (await this.paginateWithResponse(
+        this.prisma.department,
+        query,
+        where,
+        include,
+        [{ sort: 'asc' }, { createdAt: 'desc' }],
+        '部门列表查询成功',
+      )) as PaginationResponse<any>;
+
+      if (
+        'data' in result &&
+        result.data &&
+        'items' in result.data &&
+        Array.isArray(result.data.items)
+      ) {
+        const transformedItems = plainToInstance(
+          DepartmentResponseDto,
+          result.data.items,
+          {
+            excludeExtraneousValues: true,
+          },
+        );
+        return {
+          ...result,
+          data: {
+            ...result.data,
+            items: transformedItems,
+          },
+        } as PaginationResponse<DepartmentResponseDto>;
+      }
+      return result as PaginationResponse<DepartmentResponseDto>;
+    }
+
+    // 返回全量数据
+    const departments = await this.prisma.department.findMany({
+      where,
+      include,
+      orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
+    });
+
+    const departmentResponses = plainToInstance(DepartmentResponseDto, departments, {
+      excludeExtraneousValues: true,
+    });
+    return ResponseUtil.found(departmentResponses, '部门列表查询成功');
   }
 
-  async findOne(id: number): Promise<DepartmentEntity> {
+  async findOne(id: number): Promise<DepartmentResponseDto> {
     const department = await this.prisma.department.findUnique({
       where: { id },
       include: {
@@ -132,16 +170,15 @@ export class DepartmentsService {
       throw new NotFoundException('部门不存在');
     }
 
-    return {
-      ...department,
-      status: department.status,
-    } as DepartmentEntity;
+    return plainToInstance(DepartmentResponseDto, department, {
+      excludeExtraneousValues: true,
+    });
   }
 
   async update(
     id: number,
     updateDepartmentDto: UpdateDepartmentDto,
-  ): Promise<DepartmentEntity> {
+  ): Promise<DepartmentResponseDto> {
     // 检查部门是否存在
     const existingDepartment = await this.prisma.department.findUnique({
       where: { id },
@@ -212,10 +249,9 @@ export class DepartmentsService {
       },
     });
 
-    return {
-      ...department,
-      status: department.status,
-    } as DepartmentEntity;
+    return plainToInstance(DepartmentResponseDto, department, {
+      excludeExtraneousValues: true,
+    });
   }
 
   async remove(id: number): Promise<void> {
@@ -249,7 +285,7 @@ export class DepartmentsService {
     });
   }
 
-  async getTree(): Promise<DepartmentEntity[]> {
+  async getTree(): Promise<DepartmentResponseDto[]> {
     const departments = await this.prisma.department.findMany({
       where: { status: 1 },
       include: {
@@ -266,10 +302,10 @@ export class DepartmentsService {
     });
 
     // 只返回顶级部门
-    return departments.filter((dept) => !dept.parentId).map(dept => ({
-      ...dept,
-      status: dept.status,
-    })) as DepartmentEntity[];
+    const topLevelDepartments = departments.filter((dept) => !dept.parentId);
+    return plainToInstance(DepartmentResponseDto, topLevelDepartments, {
+      excludeExtraneousValues: true,
+    });
   }
 
   private async checkCircularReference(
