@@ -81,10 +81,10 @@ model Role {
 
 model RolePermission {
   id           Int        @id @default(autoincrement())
-  roleId       Int
-  permissionId Int
-  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [roleId], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [permissionId], onDelete: Cascade)
   
   // 审计字段
   createdById  String?    // 创建者ID
@@ -106,8 +106,8 @@ model Resource {
   path        String?      // 资源路径，如：/users, /api/users
   method      String?      // HTTP方法，如：GET, POST, PUT, DELETE
   icon        String?      // 图标
-  parentId    String?
-  parent      Resource?    @relation("ResourceHierarchy", fields: [parentId], references: [resourceId])
+  parentResourceId    String?
+  parentResource      Resource?    @relation("ResourceHierarchy", fields: [parentResourceId], references: [resourceId])
   children    Resource[]   @relation("ResourceHierarchy")
   permissions Permission[]
   status      Int          @default(1) // 0: 禁用, 1: 启用
@@ -161,8 +161,8 @@ model Department {
   code         String       @unique
   description  String?
   remark       String?      // 备注信息
-  parentId     Int?
-  parent       Department?  @relation("DepartmentHierarchy", fields: [parentId], references: [id])
+  parentDepartmentId String?
+  parentDepartment      Department?  @relation("DepartmentHierarchy", fields: [parentDepartmentId], references: [departmentId])
   children     Department[] @relation("DepartmentHierarchy")
   users        User[]
   status       Int          @default(1) // 0: 禁用, 1: 启用
