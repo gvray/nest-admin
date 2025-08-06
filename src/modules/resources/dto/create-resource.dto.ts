@@ -13,10 +13,10 @@ export class CreateResourceDto {
 
   @ApiProperty({
     description: '资源类型',
-    enum: ['DIRECTORY', 'MENU', 'BUTTON', 'API', 'DATA'],
+    enum: ['DIRECTORY', 'MENU'],
     example: 'MENU',
   })
-  @IsEnum(['DIRECTORY', 'MENU', 'BUTTON', 'API', 'DATA'])
+  @IsEnum(['DIRECTORY', 'MENU'])
   type: string;
 
   @ApiProperty({
@@ -49,7 +49,7 @@ export class CreateResourceDto {
   })
   @IsOptional()
   @IsString()
-  parentResourceId?: string;
+  parentId?: string;
 
   @ApiProperty({ description: '状态', example: 1, required: false })
   @IsOptional()

@@ -16,9 +16,7 @@ export class DepartmentResponseDto {
   @Expose()
   name: string;
 
-  @ApiProperty({ description: '部门编码' })
-  @Expose()
-  code: string;
+
 
   @ApiPropertyOptional({ description: '部门描述' })
   @Expose()
@@ -30,15 +28,23 @@ export class DepartmentResponseDto {
   @Transform(({ value }): string => value ?? '')
   remark?: string;
 
-  @Exclude()
-  parentId?: number | null;
+  @ApiPropertyOptional({ description: '负责人' })
+  @Expose()
+  @Transform(({ value }): string => value ?? '')
+  manager?: string;
+
+  @ApiPropertyOptional({ description: '联系电话' })
+  @Expose()
+  @Transform(({ value }): string => value ?? '')
+  phone?: string;
+
+  @ApiPropertyOptional({ description: '邮箱' })
+  @Expose()
+  @Transform(({ value }): string => value ?? '')
+  email?: string;
 
   @ApiPropertyOptional({ description: '父部门ID' })
   @Expose()
-  @Transform(({ obj }) => {
-    // 通过parent关联获取父部门的departmentId
-    return obj.parent?.departmentId || null;
-  })
   parentDepartmentId?: string | null;
 
   @ApiPropertyOptional({

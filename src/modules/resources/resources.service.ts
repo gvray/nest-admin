@@ -40,15 +40,15 @@ export class ResourcesService {
     // 验证资源层级关系
     await this.validateResourceHierarchy(
       createResourceDto.type,
-      createResourceDto.parentResourceId,
+      createResourceDto.parentId,
     );
 
     // 如果有父级资源，检查父级资源是否存在
     let parentId: string | null = null;
 
-    if (createResourceDto.parentResourceId) {
+    if (createResourceDto.parentId) {
       const parentResource = await this.prisma.resource.findUnique({
-        where: { resourceId: createResourceDto.parentResourceId },
+        where: { resourceId: createResourceDto.parentId },
       });
 
       if (!parentResource) {
@@ -65,7 +65,7 @@ export class ResourcesService {
         path: createResourceDto.path,
         method: createResourceDto.method,
         icon: createResourceDto.icon,
-        parentId,
+        parentId: parentId,
         sort: createResourceDto.sort,
         description: createResourceDto.description,
       },
@@ -276,27 +276,27 @@ export class ResourcesService {
     }
 
     // 验证资源层级关系（如果类型或父级资源发生变化）
-    if (updateResourceDto.type || updateResourceDto.parentResourceId !== undefined) {
+    if (updateResourceDto.type || updateResourceDto.parentId !== undefined) {
       const typeToValidate = updateResourceDto.type || existingResource.type;
-      const parentResourceIdToValidate = 
-        updateResourceDto.parentResourceId !== undefined 
-          ? updateResourceDto.parentResourceId
+      const parentIdToValidate = 
+        updateResourceDto.parentId !== undefined 
+          ? updateResourceDto.parentId
           : existingResource.parentId;
       
-      await this.validateResourceHierarchy(typeToValidate, parentResourceIdToValidate);
+      await this.validateResourceHierarchy(typeToValidate, parentIdToValidate);
     }
 
     // 处理父级资源
     let parentId: string | null = existingResource.parentId;
-    if (updateResourceDto.parentResourceId !== undefined) {
-      if (updateResourceDto.parentResourceId) {
+    if (updateResourceDto.parentId !== undefined) {
+      if (updateResourceDto.parentId) {
         // 检查循环引用
-        if (updateResourceDto.parentResourceId === resourceId) {
+        if (updateResourceDto.parentId === resourceId) {
           throw new ConflictException('不能将自己设置为父级资源');
         }
 
         const parentResource = await this.prisma.resource.findUnique({
-          where: { resourceId: updateResourceDto.parentResourceId },
+          where: { resourceId: updateResourceDto.parentId },
         });
 
         if (!parentResource) {
@@ -327,7 +327,7 @@ export class ResourcesService {
         path: updateResourceDto.path,
         method: updateResourceDto.method,
         icon: updateResourceDto.icon,
-        parentId,
+        parentId: parentId,
         status: updateResourceDto.status,
         sort: updateResourceDto.sort,
         description: updateResourceDto.description,
@@ -395,9 +395,9 @@ export class ResourcesService {
 
     // 构建树形结构
     resources.forEach(resource => {
-      // 使用 parentResourceId 而不是 parentId，因为 DTO 转换后 parentId 被排除了
-      if (resource.parentResourceId) {
-        const parent = resourceMap.get(resource.parentResourceId);
+      // 使用 parentId 而不是 parentId，因为 DTO 转换后 parentId 被排除了
+      if (resource.parentId) {
+        const parent = resourceMap.get(resource.parentId);
         if (parent) {
           parent.children.push(resourceMap.get(resource.resourceId));
         }
@@ -433,9 +433,9 @@ export class ResourcesService {
 
     // 构建树形结构
     resources.forEach(resource => {
-      // 使用 parentResourceId 而不是 parentId，因为 DTO 转换后 parentId 被排除了
-      if (resource.parentResourceId) {
-        const parent = resourceMap.get(resource.parentResourceId);
+      // 使用 parentId 而不是 parentId，因为 DTO 转换后 parentId 被排除了
+      if (resource.parentId) {
+        const parent = resourceMap.get(resource.parentId);
         if (parent) {
           parent.children.push(resourceMap.get(resource.resourceId));
         }
@@ -464,26 +464,23 @@ export class ResourcesService {
    * 验证资源层级关系
    * 规则：
    * - 目录(DIRECTORY): 只能创建在顶级或目录下
-   * - 菜单(MENU): 只能创建在目录下
-   * - 按钮(BUTTON): 只能创建在菜单下
-   * - API: 只能创建在菜单下
-   * - 数据(DATA): 只能创建在菜单下
+   * - 菜单(MENU): 只能创建在顶级或目录下
    */
   private async validateResourceHierarchy(
     resourceType: string,
-    parentResourceId?: string | null,
+    parentId?: string | null,
   ): Promise<void> {
-    // 如果没有父级资源，只有目录可以创建在顶级
-    if (!parentResourceId) {
-      if (resourceType !== 'DIRECTORY') {
-        throw new BadRequestException('只有目录可以创建在顶级');
+    // 如果没有父级资源，目录和菜单都可以创建在顶级
+    if (!parentId) {
+      if (resourceType !== 'DIRECTORY' && resourceType !== 'MENU') {
+        throw new BadRequestException('只有目录和菜单可以创建在顶级');
       }
       return;
     }
 
     // 获取父级资源信息
     const parentResource = await this.prisma.resource.findUnique({
-      where: { resourceId: parentResourceId },
+      where: { resourceId: parentId },
     });
 
     if (!parentResource) {
@@ -500,20 +497,9 @@ export class ResourcesService {
         break;
 
       case 'MENU':
-        // 菜单只能创建在目录下
+        // 菜单可以创建在顶级或目录下
         if (parentResource.type !== 'DIRECTORY') {
-          throw new BadRequestException('菜单只能创建在目录下');
-        }
-        break;
-
-      case 'BUTTON':
-      case 'API':
-      case 'DATA':
-        // 按钮、API、数据只能创建在菜单下
-        if (parentResource.type !== 'MENU') {
-          throw new BadRequestException(
-            `${this.getResourceTypeName(resourceType)}只能创建在菜单下`,
-          );
+          throw new BadRequestException('菜单只能创建在顶级或目录下');
         }
         break;
 
@@ -529,9 +515,6 @@ export class ResourcesService {
     const typeNames = {
       DIRECTORY: '目录',
       MENU: '菜单',
-      BUTTON: '按钮',
-      API: 'API',
-      DATA: '数据',
     };
     return typeNames[type] || type;
   }

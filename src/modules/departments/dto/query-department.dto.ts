@@ -9,10 +9,7 @@ export class QueryDepartmentDto extends PaginationDto {
   @IsString()
   name?: string;
 
-  @ApiPropertyOptional({ description: '部门编码' })
-  @IsOptional()
-  @IsString()
-  code?: string;
+
 
   @ApiPropertyOptional({ description: '状态' })
   @IsOptional()
@@ -20,9 +17,8 @@ export class QueryDepartmentDto extends PaginationDto {
   @IsInt()
   status?: number;
 
-  @ApiPropertyOptional({ description: '父部门ID' })
+  @ApiPropertyOptional({ description: '父部门ID（UUID）' })
   @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  parentId?: number;
+  @IsString()
+  parentId?: string;
 }

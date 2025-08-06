@@ -18,11 +18,10 @@ async function main() {
   // 创建部门
   console.log('创建部门...');
   const itDepartment = await prisma.department.upsert({
-    where: { code: 'IT' },
+    where: { name: '技术部' },
     update: {},
     create: {
       name: '技术部',
-      code: 'IT',
       description: '负责技术开发和维护',
       status: 1,
       sort: 1,
@@ -30,11 +29,10 @@ async function main() {
   });
 
   const hrDepartment = await prisma.department.upsert({
-    where: { code: 'HR' },
+    where: { name: '人力资源部' },
     update: {},
     create: {
       name: '人力资源部',
-      code: 'HR',
       description: '负责人力资源管理',
       status: 1,
       sort: 2,
@@ -42,11 +40,10 @@ async function main() {
   });
 
   const financeDepartment = await prisma.department.upsert({
-    where: { code: 'FINANCE' },
+    where: { name: '财务部' },
     update: {},
     create: {
       name: '财务部',
-      code: 'FINANCE',
       description: '负责财务管理',
       status: 1,
       sort: 3,
@@ -103,17 +100,6 @@ async function main() {
     },
   });
 
-  const department = await prisma.department.upsert({
-    where: { name: '技术部' },
-    update: {},
-    create: {
-      name: '技术部',
-      code: 'tech',
-      description: '负责技术开发和维护',
-      sort: 1,
-    },
-  });
-
   const position = await prisma.position.upsert({
     where: { name: '系统管理员' },
     update: {},
@@ -143,10 +129,10 @@ async function main() {
   // 为管理员角色分配所有权限
   if (permissions.length > 0) {
     await prisma.rolePermission.createMany({
-      data: permissions.map((permission) => ({
-        roleId: adminRole.id,
-        permissionId: permission.id,
-      })),
+              data: permissions.map((permission) => ({
+          roleId: adminRole.roleId,
+          permissionId: permission.permissionId,
+        })),
       skipDuplicates: true,
     });
   }
@@ -160,8 +146,8 @@ async function main() {
       roles: {
         connect: { id: adminRole.id },
       },
-      departmentId: itDepartment.id,
-      positionId: managerPosition.id,
+      departmentId: itDepartment.departmentId,
+      positionId: managerPosition.positionId,
       phone: '13800138000',
     },
     create: {
@@ -171,8 +157,8 @@ async function main() {
       phone: '13800138000',
       password: hashedPassword,
       status: 1, // 启用状态
-      departmentId: itDepartment.id,
-      positionId: managerPosition.id,
+      departmentId: itDepartment.departmentId,
+      positionId: managerPosition.positionId,
       roles: {
         connect: { id: adminRole.id },
       },
@@ -341,8 +327,8 @@ async function main() {
     if (basicPermissions.length > 0) {
       await prisma.rolePermission.createMany({
         data: basicPermissions.map((permission) => ({
-          roleId: userRole.id,
-          permissionId: permission.id,
+          roleId: userRole.roleId,
+          permissionId: permission.permissionId,
         })),
         skipDuplicates: true,
       });
@@ -353,8 +339,8 @@ async function main() {
     // 批量创建测试用户
     for (let i = 0; i < testUsers.length; i++) {
       const userData = testUsers[i];
-      const departmentToUse = i % 2 === 0 ? department : hrDepartment; // 交替分配部门
-      const positionToUse = i % 2 === 0 ? position : hrPosition; // 交替分配岗位
+      const departmentToUse = i % 2 === 0 ? itDepartment : hrDepartment; // 交替分配部门
+      const positionToUse = i % 2 === 0 ? managerPosition : hrPosition; // 交替分配岗位
 
       await prisma.user.upsert({
         where: { email: userData.email },
@@ -368,8 +354,8 @@ async function main() {
           avatar: '',
           remark: `测试用户 - ${userData.nickname}`,
           status: 1,
-          departmentId: departmentToUse.id,
-          positionId: positionToUse.id,
+          departmentId: departmentToUse.departmentId,
+          positionId: positionToUse.positionId,
           roles: {
             connect: { id: userRole.id },
           },

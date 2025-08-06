@@ -32,8 +32,8 @@ export class RolesService extends BaseService {
     if (permissionIds && permissionIds.length > 0) {
       await this.prisma.rolePermission.createMany({
         data: permissionIds.map((permissionId) => ({
-          roleId: role.id,
-          permissionId,
+          roleId: role.roleId,
+          permissionId: permissionId.toString(),
           createdById: currentUserId,
         })),
       });
@@ -216,15 +216,15 @@ export class RolesService extends BaseService {
     if (permissionIds !== undefined) {
       // 删除现有的角色权限关联
       await this.prisma.rolePermission.deleteMany({
-        where: { roleId: id },
+        where: { roleId: role.roleId },
       });
 
       // 创建新的角色权限关联
       if (permissionIds.length > 0) {
         await this.prisma.rolePermission.createMany({
           data: permissionIds.map((permissionId) => ({
-            roleId: id,
-            permissionId,
+            roleId: role.roleId,
+            permissionId: permissionId.toString(),
           })),
         });
       }
@@ -276,17 +276,17 @@ export class RolesService extends BaseService {
 
     // 删除现有的角色权限关联
     await this.prisma.rolePermission.deleteMany({
-      where: { roleId },
+              where: { roleId: role.roleId },
     });
 
     // 创建新的角色权限关联
     if (permissionIds.length > 0) {
-      await this.prisma.rolePermission.createMany({
-        data: permissionIds.map((permissionId) => ({
-          roleId,
-          permissionId,
-        })),
-      });
+              await this.prisma.rolePermission.createMany({
+          data: permissionIds.map((permissionId) => ({
+            roleId: role.roleId,
+            permissionId: permissionId.toString(),
+          })),
+        });
     }
 
     const result = await this.prisma.role.findUnique({
@@ -322,9 +322,9 @@ export class RolesService extends BaseService {
     // 删除指定的角色权限关联
     await this.prisma.rolePermission.deleteMany({
       where: {
-        roleId,
+        roleId: role.roleId,
         permissionId: {
-          in: permissionIds,
+          in: permissionIds.map(id => id.toString()),
         },
       },
     });

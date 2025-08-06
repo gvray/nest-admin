@@ -22,29 +22,21 @@ export class DepartmentsService extends BaseService {
   async create(
     createDepartmentDto: CreateDepartmentDto,
   ): Promise<DepartmentResponseDto> {
-    // 检查名称和编码是否已存在
+    // 检查名称是否已存在
     const existingDepartment = await this.prisma.department.findFirst({
       where: {
-        OR: [
-          { name: createDepartmentDto.name },
-          { code: createDepartmentDto.code },
-        ],
+        name: createDepartmentDto.name,
       },
     });
 
     if (existingDepartment) {
-      if (existingDepartment.name === createDepartmentDto.name) {
-        throw new ConflictException('部门名称已存在');
-      }
-      if (existingDepartment.code === createDepartmentDto.code) {
-        throw new ConflictException('部门编码已存在');
-      }
+      throw new ConflictException('部门名称已存在');
     }
 
     // 如果有父部门，检查父部门是否存在
     if (createDepartmentDto.parentId) {
       const parentDepartment = await this.prisma.department.findUnique({
-        where: { id: createDepartmentDto.parentId },
+        where: { departmentId: createDepartmentDto.parentId },
       });
 
       if (!parentDepartment) {
@@ -52,8 +44,12 @@ export class DepartmentsService extends BaseService {
       }
     }
 
+    const { parentId, ...departmentData } = createDepartmentDto;
     const department = await this.prisma.department.create({
-      data: createDepartmentDto,
+      data: {
+        ...departmentData,
+        ...(parentId && { parentId }),
+      } as any,
       include: {
         parent: true,
         children: true,
@@ -68,16 +64,12 @@ export class DepartmentsService extends BaseService {
   async findAll(
     query: QueryDepartmentDto,
   ): Promise<PaginationResponse<DepartmentResponseDto> | ApiResponse<DepartmentResponseDto[]>> {
-    const { name, code, status, parentId } = query;
+    const { name, status, parentId } = query;
 
     const where: Record<string, unknown> = {};
 
     if (name) {
       where.name = { contains: name };
-    }
-
-    if (code) {
-      where.code = { contains: code };
     }
 
     if (status !== undefined) {
@@ -89,7 +81,7 @@ export class DepartmentsService extends BaseService {
     }
 
     const include = {
-      parent: true,
+                parent: true,
       children: true,
       _count: {
         select: {
@@ -188,42 +180,24 @@ export class DepartmentsService extends BaseService {
       throw new NotFoundException('部门不存在');
     }
 
-    // 检查名称和编码是否与其他部门冲突
-    if (updateDepartmentDto.name || updateDepartmentDto.code) {
+    // 检查名称是否与其他部门冲突
+    if (updateDepartmentDto.name) {
       const conflictDepartment = await this.prisma.department.findFirst({
         where: {
-          OR: [
-            ...(updateDepartmentDto.name
-              ? [{ name: updateDepartmentDto.name }]
-              : []),
-            ...(updateDepartmentDto.code
-              ? [{ code: updateDepartmentDto.code }]
-              : []),
-          ],
+          name: updateDepartmentDto.name,
           NOT: { id },
         },
       });
 
       if (conflictDepartment) {
-        if (
-          updateDepartmentDto.name &&
-          conflictDepartment.name === updateDepartmentDto.name
-        ) {
-          throw new ConflictException('部门名称已存在');
-        }
-        if (
-          updateDepartmentDto.code &&
-          conflictDepartment.code === updateDepartmentDto.code
-        ) {
-          throw new ConflictException('部门编码已存在');
-        }
+        throw new ConflictException('部门名称已存在');
       }
     }
 
     // 如果更新父部门，检查父部门是否存在且不形成循环引用
     if (updateDepartmentDto.parentId) {
       const parentDepartment = await this.prisma.department.findUnique({
-        where: { id: updateDepartmentDto.parentId },
+        where: { departmentId: updateDepartmentDto.parentId },
       });
 
       if (!parentDepartment) {
@@ -310,28 +284,31 @@ export class DepartmentsService extends BaseService {
 
   private async checkCircularReference(
     departmentId: number,
-    parentId: number,
+    parentId: string,
   ): Promise<boolean> {
-    let currentParentId: number | null = parentId;
-    const visited = new Set<number>();
+    let currentParentDepartmentId: string | null = parentId;
+    const visited = new Set<string>();
 
-    while (currentParentId) {
-      if (visited.has(currentParentId)) {
+    while (currentParentDepartmentId) {
+      if (visited.has(currentParentDepartmentId)) {
         return true; // 发现循环
       }
 
-      if (currentParentId === departmentId) {
-        return true; // 发现循环
-      }
-
-      visited.add(currentParentId);
-
-      const parent = await this.prisma.department.findUnique({
-        where: { id: currentParentId },
-        select: { parentId: true },
+      const currentDepartment = await this.prisma.department.findUnique({
+        where: { departmentId: currentParentDepartmentId },
+        select: { id: true, parentId: true },
       });
 
-      currentParentId = parent?.parentId || null;
+      if (!currentDepartment) {
+        break;
+      }
+
+      if (currentDepartment.id === departmentId) {
+        return true; // 发现循环
+      }
+
+      visited.add(currentParentDepartmentId);
+      currentParentDepartmentId = currentDepartment.parentId;
     }
 
     return false;

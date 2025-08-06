@@ -37,16 +37,9 @@ export class ResourceResponseDto {
   @Expose()
   icon?: string;
 
-  @Exclude()
-  parentId?: string;
-
   @ApiProperty({ description: '父级资源ID', required: false })
   @Expose()
-  @Transform(({ obj }) => {
-    // parentId 字段本身就存储了父级的 resourceId
-    return obj.parentId || null;
-  })
-  parentResourceId: string | null;
+  parentId: string | null;
 
   @ApiProperty({
     description: '子资源列表',

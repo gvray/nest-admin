@@ -24,35 +24,35 @@ model User {
   avatar       String?
   remark       String? // 备注信息
   status       Int         @default(1) // 0: 禁用, 1: 启用, 2: 审核中, 3: 封禁
-  departmentId Int?
-  department   Department? @relation(fields: [departmentId], references: [id])
-  positionId   Int?
-  position     Position?   @relation(fields: [positionId], references: [id])
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [departmentId])
+  positionId   String?
+  position     Position?   @relation(fields: [positionId], references: [positionId])
   roles        Role[]
-  
+
   // 审计字段
-  createdById  String?     // 创建者ID
-  createdBy    User?       @relation("UserCreatedBy", fields: [createdById], references: [userId])
-  updatedById  String?     // 更新者ID  
-  updatedBy    User?       @relation("UserUpdatedBy", fields: [updatedById], references: [userId])
-  
+  createdById String? // 创建者ID
+  createdBy   User?   @relation("UserCreatedBy", fields: [createdById], references: [userId])
+  updatedById String? // 更新者ID  
+  updatedBy   User?   @relation("UserUpdatedBy", fields: [updatedById], references: [userId])
+
   // 反向关联 - 作为创建者/更新者的记录
-  createdUsers     User[]            @relation("UserCreatedBy")
-  updatedUsers     User[]            @relation("UserUpdatedBy")
-  createdRoles     Role[]            @relation("RoleCreatedBy")
-  updatedRoles     Role[]            @relation("RoleUpdatedBy")
-  createdRolePerms RolePermission[]  @relation("RolePermissionCreatedBy")
-  createdResources Resource[]        @relation("ResourceCreatedBy")
-  updatedResources Resource[]        @relation("ResourceUpdatedBy")
-  createdPerms     Permission[]      @relation("PermissionCreatedBy")
-  updatedPerms     Permission[]      @relation("PermissionUpdatedBy")
-  createdDepts     Department[]      @relation("DepartmentCreatedBy")
-  updatedDepts     Department[]      @relation("DepartmentUpdatedBy")
-  createdPositions Position[]        @relation("PositionCreatedBy")
-  updatedPositions Position[]        @relation("PositionUpdatedBy")
-  
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  createdUsers     User[]           @relation("UserCreatedBy")
+  updatedUsers     User[]           @relation("UserUpdatedBy")
+  createdRoles     Role[]           @relation("RoleCreatedBy")
+  updatedRoles     Role[]           @relation("RoleUpdatedBy")
+  createdRolePerms RolePermission[] @relation("RolePermissionCreatedBy")
+  createdResources Resource[]       @relation("ResourceCreatedBy")
+  updatedResources Resource[]       @relation("ResourceUpdatedBy")
+  createdPerms     Permission[]     @relation("PermissionCreatedBy")
+  updatedPerms     Permission[]     @relation("PermissionUpdatedBy")
+  createdDepts     Department[]     @relation("DepartmentCreatedBy")
+  updatedDepts     Department[]     @relation("DepartmentUpdatedBy")
+  createdPositions Position[]       @relation("PositionCreatedBy")
+  updatedPositions Position[]       @relation("PositionUpdatedBy")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("users")
 }
@@ -62,19 +62,19 @@ model Role {
   roleId          String           @unique @default(uuid())
   name            String           @unique
   description     String?
-  remark          String?          // 备注信息
+  remark          String? // 备注信息
   sort            Int              @default(0) // 排序权重
   users           User[]
   rolePermissions RolePermission[]
-  
+
   // 审计字段
-  createdById     String?          // 创建者ID
-  createdBy       User?            @relation("RoleCreatedBy", fields: [createdById], references: [userId])
-  updatedById     String?          // 更新者ID
-  updatedBy       User?            @relation("RoleUpdatedBy", fields: [updatedById], references: [userId])
-  
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  createdById String? // 创建者ID
+  createdBy   User?   @relation("RoleCreatedBy", fields: [createdById], references: [userId])
+  updatedById String? // 更新者ID
+  updatedBy   User?   @relation("RoleUpdatedBy", fields: [updatedById], references: [userId])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("roles")
 }
@@ -85,13 +85,13 @@ model RolePermission {
   permissionId String
   role         Role       @relation(fields: [roleId], references: [roleId], onDelete: Cascade)
   permission   Permission @relation(fields: [permissionId], references: [permissionId], onDelete: Cascade)
-  
+
   // 审计字段
-  createdById  String?    // 创建者ID
-  createdBy    User?      @relation("RolePermissionCreatedBy", fields: [createdById], references: [userId])
-  
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  createdById String? // 创建者ID
+  createdBy   User?   @relation("RolePermissionCreatedBy", fields: [createdById], references: [userId])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([roleId, permissionId])
   @@map("role_permissions")
@@ -103,32 +103,32 @@ model Resource {
   name        String       @unique // 资源名称，如：用户管理、角色管理
   code        String       @unique // 资源代码，如：user, role, department
   type        ResourceType @default(MENU) // 资源类型：directory(目录)用于分组, menu(菜单)挂载权限点
-  path        String?      // 资源路径，如：/users, /api/users
-  method      String?      // HTTP方法，如：GET, POST, PUT, DELETE
-  icon        String?      // 图标
-  parentResourceId    String?
-  parentResource      Resource?    @relation("ResourceHierarchy", fields: [parentResourceId], references: [resourceId])
+  path        String? // 资源路径，如：/users, /api/users
+  method      String? // HTTP方法，如：GET, POST, PUT, DELETE
+  icon        String? // 图标
+  parentId    String?
+  parent      Resource?    @relation("ResourceHierarchy", fields: [parentId], references: [resourceId])
   children    Resource[]   @relation("ResourceHierarchy")
   permissions Permission[]
   status      Int          @default(1) // 0: 禁用, 1: 启用
   sort        Int          @default(0)
   description String?
-  
+
   // 审计字段
-  createdById String?      // 创建者ID
-  createdBy   User?        @relation("ResourceCreatedBy", fields: [createdById], references: [userId])
-  updatedById String?      // 更新者ID
-  updatedBy   User?        @relation("ResourceUpdatedBy", fields: [updatedById], references: [userId])
-  
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdById String? // 创建者ID
+  createdBy   User?   @relation("ResourceCreatedBy", fields: [createdById], references: [userId])
+  updatedById String? // 更新者ID
+  updatedBy   User?   @relation("ResourceUpdatedBy", fields: [updatedById], references: [userId])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("resources")
 }
 
 enum ResourceType {
   DIRECTORY // 目录（仅作结构分组，不跳页面）
-  MENU      // 菜单项（跳转页面）
+  MENU // 菜单项（跳转页面）
 }
 
 model Permission {
@@ -136,69 +136,68 @@ model Permission {
   permissionId    String           @unique @default(uuid())
   name            String           @unique // 权限名称，如：查看用户、创建用户
   code            String           @unique // 权限代码，如：user:view, user:create
-  action          String           // 操作类型：view(查看), create(创建), update(更新), delete(删除), export(导出), import(导入)
-  resourceId      String           // 关联的菜单资源UUID（只能挂在MENU类型的资源上）
+  action          String // 操作类型：view(查看), create(创建), update(更新), delete(删除), export(导出), import(导入)
+  resourceId      String // 关联的菜单资源UUID（只能挂在MENU类型的资源上）
   resource        Resource         @relation(fields: [resourceId], references: [resourceId], onDelete: Cascade)
   rolePermissions RolePermission[]
   description     String?
-  
+
   // 审计字段
-  createdById     String?          // 创建者ID
-  createdBy       User?            @relation("PermissionCreatedBy", fields: [createdById], references: [userId])
-  updatedById     String?          // 更新者ID
-  updatedBy       User?            @relation("PermissionUpdatedBy", fields: [updatedById], references: [userId])
-  
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  createdById String? // 创建者ID
+  createdBy   User?   @relation("PermissionCreatedBy", fields: [createdById], references: [userId])
+  updatedById String? // 更新者ID
+  updatedBy   User?   @relation("PermissionUpdatedBy", fields: [updatedById], references: [userId])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("permissions")
 }
 
 model Department {
-  id           Int          @id @default(autoincrement())
-  departmentId String       @unique @default(uuid())
-  name         String       @unique
-  code         String       @unique
-  description  String?
-  remark       String?      // 备注信息
-  parentDepartmentId String?
-  parentDepartment      Department?  @relation("DepartmentHierarchy", fields: [parentDepartmentId], references: [departmentId])
-  children     Department[] @relation("DepartmentHierarchy")
-  users        User[]
-  status       Int          @default(1) // 0: 禁用, 1: 启用
-  sort         Int          @default(0)
-  
+  id                 Int          @id @default(autoincrement())
+  departmentId       String       @unique @default(uuid())
+  name               String       @unique
+  description        String?
+  remark             String? // 备注信息
+  parentId           String?
+  parent   Department?  @relation("DepartmentHierarchy", fields: [parentId], references: [departmentId])
+  children           Department[] @relation("DepartmentHierarchy")
+  users              User[]
+  status             Int          @default(1) // 0: 禁用, 1: 启用
+  sort               Int          @default(0)
+
   // 审计字段
-  createdById  String?      // 创建者ID
-  createdBy    User?        @relation("DepartmentCreatedBy", fields: [createdById], references: [userId])
-  updatedById  String?      // 更新者ID
-  updatedBy    User?        @relation("DepartmentUpdatedBy", fields: [updatedById], references: [userId])
-  
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  createdById String? // 创建者ID
+  createdBy   User?   @relation("DepartmentCreatedBy", fields: [createdById], references: [userId])
+  updatedById String? // 更新者ID
+  updatedBy   User?   @relation("DepartmentUpdatedBy", fields: [updatedById], references: [userId])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("departments")
 }
 
 model Position {
-  id           Int        @id @default(autoincrement())
-  positionId   String     @unique @default(uuid())
-  name         String     @unique
-  code         String     @unique
-  description  String?
-  remark       String?    // 备注信息
-  users        User[]
-  status       Int        @default(1) // 0: 禁用, 1: 启用
-  sort         Int        @default(0)
-  
+  id          Int     @id @default(autoincrement())
+  positionId  String  @unique @default(uuid())
+  name        String  @unique
+  code        String  @unique
+  description String?
+  remark      String? // 备注信息
+  users       User[]
+  status      Int     @default(1) // 0: 禁用, 1: 启用
+  sort        Int     @default(0)
+
   // 审计字段
-  createdById  String?    // 创建者ID
-  createdBy    User?      @relation("PositionCreatedBy", fields: [createdById], references: [userId])
-  updatedById  String?    // 更新者ID
-  updatedBy    User?      @relation("PositionUpdatedBy", fields: [updatedById], references: [userId])
-  
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  createdById String? // 创建者ID
+  createdBy   User?   @relation("PositionCreatedBy", fields: [createdById], references: [userId])
+  updatedById String? // 更新者ID
+  updatedBy   User?   @relation("PositionUpdatedBy", fields: [updatedById], references: [userId])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("positions")
 }

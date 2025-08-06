@@ -37,7 +37,7 @@ export class PositionResponseDto {
   @Expose()
   positionId: string;
 
-  @ApiProperty({ description: '岗位名称' })
+    @ApiProperty({ description: '岗位名称' })
   @Expose()
   name: string;
 

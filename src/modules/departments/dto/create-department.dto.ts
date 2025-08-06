@@ -13,9 +13,7 @@ export class CreateDepartmentDto {
   @IsString()
   name: string;
 
-  @ApiProperty({ description: '部门编码' })
-  @IsString()
-  code: string;
+
 
   @ApiPropertyOptional({ description: '部门描述' })
   @IsOptional()
@@ -27,10 +25,25 @@ export class CreateDepartmentDto {
   @IsString()
   remark?: string;
 
-  @ApiPropertyOptional({ description: '父部门ID' })
+  @ApiPropertyOptional({ description: '负责人' })
   @IsOptional()
-  @IsInt()
-  parentId?: number;
+  @IsString()
+  manager?: string;
+
+  @ApiPropertyOptional({ description: '联系电话' })
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @ApiPropertyOptional({ description: '邮箱' })
+  @IsOptional()
+  @IsString()
+  email?: string;
+
+  @ApiPropertyOptional({ description: '父部门ID（UUID）' })
+  @IsOptional()
+  @IsString()
+  parentId?: string;
 
   @ApiPropertyOptional({ description: '状态', default: 1 })
   @IsOptional()
