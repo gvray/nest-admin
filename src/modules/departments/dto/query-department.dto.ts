@@ -9,8 +9,6 @@ export class QueryDepartmentDto extends PaginationDto {
   @IsString()
   name?: string;
 
-
-
   @ApiPropertyOptional({ description: '状态' })
   @IsOptional()
   @Type(() => Number)

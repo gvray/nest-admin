@@ -55,8 +55,8 @@ export abstract class BaseService {
     return {
       items,
       total,
-      page: page || 1,
-      pageSize: pageSize || 10,
+      page: page!,
+      pageSize: pageSize!,
     };
   }
 

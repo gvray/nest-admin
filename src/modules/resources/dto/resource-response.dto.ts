@@ -29,9 +29,7 @@ export class ResourceResponseDto {
   @Expose()
   path?: string;
 
-  @ApiProperty({ description: 'HTTP方法', required: false })
-  @Expose()
-  method?: string;
+
 
   @ApiProperty({ description: '图标', required: false })
   @Expose()

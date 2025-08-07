@@ -104,7 +104,6 @@ model Resource {
   code        String       @unique // 资源代码，如：user, role, department
   type        ResourceType @default(MENU) // 资源类型：directory(目录)用于分组, menu(菜单)挂载权限点
   path        String? // 资源路径，如：/users, /api/users
-  method      String? // HTTP方法，如：GET, POST, PUT, DELETE
   icon        String? // 图标
   parentId    String?
   parent      Resource?    @relation("ResourceHierarchy", fields: [parentId], references: [resourceId])

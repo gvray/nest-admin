@@ -10,8 +10,10 @@ import { UpdateDepartmentDto } from './dto/update-department.dto';
 import { QueryDepartmentDto } from './dto/query-department.dto';
 import { DepartmentResponseDto } from './dto/department-response.dto';
 import { BaseService } from '../../shared/services/base.service';
-import { ResponseUtil } from '../../shared/utils/response.util';
-import { ApiResponse, PaginationResponse } from '../../shared/interfaces/response.interface';
+import {
+  ApiResponse,
+  PaginationResponse,
+} from '../../shared/interfaces/response.interface';
 
 @Injectable()
 export class DepartmentsService extends BaseService {
@@ -63,7 +65,10 @@ export class DepartmentsService extends BaseService {
 
   async findAll(
     query: QueryDepartmentDto,
-  ): Promise<PaginationResponse<DepartmentResponseDto> | ApiResponse<DepartmentResponseDto[]>> {
+  ): Promise<
+    | PaginationResponse<DepartmentResponseDto>
+    | ApiResponse<DepartmentResponseDto[]>
+  > {
     const { name, status, parentId } = query;
 
     const where: Record<string, unknown> = {};
@@ -81,8 +86,6 @@ export class DepartmentsService extends BaseService {
     }
 
     const include = {
-                parent: true,
-      children: true,
       _count: {
         select: {
           users: true,
@@ -90,57 +93,60 @@ export class DepartmentsService extends BaseService {
       },
     };
 
-    // 判断是否需要分页 - 检查URL中是否真的传入了分页参数
-    const hasPaginationParams = query && (
-      (query.page !== undefined && query.page !== 1) || 
-      (query.pageSize !== undefined && query.pageSize !== 10)
-    );
-    
-    if (hasPaginationParams) {
-      const result = (await this.paginateWithResponse(
-        this.prisma.department,
-        query,
-        where,
-        include,
-        [{ sort: 'asc' }, { createdAt: 'desc' }],
-        '部门列表查询成功',
-      )) as PaginationResponse<any>;
+    // 使用 PaginationDto 的方法来判断是否需要分页
+    const skip = query.getSkip();
+    const take = query.getTake();
 
-      if (
-        'data' in result &&
-        result.data &&
-        'items' in result.data &&
-        Array.isArray(result.data.items)
-      ) {
-        const transformedItems = plainToInstance(
-          DepartmentResponseDto,
-          result.data.items,
-          {
+    if (skip !== undefined && take !== undefined) {
+      // 分页查询
+      const [departments, totalItems] = await Promise.all([
+        this.prisma.department.findMany({
+          where,
+          include,
+          skip,
+          take,
+          orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
+        }),
+        this.prisma.department.count({ where }),
+      ]);
+
+      const totalPages = Math.ceil(totalItems / take);
+
+      return {
+        success: true,
+        code: 200,
+        message: '部门列表查询成功',
+        data: {
+          items: plainToInstance(DepartmentResponseDto, departments, {
             excludeExtraneousValues: true,
-          },
-        );
-        return {
-          ...result,
-          data: {
-            ...result.data,
-            items: transformedItems,
-          },
-        } as PaginationResponse<DepartmentResponseDto>;
-      }
-      return result as PaginationResponse<DepartmentResponseDto>;
+          }),
+          total: totalItems,
+          page: query.page!,
+          pageSize: query.pageSize!,
+          totalPages,
+          hasNext: query.page! < totalPages,
+          hasPrev: query.page! > 1,
+        },
+        timestamp: new Date().toISOString(),
+      };
     }
 
-    // 返回全量数据
+    // 返回全量数据（不分页）
     const departments = await this.prisma.department.findMany({
       where,
       include,
       orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
     });
 
-    const departmentResponses = plainToInstance(DepartmentResponseDto, departments, {
-      excludeExtraneousValues: true,
-    });
-    return ResponseUtil.found(departmentResponses, '部门列表查询成功');
+    return {
+      success: true,
+      code: 200,
+      message: '部门列表查询成功',
+      data: plainToInstance(DepartmentResponseDto, departments, {
+        excludeExtraneousValues: true,
+      }),
+      timestamp: new Date().toISOString(),
+    };
   }
 
   async findOne(id: number): Promise<DepartmentResponseDto> {
@@ -251,8 +257,6 @@ export class DepartmentsService extends BaseService {
     if (department.users && department.users.length > 0) {
       throw new ConflictException('该部门下还有用户，无法删除');
     }
-
-
 
     await this.prisma.department.delete({
       where: { id },

@@ -28,10 +28,7 @@ export class CreateResourceDto {
   @IsString()
   path?: string;
 
-  @ApiProperty({ description: 'HTTP方法', example: 'GET', required: false })
-  @IsOptional()
-  @IsString()
-  method?: string;
+
 
   @ApiProperty({
     description: '图标',

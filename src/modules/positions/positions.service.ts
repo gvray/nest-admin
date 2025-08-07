@@ -87,13 +87,11 @@ export class PositionsService extends BaseService {
       },
     };
 
-    // 判断是否需要分页 - 检查URL中是否真的传入了分页参数
-    const hasPaginationParams = query && (
-      (query.page !== undefined && query.page !== 1) || 
-      (query.pageSize !== undefined && query.pageSize !== 10)
-    );
+    // 使用 PaginationDto 的方法来判断是否需要分页
+    const skip = query.getSkip();
+    const take = query.getTake();
     
-    if (hasPaginationParams) {
+    if (skip !== undefined && take !== undefined) {
       const result = (await this.paginateWithResponse(
         this.prisma.position,
         query,

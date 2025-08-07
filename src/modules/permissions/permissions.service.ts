@@ -110,7 +110,10 @@ export class PermissionsService extends BaseService {
 
   async findAll(
     query: QueryPermissionDto,
-  ): Promise<PaginationResponse<PermissionResponseDto> | ApiResponse<PermissionResponseDto[]>> {
+  ): Promise<
+    | PaginationResponse<PermissionResponseDto>
+    | ApiResponse<PermissionResponseDto[]>
+  > {
     const { name, code, action, resourceId } = query;
 
     const where: Record<string, unknown> = {};
@@ -135,13 +138,11 @@ export class PermissionsService extends BaseService {
       resource: true,
     };
 
-    // 判断是否需要分页 - 检查URL中是否真的传入了分页参数
-    const hasPaginationParams = query && (
-      (query.page !== undefined && query.page !== 1) || 
-      (query.pageSize !== undefined && query.pageSize !== 10)
-    );
-    
-    if (hasPaginationParams) {
+    // 使用 PaginationDto 的方法来判断是否需要分页
+    const skip = query.getSkip();
+    const take = query.getTake();
+
+    if (skip !== undefined && take !== undefined) {
       const result = (await this.paginateWithSortAndResponse(
         this.prisma.permission,
         query,
@@ -182,16 +183,20 @@ export class PermissionsService extends BaseService {
       orderBy: [{ createdAt: 'desc' }],
     });
 
-    const permissionResponses = plainToInstance(PermissionResponseDto, permissions, {
-      excludeExtraneousValues: true,
-    });
+    const permissionResponses = plainToInstance(
+      PermissionResponseDto,
+      permissions,
+      {
+        excludeExtraneousValues: true,
+      },
+    );
     return ResponseUtil.found(permissionResponses, '权限列表查询成功');
   }
 
   async findOne(id: string): Promise<ApiResponse<unknown>> {
     // 支持UUID和数字ID查找
     let permission: any = null;
-    
+
     // 首先尝试用UUID查找 (permissionId)
     permission = await this.prisma.permission.findUnique({
       where: { permissionId: id },
@@ -236,7 +241,7 @@ export class PermissionsService extends BaseService {
 
     // 支持UUID和数字ID查找
     let permission: any = null;
-    
+
     // 首先尝试用UUID查找 (permissionId)
     permission = await this.prisma.permission.findUnique({
       where: { permissionId: id },
@@ -362,7 +367,7 @@ export class PermissionsService extends BaseService {
   async remove(id: string): Promise<ApiResponse<unknown>> {
     // 支持UUID和数字ID查找
     let permission: any = null;
-    
+
     // 首先尝试用UUID查找 (permissionId)
     permission = await this.prisma.permission.findUnique({
       where: { permissionId: id },
@@ -439,7 +444,7 @@ export class PermissionsService extends BaseService {
         children: [],
       };
       treeMap.set(resource.resourceId, node);
-      
+
       // 将权限作为子节点添加到资源节点
       resource.permissions.forEach((permission) => {
         const permissionNode = {
@@ -478,7 +483,14 @@ export class PermissionsService extends BaseService {
       nodes.sort((a, b) => {
         // 如果是权限节点，按操作类型排序
         if (a.type === 'permission' && b.type === 'permission') {
-          const actionOrder = ['view', 'create', 'update', 'delete', 'export', 'import'];
+          const actionOrder = [
+            'view',
+            'create',
+            'update',
+            'delete',
+            'export',
+            'import',
+          ];
           const aIndex = actionOrder.indexOf(a.action);
           const bIndex = actionOrder.indexOf(b.action);
           return aIndex - bIndex;
@@ -489,7 +501,7 @@ export class PermissionsService extends BaseService {
         }
         return a.name.localeCompare(b.name);
       });
-      
+
       nodes.forEach((node) => {
         if (node.children && node.children.length > 0) {
           sortAndCleanChildren(node.children);
@@ -505,7 +517,9 @@ export class PermissionsService extends BaseService {
     // 统计信息
     const totalResources = allResources.length;
     const menuResources = allResources.filter((r) => r.type === 'MENU').length;
-    const directoryResources = allResources.filter((r) => r.type === 'DIRECTORY').length;
+    const directoryResources = allResources.filter(
+      (r) => r.type === 'DIRECTORY',
+    ).length;
     const totalPermissions = allResources.reduce(
       (sum, resource) => sum + resource.permissions.length,
       0,
@@ -573,7 +587,7 @@ export class PermissionsService extends BaseService {
         children: [],
       };
       treeMap.set(resource.resourceId, node);
-      
+
       // 将权限作为子节点添加到资源节点
       resource.permissions.forEach((permission) => {
         const permissionNode = {
@@ -614,7 +628,14 @@ export class PermissionsService extends BaseService {
       nodes.sort((a, b) => {
         // 如果是权限节点，按操作类型排序
         if (a.type === 'permission' && b.type === 'permission') {
-          const actionOrder = ['view', 'create', 'update', 'delete', 'export', 'import'];
+          const actionOrder = [
+            'view',
+            'create',
+            'update',
+            'delete',
+            'export',
+            'import',
+          ];
           const aIndex = actionOrder.indexOf(a.action);
           const bIndex = actionOrder.indexOf(b.action);
           return aIndex - bIndex;
@@ -625,7 +646,7 @@ export class PermissionsService extends BaseService {
         }
         return a.title.localeCompare(b.title);
       });
-      
+
       nodes.forEach((node) => {
         if (node.children && node.children.length > 0) {
           sortAndCleanNodes(node.children);
@@ -641,7 +662,9 @@ export class PermissionsService extends BaseService {
     // 统计信息
     const totalResources = allResources.length;
     const menuResources = allResources.filter((r) => r.type === 'MENU').length;
-    const directoryResources = allResources.filter((r) => r.type === 'DIRECTORY').length;
+    const directoryResources = allResources.filter(
+      (r) => r.type === 'DIRECTORY',
+    ).length;
     const totalPermissions = allResources.reduce(
       (sum, resource) => sum + resource.permissions.length,
       0,

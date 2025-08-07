@@ -63,7 +63,7 @@ export class ResourcesService {
         code: createResourceDto.code,
         type: createResourceDto.type as ResourceType,
         path: createResourceDto.path,
-        method: createResourceDto.method,
+
         icon: createResourceDto.icon,
         parentId: parentId,
         sort: createResourceDto.sort,
@@ -325,7 +325,7 @@ export class ResourcesService {
         code: updateResourceDto.code,
         type: updateResourceDto.type as ResourceType,
         path: updateResourceDto.path,
-        method: updateResourceDto.method,
+
         icon: updateResourceDto.icon,
         parentId: parentId,
         status: updateResourceDto.status,

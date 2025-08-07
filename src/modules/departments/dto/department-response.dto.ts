@@ -16,8 +16,6 @@ export class DepartmentResponseDto {
   @Expose()
   name: string;
 
-
-
   @ApiPropertyOptional({ description: '部门描述' })
   @Expose()
   @Transform(({ value }): string => value ?? '')
@@ -46,22 +44,6 @@ export class DepartmentResponseDto {
   @ApiPropertyOptional({ description: '父部门ID' })
   @Expose()
   parentDepartmentId?: string | null;
-
-  @ApiPropertyOptional({
-    description: '父部门信息',
-    type: DepartmentResponseDto,
-  })
-  @Expose()
-  @Type(() => DepartmentResponseDto)
-  parent?: DepartmentResponseDto | null;
-
-  @ApiPropertyOptional({
-    description: '子部门列表',
-    type: [DepartmentResponseDto],
-  })
-  @Expose()
-  @Type(() => DepartmentResponseDto)
-  children?: DepartmentResponseDto[];
 
   @ApiProperty({ description: '状态' })
   @Expose()

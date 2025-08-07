@@ -80,6 +80,7 @@ export class RolesService extends BaseService {
     // 基本字段选择，不包含关联数据
     const select = {
       id: true,
+      roleId: true,
       name: true,
       description: true,
       remark: true,
@@ -88,24 +89,18 @@ export class RolesService extends BaseService {
       updatedAt: true,
     };
 
-    // 判断是否需要分页 - 检查URL中是否真的传入了分页参数
-    const hasPaginationParams = query && (
-      (query.page !== undefined && query.page !== 1) || 
-      (query.pageSize !== undefined && query.pageSize !== 10)
-    );
+    // 使用 PaginationDto 的方法来判断是否需要分页
+    const skip = query?.getSkip();
+    const take = query?.getTake();
     
-    if (hasPaginationParams) {
+    if (skip !== undefined && take !== undefined) {
       // 分页查询
-      const page = query.page || 1;
-      const pageSize = query.pageSize || 10;
-      const skip = (page - 1) * pageSize;
-
       const [roles, totalItems] = await Promise.all([
         this.prisma.role.findMany({
           where,
           select,
           skip,
-          take: pageSize,
+          take,
           orderBy: [
             { sort: 'asc' },
             { createdAt: 'desc' },
@@ -114,7 +109,7 @@ export class RolesService extends BaseService {
         this.prisma.role.count({ where }),
       ]);
 
-      const totalPages = Math.ceil(totalItems / pageSize);
+      const totalPages = Math.ceil(totalItems / take);
 
       return {
         success: true,
@@ -125,11 +120,11 @@ export class RolesService extends BaseService {
             excludeExtraneousValues: true,
           }),
           total: totalItems,
-          page,
-          pageSize,
+          page: query.page!,
+          pageSize: query.pageSize!,
           totalPages,
-          hasNext: page < totalPages,
-          hasPrev: page > 1,
+          hasNext: query.page! < totalPages,
+          hasPrev: query.page! > 1,
         },
         timestamp: new Date().toISOString(),
       };

@@ -9,20 +9,18 @@ export class PaginationDto {
   @ApiPropertyOptional({
     description: '页码',
     minimum: 1,
-    default: 1,
     example: 1,
   })
   @IsOptional()
   @Type(() => Number)
   @IsInt({ message: '页码必须是整数' })
   @Min(1, { message: '页码不能小于1' })
-  page?: number = 1;
+  page?: number;
 
   @ApiPropertyOptional({
     description: '每页数量',
     minimum: 1,
     maximum: 100,
-    default: 10,
     example: 10,
   })
   @IsOptional()
@@ -30,22 +28,28 @@ export class PaginationDto {
   @IsInt({ message: '每页数量必须是整数' })
   @Min(1, { message: '每页数量不能小于1' })
   @Max(100, { message: '每页数量不能超过100' })
-  pageSize?: number = 10;
+  pageSize?: number;
 
   /**
    * 获取跳过的记录数
    * @returns 跳过的记录数
    */
-  getSkip(): number {
-    return ((this.page || 1) - 1) * (this.pageSize || 10);
+  getSkip(): number | undefined {
+    if (this.page !== undefined && this.pageSize !== undefined) {
+      return (this.page - 1) * this.pageSize;
+    }
+    return undefined; // 表示不分页
   }
 
   /**
    * 获取查询数量
    * @returns 查询数量
    */
-  getTake(): number {
-    return this.pageSize || 10;
+  getTake(): number | undefined {
+    if (this.pageSize !== undefined) {
+      return this.pageSize;
+    }
+    return undefined; // 表示不分页
   }
 }
 
