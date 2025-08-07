@@ -143,7 +143,7 @@ export class UsersService extends BaseService {
     const skip = query?.getSkip();
     const take = query?.getTake();
     
-    if (skip !== undefined && take !== undefined) {
+    if (skip !== undefined && take !== undefined && query) {
       const result = (await this.paginateWithSortAndResponse(
         this.prisma.user,
         query,

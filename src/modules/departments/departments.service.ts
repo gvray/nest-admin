@@ -149,9 +149,9 @@ export class DepartmentsService extends BaseService {
     };
   }
 
-  async findOne(id: number): Promise<DepartmentResponseDto> {
+  async findOne(departmentId: string): Promise<DepartmentResponseDto> {
     const department = await this.prisma.department.findUnique({
-      where: { id },
+      where: { departmentId },
       include: {
         parent: true,
         children: true,
@@ -174,12 +174,12 @@ export class DepartmentsService extends BaseService {
   }
 
   async update(
-    id: number,
+    departmentId: string,
     updateDepartmentDto: UpdateDepartmentDto,
   ): Promise<DepartmentResponseDto> {
     // 检查部门是否存在
     const existingDepartment = await this.prisma.department.findUnique({
-      where: { id },
+      where: { departmentId },
     });
 
     if (!existingDepartment) {
@@ -191,7 +191,7 @@ export class DepartmentsService extends BaseService {
       const conflictDepartment = await this.prisma.department.findFirst({
         where: {
           name: updateDepartmentDto.name,
-          NOT: { id },
+          NOT: { departmentId },
         },
       });
 
@@ -212,7 +212,7 @@ export class DepartmentsService extends BaseService {
 
       // 检查是否形成循环引用
       const isCircular = await this.checkCircularReference(
-        id,
+        departmentId,
         updateDepartmentDto.parentId,
       );
       if (isCircular) {
@@ -221,7 +221,7 @@ export class DepartmentsService extends BaseService {
     }
 
     const department = await this.prisma.department.update({
-      where: { id },
+      where: { departmentId },
       data: updateDepartmentDto,
       include: {
         parent: true,
@@ -234,10 +234,10 @@ export class DepartmentsService extends BaseService {
     });
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(departmentId: string): Promise<void> {
     // 检查部门是否存在
     const department = await this.prisma.department.findUnique({
-      where: { id },
+      where: { departmentId },
       include: {
         children: true,
         users: true,
@@ -259,35 +259,68 @@ export class DepartmentsService extends BaseService {
     }
 
     await this.prisma.department.delete({
-      where: { id },
+      where: { departmentId },
     });
   }
 
   async getTree(): Promise<DepartmentResponseDto[]> {
-    const departments = await this.prisma.department.findMany({
+    // 获取所有启用的部门
+    const allDepartments = await this.prisma.department.findMany({
       where: { status: 1 },
-      include: {
-        children: {
-          where: { status: 1 },
-          include: {
-            children: {
-              where: { status: 1 },
-            },
-          },
-        },
-      },
       orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
     });
 
-    // 只返回顶级部门
-    const topLevelDepartments = departments.filter((dept) => !dept.parentId);
-    return plainToInstance(DepartmentResponseDto, topLevelDepartments, {
-      excludeExtraneousValues: true,
+    // 构建完整的树形结构
+    interface DepartmentNode {
+      [key: string]: any;
+      children: DepartmentNode[];
+    }
+
+    const departmentMap = new Map<string, DepartmentNode>();
+    const rootDepartments: DepartmentNode[] = [];
+
+    // 首先创建所有部门的映射
+    allDepartments.forEach((dept) => {
+      departmentMap.set(dept.departmentId, {
+        ...dept,
+        children: [],
+      });
     });
+
+    // 构建父子关系
+    allDepartments.forEach((dept) => {
+      const departmentNode = departmentMap.get(dept.departmentId);
+
+      if (dept.parentId) {
+        const parentNode = departmentMap.get(dept.parentId);
+        if (parentNode && departmentNode) {
+          parentNode.children.push(departmentNode);
+        }
+      } else if (departmentNode) {
+        rootDepartments.push(departmentNode);
+      }
+    });
+
+    // 递归转换嵌套对象为 DTO 格式
+    const convertToDto = (nodes: DepartmentNode[]): DepartmentResponseDto[] => {
+      return nodes.map((node) => {
+        const dto = plainToInstance(DepartmentResponseDto, node, {
+          excludeExtraneousValues: true,
+        });
+        
+        if (node.children && node.children.length > 0) {
+          dto.children = convertToDto(node.children);
+        }
+
+        return dto;
+      });
+    };
+
+    return convertToDto(rootDepartments);
   }
 
   private async checkCircularReference(
-    departmentId: number,
+    departmentId: string,
     parentId: string,
   ): Promise<boolean> {
     let currentParentDepartmentId: string | null = parentId;
@@ -300,14 +333,14 @@ export class DepartmentsService extends BaseService {
 
       const currentDepartment = await this.prisma.department.findUnique({
         where: { departmentId: currentParentDepartmentId },
-        select: { id: true, parentId: true },
+        select: { departmentId: true, parentId: true },
       });
 
       if (!currentDepartment) {
         break;
       }
 
-      if (currentDepartment.id === departmentId) {
+      if (currentDepartment.departmentId === departmentId) {
         return true; // 发现循环
       }
 

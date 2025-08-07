@@ -93,7 +93,7 @@ export class RolesService extends BaseService {
     const skip = query?.getSkip();
     const take = query?.getTake();
     
-    if (skip !== undefined && take !== undefined) {
+    if (skip !== undefined && take !== undefined && query) {
       // 分页查询
       const [roles, totalItems] = await Promise.all([
         this.prisma.role.findMany({

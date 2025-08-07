@@ -91,7 +91,7 @@ export class PositionsService extends BaseService {
     const skip = query.getSkip();
     const take = query.getTake();
     
-    if (skip !== undefined && take !== undefined) {
+    if (skip !== undefined && take !== undefined && query) {
       const result = (await this.paginateWithResponse(
         this.prisma.position,
         query,

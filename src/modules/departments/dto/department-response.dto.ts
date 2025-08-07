@@ -43,7 +43,7 @@ export class DepartmentResponseDto {
 
   @ApiPropertyOptional({ description: '父部门ID' })
   @Expose()
-  parentDepartmentId?: string | null;
+  parentId: string | null;
 
   @ApiProperty({ description: '状态' })
   @Expose()
@@ -60,4 +60,13 @@ export class DepartmentResponseDto {
   @ApiProperty({ description: '更新时间' })
   @Expose()
   updatedAt: Date;
+
+  @ApiPropertyOptional({
+    description: '子部门列表',
+    type: () => [DepartmentResponseDto],
+    isArray: true,
+  })
+  @Expose()
+  @Type(() => DepartmentResponseDto)
+  children?: DepartmentResponseDto[];
 }

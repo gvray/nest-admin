@@ -58,18 +58,18 @@ export class DepartmentsController {
     return this.departmentsService.getTree();
   }
 
-  @Get(':id')
+  @Get(':departmentId')
   @ApiOperation({ summary: '获取部门详情' })
   @ApiResponse({
     status: 200,
     description: '获取部门详情成功',
     type: DepartmentResponseDto,
   })
-  findOne(@Param('id') id: string) {
-    return this.departmentsService.findOne(+id);
+  findOne(@Param('departmentId') departmentId: string) {
+    return this.departmentsService.findOne(departmentId);
   }
 
-  @Patch(':id')
+  @Patch(':departmentId')
   @ApiOperation({ summary: '更新部门' })
   @ApiResponse({
     status: 200,
@@ -77,19 +77,19 @@ export class DepartmentsController {
     type: DepartmentResponseDto,
   })
   update(
-    @Param('id') id: string,
+    @Param('departmentId') departmentId: string,
     @Body() updateDepartmentDto: UpdateDepartmentDto,
   ) {
-    return this.departmentsService.update(+id, updateDepartmentDto);
+    return this.departmentsService.update(departmentId, updateDepartmentDto);
   }
 
-  @Delete(':id')
+  @Delete(':departmentId')
   @ApiOperation({ summary: '删除部门' })
   @ApiResponse({
     status: 200,
     description: '部门删除成功',
   })
-  remove(@Param('id') id: string) {
-    return this.departmentsService.remove(+id);
+  remove(@Param('departmentId') departmentId: string) {
+    return this.departmentsService.remove(departmentId);
   }
 }
