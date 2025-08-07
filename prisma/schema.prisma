@@ -160,6 +160,9 @@ model Department {
   description        String?
   remark             String? // 备注信息
   parentId           String?
+  manager            String?
+  phone              String?
+  email              String?
   parent   Department?  @relation("DepartmentHierarchy", fields: [parentId], references: [departmentId])
   children           Department[] @relation("DepartmentHierarchy")
   users              User[]
