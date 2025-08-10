@@ -60,10 +60,12 @@ model User {
 model Role {
   id              Int              @id @default(autoincrement())
   roleId          String           @unique @default(uuid())
+  roleKey         String           @unique
   name            String           @unique
   description     String?
   remark          String? // 备注信息
   sort            Int              @default(0) // 排序权重
+  status          Int              @default(1) // 0: 禁用, 1: 启用
   users           User[]
   rolePermissions RolePermission[]
 

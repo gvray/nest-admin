@@ -36,6 +36,10 @@ export class RoleResponseDto {
   @Expose()
   roleId: string;
 
+  @ApiProperty({ description: '角色标识键' })
+  @Expose()
+  roleKey: string;
+
   @ApiProperty({ description: '角色名称' })
   @Expose()
   name: string;
@@ -53,6 +57,10 @@ export class RoleResponseDto {
   @ApiProperty({ description: '排序权重' })
   @Expose()
   sort: number;
+
+  @ApiProperty({ description: '状态：0-禁用，1-启用' })
+  @Expose()
+  status: number;
 
   @ApiPropertyOptional({
     description: '权限列表',

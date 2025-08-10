@@ -6,7 +6,6 @@ import {
   Patch,
   Param,
   Delete,
-  ParseIntPipe,
   UseGuards,
   Query,
   Request,
@@ -63,7 +62,7 @@ export class RolesController {
   @ApiOperation({ summary: '获取指定角色' })
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 404, description: '角色不存在' })
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  findOne(@Param('id') id: string) {
     return this.rolesService.findOne(id);
   }
 
@@ -75,7 +74,7 @@ export class RolesController {
   @ApiResponse({ status: 200, description: '更新成功' })
   @ApiResponse({ status: 404, description: '角色不存在' })
   update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id') id: string,
     @Body() updateRoleDto: UpdateRoleDto,
     @Request() req: any,
   ) {
@@ -89,7 +88,7 @@ export class RolesController {
   @ApiOperation({ summary: '删除角色' })
   @ApiResponse({ status: 200, description: '删除成功' })
   @ApiResponse({ status: 404, description: '角色不存在' })
-  remove(@Param('id', ParseIntPipe) id: number) {
+  remove(@Param('id') id: string) {
     return this.rolesService.remove(id);
   }
 
@@ -100,7 +99,7 @@ export class RolesController {
   @ApiResponse({ status: 200, description: '分配成功' })
   @ApiResponse({ status: 404, description: '角色不存在' })
   assignPermissions(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id') id: string,
     @Body() assignPermissionsDto: AssignPermissionsDto,
   ) {
     return this.rolesService.assignPermissions(
@@ -116,7 +115,7 @@ export class RolesController {
   @ApiResponse({ status: 200, description: '移除成功' })
   @ApiResponse({ status: 404, description: '角色不存在' })
   removePermissions(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id') id: string,
     @Body() assignPermissionsDto: AssignPermissionsDto,
   ) {
     return this.rolesService.removePermissions(

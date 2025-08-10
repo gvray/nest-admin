@@ -9,9 +9,11 @@ export async function seedRoles(prisma: PrismaClient) {
     update: {},
     create: {
       name: 'admin',
+      roleKey: 'admin',
       description: '系统管理员角色，拥有所有权限',
       remark: '系统默认管理员角色，具有最高权限',
       sort: 1,
+      status: 1,
     },
   });
 
@@ -21,9 +23,11 @@ export async function seedRoles(prisma: PrismaClient) {
     update: {},
     create: {
       name: 'user',
+      roleKey: 'user',
       description: '普通用户角色，拥有基础权限',
       remark: '系统默认普通用户角色，具有基础查看权限',
       sort: 10,
+      status: 1,
     },
   });
 
@@ -33,9 +37,11 @@ export async function seedRoles(prisma: PrismaClient) {
     update: {},
     create: {
       name: 'manager',
+      roleKey: 'manager',
       description: '部门经理角色，拥有部门管理权限',
       remark: '部门经理角色，可以管理本部门用户和资源',
       sort: 5,
+      status: 1,
     },
   });
 
