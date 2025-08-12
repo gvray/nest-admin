@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Body,
   Patch,
   Param,
@@ -98,11 +99,11 @@ export class UsersController {
     return this.usersService.remove(userId);
   }
 
-  @Post(':userId/roles')
+  @Put(':userId/roles')
   @Roles('admin')
   @RequirePermissions('user:manage')
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '为用户分配角色' })
+  @ApiOperation({ summary: '为用户分配角色（替换所有角色）' })
   @ApiResponse({
     status: 200,
     description: '角色分配成功',

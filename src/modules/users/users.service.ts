@@ -433,9 +433,16 @@ export class UsersService extends BaseService {
       },
     });
 
-    return plainToInstance(UserResponseDto, updatedUser, {
+    const result = plainToInstance(UserResponseDto, updatedUser, {
       excludeExtraneousValues: true,
     });
+    
+    return {
+      success: true,
+      code: 200,
+      message: '角色分配成功',
+      data: result,
+    };
   }
 
   // 移除用户的角色
@@ -489,8 +496,15 @@ export class UsersService extends BaseService {
       },
     });
 
-    return plainToInstance(UserResponseDto, updatedUser, {
+    const result = plainToInstance(UserResponseDto, updatedUser, {
       excludeExtraneousValues: true,
     });
+    
+    return {
+      success: true,
+      code: 200,
+      message: '角色移除成功',
+      data: result,
+    };
   }
 }
