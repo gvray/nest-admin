@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Exclude, Expose, Transform, Type } from 'class-transformer';
 import { UserStatus } from '../../../shared/constants/user-status.constant';
+import { Gender } from '../../../shared/constants/gender.constant';
 
 export class RoleResponseDto {
   @ApiProperty({ description: '角色ID' })
@@ -88,6 +89,15 @@ export class UserResponseDto {
   @Transform(({ value }): string => value ?? '')
   avatar?: string;
 
+  @ApiPropertyOptional({
+    description: '性别',
+    enum: Gender,
+    example: Gender.MALE,
+  })
+  @Expose()
+  @Transform(({ value }): Gender => value ?? Gender.UNKNOWN)
+  gender?: Gender;
+
   @ApiPropertyOptional({ description: '备注信息' })
   @Expose()
   @Transform(({ value }): string => value ?? '')
@@ -126,10 +136,10 @@ export class UserResponseDto {
   department?: DepartmentResponseDto;
 
   @ApiPropertyOptional({
-    description: '所属岗位',
-    type: PositionResponseDto,
+    description: '所属岗位列表',
+    type: [PositionResponseDto],
   })
   @Expose()
   @Type(() => PositionResponseDto)
-  position?: PositionResponseDto;
+  positions?: PositionResponseDto[];
 }

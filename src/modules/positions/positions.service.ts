@@ -151,7 +151,7 @@ export class PositionsService extends BaseService {
         users: {
           include: {
             roles: true,
-            position: true,
+            positions: true,
           },
         },
       },

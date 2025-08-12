@@ -50,7 +50,7 @@ export class AuthService {
       include: {
         roles: true,
         department: true,
-        position: true,
+        positions: true,
       },
     });
 
@@ -74,26 +74,37 @@ export class AuthService {
   }
 
   async validateUser(account: string, password: string) {
+    console.log('validateUser called with account:', account);
     try {
       // 直接从数据库查询用户，包含密码字段
       const user = await this.prisma.user.findFirst({
         where: {
-          OR: [{ email: account }, { username: account }, { phone: account }],
-        },
-        include: {
-          roles: true,
-          department: true,
-          position: true,
+          OR: [{ email: account }, { username: account }, { phone: account }, { userId: account }],
         },
       });
+      
+      console.log('Query result:', user);
 
-      if (user && (await bcrypt.compare(password, user.password))) {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { password: _, ...result } = user;
-        return result;
+      console.log('Found user:', user ? { userId: user.userId, username: user.username, status: user.status } : 'null');
+      
+      if (user) {
+        console.log('User password hash:', user.password);
+        const passwordMatch = await bcrypt.compare(password, user.password);
+        console.log('Password match:', passwordMatch);
+        
+        if (passwordMatch) {
+          console.log('Password validation successful');
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { password: _, ...result } = user;
+          return result;
+        } else {
+          console.log('Password validation failed');
+        }
+      } else {
+        console.log('No user found');
       }
-    } catch {
-      // 查询出错
+    } catch (error) {
+      console.error('Error in validateUser:', error);
     }
     return null;
   }
@@ -160,7 +171,7 @@ export class AuthService {
             description: true,
           },
         },
-        position: {
+        positions: {
           select: {
             positionId: true,
             name: true,

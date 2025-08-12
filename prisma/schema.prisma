@@ -22,13 +22,15 @@ model User {
   phone        String?     @unique
   password     String
   avatar       String?
+  gender       Int?        // 性别：0-未知, 1-男, 2-女, 3-其他
   remark       String? // 备注信息
   status       Int         @default(1) // 0: 禁用, 1: 启用, 2: 审核中, 3: 封禁
   departmentId String?
   department   Department? @relation(fields: [departmentId], references: [departmentId])
-  positionId   String?
-  position     Position?   @relation(fields: [positionId], references: [positionId])
+  positions    Position[]
+  userPositions UserPosition[]
   roles        Role[]
+  userRoles    UserRole[]
 
   // 审计字段
   createdById String? // 创建者ID
@@ -50,6 +52,8 @@ model User {
   updatedDepts     Department[]     @relation("DepartmentUpdatedBy")
   createdPositions Position[]       @relation("PositionCreatedBy")
   updatedPositions Position[]       @relation("PositionUpdatedBy")
+  createdUserPositions UserPosition[] @relation("UserPositionCreatedBy")
+  createdUserRoles     UserRole[]     @relation("UserRoleCreatedBy")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -67,6 +71,7 @@ model Role {
   sort            Int              @default(0) // 排序权重
   status          Int              @default(1) // 0: 禁用, 1: 启用
   users           User[]
+  userRoles       UserRole[]
   rolePermissions RolePermission[]
 
   // 审计字段
@@ -191,6 +196,7 @@ model Position {
   description String?
   remark      String? // 备注信息
   users       User[]
+  userPositions UserPosition[]
   status      Int     @default(1) // 0: 禁用, 1: 启用
   sort        Int     @default(0)
 
@@ -204,4 +210,40 @@ model Position {
   updatedAt DateTime @updatedAt
 
   @@map("positions")
+}
+
+model UserPosition {
+  id         Int      @id @default(autoincrement())
+  userId     String
+  positionId String
+  user       User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  position   Position @relation(fields: [positionId], references: [positionId], onDelete: Cascade)
+
+  // 审计字段
+  createdById String? // 创建者ID
+  createdBy   User?   @relation("UserPositionCreatedBy", fields: [createdById], references: [userId])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, positionId])
+  @@map("user_positions")
+}
+
+model UserRole {
+  id         Int      @id @default(autoincrement())
+  userId     String
+  roleId     String
+  user       User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  role       Role     @relation(fields: [roleId], references: [roleId], onDelete: Cascade)
+
+  // 审计字段
+  createdById String? // 创建者ID
+  createdBy   User?   @relation("UserRoleCreatedBy", fields: [createdById], references: [userId])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
 }

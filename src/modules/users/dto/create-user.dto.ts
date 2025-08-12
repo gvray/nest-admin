@@ -5,9 +5,11 @@ import {
   IsString,
   MaxLength,
   MinLength,
+  IsArray,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { UserStatus } from '../../../shared/constants/user-status.constant';
+import { Gender } from '../../../shared/constants/gender.constant';
 
 export class CreateUserDto {
   @ApiPropertyOptional({
@@ -56,6 +58,15 @@ export class CreateUserDto {
   avatar?: string;
 
   @ApiPropertyOptional({
+    description: '性别',
+    enum: Gender,
+    example: Gender.MALE,
+  })
+  @IsOptional()
+  @IsEnum(Gender, { message: '性别必须是有效的枚举值' })
+  gender?: Gender;
+
+  @ApiPropertyOptional({
     description: '用户状态',
     enum: UserStatus,
     example: UserStatus.ENABLED,
@@ -73,10 +84,22 @@ export class CreateUserDto {
   departmentId?: string;
 
   @ApiPropertyOptional({
-    description: '岗位ID（UUID）',
-    example: '550e8400-e29b-41d4-a716-446655440002',
+    description: '岗位ID列表（UUID）',
+    type: [String],
+    example: ['550e8400-e29b-41d4-a716-446655440002'],
   })
   @IsOptional()
-  @IsString({ message: '岗位ID必须是字符串' })
-  positionId?: string;
+  @IsArray({ message: '岗位ID必须是数组' })
+  @IsString({ each: true, message: '岗位ID必须是字符串' })
+  positionIds?: string[];
+
+  @ApiPropertyOptional({
+    description: '角色ID列表（UUID）',
+    type: [String],
+    example: ['550e8400-e29b-41d4-a716-446655440003'],
+  })
+  @IsOptional()
+  @IsArray({ message: '角色ID必须是数组' })
+  @IsString({ each: true, message: '角色ID必须是字符串' })
+  roleIds?: string[];
 }

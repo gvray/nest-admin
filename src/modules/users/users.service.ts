@@ -28,7 +28,7 @@ export class UsersService extends BaseService {
   async create(
     createUserDto: CreateUserDto,
   ): Promise<ApiResponse<UserResponseDto>> {
-    const { password, departmentId, positionId, ...rest } = createUserDto;
+    const { password, departmentId, positionIds, roleIds, ...rest } = createUserDto;
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // 验证部门是否存在
@@ -42,12 +42,22 @@ export class UsersService extends BaseService {
     }
 
     // 验证岗位是否存在
-    if (positionId) {
-      const position = await this.prisma.position.findUnique({
-        where: { positionId: positionId },
+    if (positionIds && positionIds.length > 0) {
+      const positions = await this.prisma.position.findMany({
+        where: { positionId: { in: positionIds } },
       });
-      if (!position) {
-        throw new NotFoundException('岗位不存在');
+      if (positions.length !== positionIds.length) {
+        throw new NotFoundException('部分岗位不存在');
+      }
+    }
+
+    // 验证角色是否存在
+    if (roleIds && roleIds.length > 0) {
+      const roles = await this.prisma.role.findMany({
+        where: { roleId: { in: roleIds } },
+      });
+      if (roles.length !== roleIds.length) {
+        throw new NotFoundException('部分角色不存在');
       }
     }
 
@@ -56,13 +66,14 @@ export class UsersService extends BaseService {
         ...rest,
         password: hashedPassword,
         department: departmentId ? { connect: { departmentId } } : undefined,
-        position: positionId ? { connect: { positionId } } : undefined,
+        positions: positionIds && positionIds.length > 0 ? { connect: positionIds.map(id => ({ positionId: id })) } : undefined,
+        roles: roleIds && roleIds.length > 0 ? { connect: roleIds.map(id => ({ roleId: id })) } : undefined,
         status: rest.status ?? UserStatus.ENABLED,
       },
       include: {
         roles: true,
         department: true,
-        position: true,
+        positions: true,
       },
     });
 
@@ -131,7 +142,7 @@ export class UsersService extends BaseService {
           name: true,
         },
       },
-      position: {
+      positions: {
         select: {
           positionId: true,
           name: true,
@@ -186,6 +197,7 @@ export class UsersService extends BaseService {
         nickname: true,
         phone: true,
         avatar: true,
+        gender: true,
         status: true,
         createdAt: true,
         updatedAt: true,
@@ -201,7 +213,7 @@ export class UsersService extends BaseService {
             name: true,
           },
         },
-        position: {
+        positions: {
           select: {
             positionId: true,
             name: true,
@@ -229,6 +241,7 @@ export class UsersService extends BaseService {
         nickname: true,
         phone: true,
         avatar: true,
+        gender: true,
         status: true,
         createdAt: true,
         updatedAt: true,
@@ -244,7 +257,7 @@ export class UsersService extends BaseService {
             name: true,
           },
         },
-        position: {
+        positions: {
           select: {
             positionId: true,
             name: true,
@@ -267,7 +280,7 @@ export class UsersService extends BaseService {
     userId: string,
     updateUserDto: UpdateUserDto,
   ): Promise<UserResponseDto> {
-    const { departmentId, positionId, ...rest } = updateUserDto;
+    const { departmentId, positionIds, roleIds, ...rest } = updateUserDto;
 
     const user = await this.prisma.user.findUnique({
       where: { userId },
@@ -288,12 +301,22 @@ export class UsersService extends BaseService {
     }
 
     // 验证岗位是否存在
-    if (positionId) {
-      const position = await this.prisma.position.findUnique({
-        where: { positionId: positionId },
+    if (positionIds && positionIds.length > 0) {
+      const positions = await this.prisma.position.findMany({
+        where: { positionId: { in: positionIds } },
       });
-      if (!position) {
-        throw new NotFoundException('岗位不存在');
+      if (positions.length !== positionIds.length) {
+        throw new NotFoundException('部分岗位不存在');
+      }
+    }
+
+    // 验证角色是否存在
+    if (roleIds && roleIds.length > 0) {
+      const roles = await this.prisma.role.findMany({
+        where: { roleId: { in: roleIds } },
+      });
+      if (roles.length !== roleIds.length) {
+        throw new NotFoundException('部分角色不存在');
       }
     }
 
@@ -302,7 +325,12 @@ export class UsersService extends BaseService {
       data: {
         ...rest,
         department: departmentId ? { connect: { departmentId } } : undefined,
-        position: positionId ? { connect: { positionId } } : undefined,
+        positions: positionIds && positionIds.length > 0 ? { 
+          set: positionIds.map(id => ({ positionId: id }))
+        } : undefined,
+        roles: roleIds && roleIds.length > 0 ? { 
+          set: roleIds.map(id => ({ roleId: id }))
+        } : undefined,
       },
       select: {
         userId: true,
@@ -326,7 +354,7 @@ export class UsersService extends BaseService {
             name: true,
           },
         },
-        position: {
+        positions: {
           select: {
             positionId: true,
             name: true,
@@ -396,7 +424,7 @@ export class UsersService extends BaseService {
             name: true,
           },
         },
-        position: {
+        positions: {
           select: {
             positionId: true,
             name: true,
@@ -452,7 +480,7 @@ export class UsersService extends BaseService {
             name: true,
           },
         },
-        position: {
+        positions: {
           select: {
             positionId: true,
             name: true,
