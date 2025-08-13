@@ -1,87 +1,347 @@
 import { PrismaClient } from '@prisma/client';
 
 export async function seedPermissions(prisma: PrismaClient) {
-  // 获取已创建的资源
-  const systemResource = await prisma.resource.findFirst({
-    where: { code: 'system' },
-  });
-  const userResource = await prisma.resource.findFirst({
-    where: { code: 'user' },
-  });
-  const roleResource = await prisma.resource.findFirst({
-    where: { code: 'role' },
-  });
-  const permissionResource = await prisma.resource.findFirst({
-    where: { code: 'permission' },
-  });
-  const resourceResource = await prisma.resource.findFirst({
-    where: { code: 'resource' },
-  });
-  const departmentResource = await prisma.resource.findFirst({
-    where: { code: 'department' },
-  });
-  const positionResource = await prisma.resource.findFirst({
-    where: { code: 'position' },
+  console.log('🔐 开始创建权限数据...');
+
+  const permissions = [
+    // 用户管理权限
+    {
+      name: '用户管理查看',
+      code: 'user:view',
+      action: 'view',
+      resourceId: null, // 将在创建时设置
+      description: '查看用户列表和详情',
+    },
+    {
+      name: '用户管理创建',
+      code: 'user:create',
+      action: 'create',
+      resourceId: null,
+      description: '创建新用户',
+    },
+    {
+      name: '用户管理更新',
+      code: 'user:update',
+      action: 'update',
+      resourceId: null,
+      description: '更新用户信息',
+    },
+    {
+      name: '用户管理删除',
+      code: 'user:delete',
+      action: 'delete',
+      resourceId: null,
+      description: '删除用户',
+    },
+    {
+      name: '用户管理',
+      code: 'user:manage',
+      action: 'manage',
+      resourceId: null,
+      description: '用户角色分配等管理操作',
+    },
+    {
+      name: '用户管理导入',
+      code: 'user:import',
+      action: 'import',
+      resourceId: null,
+      description: '导入用户数据',
+    },
+    {
+      name: '用户管理导出',
+      code: 'user:export',
+      action: 'export',
+      resourceId: null,
+      description: '导出用户数据',
+    },
+
+    // 角色管理权限
+    {
+      name: '角色管理查看',
+      code: 'role:view',
+      action: 'view',
+      resourceId: null,
+      description: '查看角色列表和详情',
+    },
+    {
+      name: '角色管理创建',
+      code: 'role:create',
+      action: 'create',
+      resourceId: null,
+      description: '创建新角色',
+    },
+    {
+      name: '角色管理更新',
+      code: 'role:update',
+      action: 'update',
+      resourceId: null,
+      description: '更新角色信息',
+    },
+    {
+      name: '角色管理删除',
+      code: 'role:delete',
+      action: 'delete',
+      resourceId: null,
+      description: '删除角色',
+    },
+    {
+      name: '角色管理导入',
+      code: 'role:import',
+      action: 'import',
+      resourceId: null,
+      description: '导入角色数据',
+    },
+    {
+      name: '角色管理导出',
+      code: 'role:export',
+      action: 'export',
+      resourceId: null,
+      description: '导出角色数据',
+    },
+
+    // 权限管理权限
+    {
+      name: '权限管理查看',
+      code: 'permission:view',
+      action: 'view',
+      resourceId: null,
+      description: '查看权限列表和详情',
+    },
+    {
+      name: '权限管理创建',
+      code: 'permission:create',
+      action: 'create',
+      resourceId: null,
+      description: '创建新权限',
+    },
+    {
+      name: '权限管理更新',
+      code: 'permission:update',
+      action: 'update',
+      resourceId: null,
+      description: '更新权限信息',
+    },
+    {
+      name: '权限管理删除',
+      code: 'permission:delete',
+      action: 'delete',
+      resourceId: null,
+      description: '删除权限',
+    },
+    {
+      name: '权限管理导入',
+      code: 'permission:import',
+      action: 'import',
+      resourceId: null,
+      description: '导入权限数据',
+    },
+    {
+      name: '权限管理导出',
+      code: 'permission:export',
+      action: 'export',
+      resourceId: null,
+      description: '导出权限数据',
+    },
+
+    // 资源管理权限
+    {
+      name: '资源管理查看',
+      code: 'resource:view',
+      action: 'view',
+      resourceId: null,
+      description: '查看资源列表和详情',
+    },
+    {
+      name: '资源管理创建',
+      code: 'resource:create',
+      action: 'create',
+      resourceId: null,
+      description: '创建新资源',
+    },
+    {
+      name: '资源管理更新',
+      code: 'resource:update',
+      action: 'update',
+      resourceId: null,
+      description: '更新资源信息',
+    },
+    {
+      name: '资源管理删除',
+      code: 'resource:delete',
+      action: 'delete',
+      resourceId: null,
+      description: '删除资源',
+    },
+    {
+      name: '资源管理导入',
+      code: 'resource:import',
+      action: 'import',
+      resourceId: null,
+      description: '导入资源数据',
+    },
+    {
+      name: '资源管理导出',
+      code: 'resource:export',
+      action: 'export',
+      resourceId: null,
+      description: '导出资源数据',
+    },
+
+    // 部门管理权限
+    {
+      name: '部门管理查看',
+      code: 'department:view',
+      action: 'view',
+      resourceId: null,
+      description: '查看部门列表和详情',
+    },
+    {
+      name: '部门管理创建',
+      code: 'department:create',
+      action: 'create',
+      resourceId: null,
+      description: '创建新部门',
+    },
+    {
+      name: '部门管理更新',
+      code: 'department:update',
+      action: 'update',
+      resourceId: null,
+      description: '更新部门信息',
+    },
+    {
+      name: '部门管理删除',
+      code: 'department:delete',
+      action: 'delete',
+      resourceId: null,
+      description: '删除部门',
+    },
+    {
+      name: '部门管理导入',
+      code: 'department:import',
+      action: 'import',
+      resourceId: null,
+      description: '导入部门数据',
+    },
+    {
+      name: '部门管理导出',
+      code: 'department:export',
+      action: 'export',
+      resourceId: null,
+      description: '导出部门数据',
+    },
+
+    // 岗位管理权限
+    {
+      name: '岗位管理查看',
+      code: 'position:view',
+      action: 'view',
+      resourceId: null,
+      description: '查看岗位列表和详情',
+    },
+    {
+      name: '岗位管理创建',
+      code: 'position:create',
+      action: 'create',
+      resourceId: null,
+      description: '创建新岗位',
+    },
+    {
+      name: '岗位管理更新',
+      code: 'position:update',
+      action: 'update',
+      resourceId: null,
+      description: '更新岗位信息',
+    },
+    {
+      name: '岗位管理删除',
+      code: 'position:delete',
+      action: 'delete',
+      resourceId: null,
+      description: '删除岗位',
+    },
+    {
+      name: '岗位管理导入',
+      code: 'position:import',
+      action: 'import',
+      resourceId: null,
+      description: '导入岗位数据',
+    },
+    {
+      name: '岗位管理导出',
+      code: 'position:export',
+      action: 'export',
+      resourceId: null,
+      description: '导出岗位数据',
+    },
+
+    // 字典管理权限
+    {
+      name: '字典管理查看',
+      code: 'dictionary:view',
+      action: 'view',
+      resourceId: null,
+      description: '查看字典列表和详情',
+    },
+    {
+      name: '字典管理创建',
+      code: 'dictionary:create',
+      action: 'create',
+      resourceId: null,
+      description: '创建新字典',
+    },
+    {
+      name: '字典管理更新',
+      code: 'dictionary:update',
+      action: 'update',
+      resourceId: null,
+      description: '更新字典信息',
+    },
+    {
+      name: '字典管理删除',
+      code: 'dictionary:delete',
+      action: 'delete',
+      resourceId: null,
+      description: '删除字典',
+    },
+    {
+      name: '字典管理导入',
+      code: 'dictionary:import',
+      action: 'import',
+      resourceId: null,
+      description: '导入字典数据',
+    },
+    {
+      name: '字典管理导出',
+      code: 'dictionary:export',
+      action: 'export',
+      resourceId: null,
+      description: '导出字典数据',
+    },
+  ];
+
+  // 获取资源ID映射
+  const resources = await prisma.resource.findMany();
+  const resourceMap = {};
+  resources.forEach(resource => {
+    resourceMap[resource.code] = resource.resourceId;
   });
 
-  if (
-    !systemResource ||
-    !userResource ||
-    !roleResource ||
-    !permissionResource ||
-    !resourceResource ||
-    !departmentResource ||
-    !positionResource
-  ) {
-    console.error('找不到资源：', {
-      systemResource,
-      userResource,
-      roleResource,
-      permissionResource,
-      resourceResource,
-      departmentResource,
-      positionResource,
+  // 创建权限
+  for (const permissionData of permissions) {
+    const resourceCode = permissionData.code.split(':')[0];
+    const resourceId = resourceMap[resourceCode];
+
+    await prisma.permission.upsert({
+      where: { code: permissionData.code },
+      update: {},
+      create: {
+        ...permissionData,
+        resourceId,
+      },
     });
-    throw new Error('资源未找到，请先运行资源种子数据');
+    console.log(`✅ 创建权限: ${permissionData.name}`);
   }
 
-  // 定义操作类型
-  const actions = [
-    { action: 'view', name: '查看' },
-    { action: 'create', name: '创建' },
-    { action: 'update', name: '更新' },
-    { action: 'delete', name: '删除' },
-    { action: 'export', name: '导出' },
-    { action: 'import', name: '导入' },
-  ];
-
-  // 为每个资源创建权限
-  const resources = [
-    { resource: userResource, name: '用户' },
-    { resource: roleResource, name: '角色' },
-    { resource: permissionResource, name: '权限' },
-    { resource: resourceResource, name: '资源' },
-    { resource: departmentResource, name: '部门' },
-    { resource: positionResource, name: '岗位' },
-  ];
-
-  for (const { resource, name } of resources) {
-    for (const { action, name: actionName } of actions) {
-      const permission = await prisma.permission.upsert({
-        where: {
-          code: `${resource.code}:${action}`,
-        },
-        update: {},
-        create: {
-          name: `${resource.name}${actionName}`,
-          code: `${resource.code}:${action}`,
-          action,
-          resourceId: resource.resourceId,
-          description: `${resource.name}的${actionName}权限`,
-        },
-      });
-    }
-  }
-
-  console.log('权限初始化完成');
+  console.log('✅ 权限数据创建完成');
 }

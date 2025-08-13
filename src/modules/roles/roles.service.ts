@@ -168,12 +168,17 @@ export class RolesService extends BaseService {
             },
           },
         },
-        users: {
-          select: {
-            id: true,
-            username: true,
-            nickname: true,
-            status: true,
+        userRoles: {
+          include: {
+            user: {
+              select: {
+                userId: true,
+                username: true,
+                nickname: true,
+                email: true,
+                status: true,
+              },
+            },
           },
         },
       },
@@ -346,6 +351,127 @@ export class RolesService extends BaseService {
     });
     
     return plainToInstance(RoleResponseDto, result, {
+      excludeExtraneousValues: true,
+    });
+  }
+
+  // 为角色分配用户
+  async assignUsers(roleId: string, userIds: string[]): Promise<RoleResponseDto> {
+    const role = await this.prisma.role.findUnique({
+      where: { roleId },
+    });
+
+    if (!role) {
+      throw new NotFoundException(`角色ID ${roleId} 不存在`);
+    }
+
+    // 验证用户是否存在
+    const users = await this.prisma.user.findMany({
+      where: {
+        userId: {
+          in: userIds,
+        },
+      },
+    });
+
+    if (users.length !== userIds.length) {
+      throw new NotFoundException('部分用户不存在');
+    }
+
+    // 先删除该角色的所有用户关联
+    await this.prisma.userRole.deleteMany({
+      where: {
+        roleId,
+      },
+    });
+
+    // 创建新的用户角色关联
+    await this.prisma.userRole.createMany({
+      data: userIds.map((userId) => ({
+        roleId,
+        userId,
+      })),
+    });
+
+    const updatedRole = await this.prisma.role.findUnique({
+      where: { roleId },
+      include: {
+        rolePermissions: {
+          include: {
+            permission: {
+              include: {
+                resource: true,
+              },
+            },
+          },
+        },
+        userRoles: {
+          include: {
+            user: {
+              select: {
+                userId: true,
+                username: true,
+                nickname: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return plainToInstance(RoleResponseDto, updatedRole, {
+      excludeExtraneousValues: true,
+    });
+  }
+
+  // 移除角色的用户
+  async removeUsers(roleId: string, userIds: string[]): Promise<RoleResponseDto> {
+    const role = await this.prisma.role.findUnique({
+      where: { roleId },
+    });
+
+    if (!role) {
+      throw new NotFoundException(`角色ID ${roleId} 不存在`);
+    }
+
+    await this.prisma.userRole.deleteMany({
+      where: {
+        roleId,
+        userId: {
+          in: userIds,
+        },
+      },
+    });
+
+    const updatedRole = await this.prisma.role.findUnique({
+      where: { roleId },
+      include: {
+        rolePermissions: {
+          include: {
+            permission: {
+              include: {
+                resource: true,
+              },
+            },
+          },
+        },
+        userRoles: {
+          include: {
+            user: {
+              select: {
+                userId: true,
+                username: true,
+                nickname: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return plainToInstance(RoleResponseDto, updatedRole, {
       excludeExtraneousValues: true,
     });
   }

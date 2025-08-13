@@ -6,6 +6,7 @@ import { seedPositions } from './seeds/positions';
 import { seedRoles } from './seeds/roles';
 import { seedRolePermissions } from './seeds/role-permissions';
 import { seedUsers } from './seeds/users';
+import { seedDictionaries } from './seeds/dictionaries';
 
 const prisma = new PrismaClient();
 
@@ -37,6 +38,9 @@ async function main() {
     { managerPosition, hrPosition },
     { adminRole, userRole },
   );
+
+  // 8. 创建字典数据
+  await seedDictionaries(prisma);
 
   console.log('数据库初始化完成！');
   console.log('管理员账户信息:');

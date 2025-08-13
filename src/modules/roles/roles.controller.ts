@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Put,
   UseGuards,
   Query,
   Request,
@@ -20,7 +21,9 @@ import { RolesService } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { AssignPermissionsDto } from './dto/assign-permissions.dto';
+import { AssignUsersDto } from './dto/assign-users.dto';
 import { QueryRoleDto } from './dto/query-role.dto';
+import { RoleResponseDto } from './dto/role-response.dto';
 
 import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
 import { RolesGuard } from '../../core/guards/roles.guard';
@@ -94,7 +97,7 @@ export class RolesController {
 
   @Post(':id/permissions')
   @Roles('admin')
-  @RequirePermissions('role:manage')
+  @RequirePermissions('role:update')
   @ApiOperation({ summary: '为角色分配权限' })
   @ApiResponse({ status: 200, description: '分配成功' })
   @ApiResponse({ status: 404, description: '角色不存在' })
@@ -110,7 +113,7 @@ export class RolesController {
 
   @Delete(':id/permissions')
   @Roles('admin')
-  @RequirePermissions('role:manage')
+  @RequirePermissions('role:update')
   @ApiOperation({ summary: '移除角色的权限' })
   @ApiResponse({ status: 200, description: '移除成功' })
   @ApiResponse({ status: 404, description: '角色不存在' })
@@ -122,5 +125,33 @@ export class RolesController {
       id,
       assignPermissionsDto.permissionIds,
     );
+  }
+
+  @Put(':id/users')
+  @Roles('admin')
+  @RequirePermissions('role:update')
+  @ApiOperation({ summary: '为角色分配用户（替换所有用户）' })
+  @ApiResponse({
+    status: 200,
+    description: '用户分配成功',
+    type: RoleResponseDto,
+  })
+  @ApiResponse({ status: 404, description: '角色不存在' })
+  assignUsers(@Param('id') id: string, @Body() assignUsersDto: AssignUsersDto) {
+    return this.rolesService.assignUsers(id, assignUsersDto.userIds);
+  }
+
+  @Delete(':id/users')
+  @Roles('admin')
+  @RequirePermissions('role:update')
+  @ApiOperation({ summary: '移除角色用户' })
+  @ApiResponse({
+    status: 200,
+    description: '用户移除成功',
+    type: RoleResponseDto,
+  })
+  @ApiResponse({ status: 404, description: '角色不存在' })
+  removeUsers(@Param('id') id: string, @Body() removeUsersDto: AssignUsersDto) {
+    return this.rolesService.removeUsers(id, removeUsersDto.userIds);
   }
 }

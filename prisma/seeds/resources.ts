@@ -1,142 +1,133 @@
-import { PrismaClient } from '@prisma/client';
-import type { ResourceType } from '@prisma/client';
+import { PrismaClient, ResourceType } from '@prisma/client';
 
 export async function seedResources(prisma: PrismaClient) {
-  console.log('开始创建资源数据...');
+  console.log('📁 开始创建基础资源...');
 
-  // 创建系统管理目录
-  const systemManagement = await prisma.resource.upsert({
-    where: {
-      code: 'system',
-    },
-    update: {},
-    create: {
+  const resources = [
+    // 系统管理
+    {
+      type: 'DIRECTORY',
       name: '系统管理',
       code: 'system',
-      type: 'DIRECTORY' as ResourceType,
       path: '/system',
-      icon: 'system',
-      sort: 1,
+      icon: 'SettingOutlined',
+      sort: 0,
+      status: 1,
+      description: '系统管理目录',
     },
-  });
-
-  // 创建用户管理菜单
-  const userManagement = await prisma.resource.upsert({
-    where: {
-      code: 'user',
-    },
-    update: {
-      parentId: systemManagement.resourceId,
-    },
-    create: {
+    // 用户管理
+    {
+      type: 'MENU',
       name: '用户管理',
       code: 'user',
-      type: 'MENU' as ResourceType,
       path: '/system/user',
-      icon: 'user',
-      parentId: systemManagement.resourceId,
+      icon: 'UserOutlined',
       sort: 1,
+      status: 1,
+      description: '用户管理菜单',
+      parentCode: 'system',
     },
-  });
-
-  // 创建资源管理菜单
-  const resourceManagement = await prisma.resource.upsert({
-    where: {
-      code: 'resource',
-    },
-    update: {
-      parentId: systemManagement.resourceId,
-    },
-    create: {
-      name: '资源管理',
-      code: 'resource',
-      type: 'MENU' as ResourceType,
-      path: '/system/resource',
-      icon: 'resource',
-      parentId: systemManagement.resourceId,
-      sort: 2,
-    },
-  });
-
-  // 创建角色管理菜单
-  const roleManagement = await prisma.resource.upsert({
-    where: {
-      code: 'role',
-    },
-    update: {
-      parentId: systemManagement.resourceId,
-    },
-    create: {
+    // 角色管理
+    {
+      type: 'MENU',
       name: '角色管理',
       code: 'role',
-      type: 'MENU' as ResourceType,
       path: '/system/role',
-      icon: 'role',
-      parentId: systemManagement.resourceId,
-      sort: 3,
+      icon: 'TeamOutlined',
+      sort: 2,
+      status: 1,
+      description: '角色管理菜单',
+      parentCode: 'system',
     },
-  });
-
-  // 创建权限管理菜单
-  const permissionManagement = await prisma.resource.upsert({
-    where: {
-      code: 'permission',
-    },
-    update: {
-      parentId: systemManagement.resourceId,
-    },
-    create: {
+    // 权限管理
+    {
+      type: 'MENU',
       name: '权限管理',
       code: 'permission',
-      type: 'MENU' as ResourceType,
       path: '/system/permission',
-      icon: 'permission',
-      parentId: systemManagement.resourceId,
+      icon: 'SafetyCertificateOutlined',
+      sort: 3,
+      status: 1,
+      description: '权限管理菜单',
+      parentCode: 'system',
+    },
+    // 资源管理
+    {
+      type: 'MENU',
+      name: '资源管理',
+      code: 'resource',
+      path: '/system/resource',
+      icon: 'AppstoreOutlined',
       sort: 4,
+      status: 1,
+      description: '资源管理菜单',
+      parentCode: 'system',
     },
-  });
-
-  // 创建部门管理菜单
-  const departmentManagement = await prisma.resource.upsert({
-    where: {
-      code: 'department',
-    },
-    update: {
-      parentId: systemManagement.resourceId,
-    },
-    create: {
+    // 部门管理
+    {
+      type: 'MENU',
       name: '部门管理',
       code: 'department',
-      type: 'MENU' as ResourceType,
       path: '/system/department',
-      icon: 'department',
-      parentId: systemManagement.resourceId,
+      icon: 'ApartmentOutlined',
       sort: 5,
+      status: 1,
+      description: '部门管理菜单',
+      parentCode: 'system',
     },
-  });
-
-  // 创建岗位管理菜单
-  const positionManagement = await prisma.resource.upsert({
-    where: {
-      code: 'position',
-    },
-    update: {
-      parentId: systemManagement.resourceId,
-    },
-    create: {
+    // 岗位管理
+    {
+      type: 'MENU',
       name: '岗位管理',
       code: 'position',
-      type: 'MENU' as ResourceType,
       path: '/system/position',
-      icon: 'position',
-      parentId: systemManagement.resourceId,
+      icon: 'IdcardOutlined',
       sort: 6,
+      status: 1,
+      description: '岗位管理菜单',
+      parentCode: 'system',
     },
-  });
+    // 字典管理
+    {
+      type: 'MENU',
+      name: '字典管理',
+      code: 'dictionary',
+      path: '/system/dictionary',
+      icon: 'BookOutlined',
+      sort: 7,
+      status: 1,
+      description: '字典管理菜单',
+      parentCode: 'system',
+    },
+  ];
 
+  const createdResources = {};
 
+  for (const resourceData of resources) {
+    const { parentCode, ...data } = resourceData;
+    
+    let parentId = null;
+    if (parentCode) {
+      const parentResource = createdResources[parentCode];
+      if (parentResource) {
+        parentId = parentResource.resourceId;
+      }
+    }
 
+    const resource = await prisma.resource.upsert({
+      where: { code: data.code },
+      update: {},
+      create: {
+        ...data,
+        type: data.type as ResourceType,
+        parentId,
+      },
+    });
 
+    createdResources[data.code] = resource;
+    console.log(`✅ 创建资源: ${resource.name}`);
+  }
 
-  console.log('资源数据创建完成');
+  console.log('✅ 基础资源创建完成');
+  return createdResources;
 }

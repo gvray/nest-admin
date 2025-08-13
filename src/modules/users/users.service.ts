@@ -130,10 +130,14 @@ export class UsersService extends BaseService {
     }
 
     const include = {
-      roles: {
+      userRoles: {
         select: {
-          roleId: true,
-          name: true,
+          role: {
+            select: {
+              roleId: true,
+              name: true,
+            },
+          },
         },
       },
       department: {
@@ -201,10 +205,14 @@ export class UsersService extends BaseService {
         status: true,
         createdAt: true,
         updatedAt: true,
-        roles: {
+        userRoles: {
           select: {
-            roleId: true,
-            name: true,
+            role: {
+              select: {
+                roleId: true,
+                name: true,
+              },
+            },
           },
         },
         department: {
@@ -245,10 +253,14 @@ export class UsersService extends BaseService {
         status: true,
         createdAt: true,
         updatedAt: true,
-        roles: {
+        userRoles: {
           select: {
-            roleId: true,
-            name: true,
+            role: {
+              select: {
+                roleId: true,
+                name: true,
+              },
+            },
           },
         },
         department: {
@@ -437,12 +449,7 @@ export class UsersService extends BaseService {
       excludeExtraneousValues: true,
     });
     
-    return {
-      success: true,
-      code: 200,
-      message: '角色分配成功',
-      data: result,
-    };
+    return result;
   }
 
   // 移除用户的角色
@@ -500,11 +507,6 @@ export class UsersService extends BaseService {
       excludeExtraneousValues: true,
     });
     
-    return {
-      success: true,
-      code: 200,
-      message: '角色移除成功',
-      data: result,
-    };
+    return result;
   }
 }

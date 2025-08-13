@@ -125,6 +125,10 @@ export class UserResponseDto {
   })
   @Expose()
   @Type(() => RoleResponseDto)
+  @Transform(({ obj }) => {
+    // 从userRoles中提取roles
+    return obj.userRoles?.map((ur: any) => ur.role) || [];
+  })
   roles?: RoleResponseDto[];
 
   @ApiPropertyOptional({

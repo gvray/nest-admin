@@ -54,6 +54,10 @@ model User {
   updatedPositions Position[]       @relation("PositionUpdatedBy")
   createdUserPositions UserPosition[] @relation("UserPositionCreatedBy")
   createdUserRoles     UserRole[]     @relation("UserRoleCreatedBy")
+  createdDictionaryTypes DictionaryType[] @relation("DictionaryTypeCreatedBy")
+  updatedDictionaryTypes DictionaryType[] @relation("DictionaryTypeUpdatedBy")
+  createdDictionaryItems DictionaryItem[] @relation("DictionaryItemCreatedBy")
+  updatedDictionaryItems DictionaryItem[] @relation("DictionaryItemUpdatedBy")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -246,4 +250,54 @@ model UserRole {
 
   @@unique([userId, roleId])
   @@map("user_roles")
+}
+
+model DictionaryType {
+  id          Int           @id @default(autoincrement())
+  typeId      String        @unique @default(uuid())
+  code        String        @unique // 字典类型编码
+  name        String        @unique // 字典类型名称
+  description String?       // 描述
+  status      Int           @default(1) // 0: 禁用, 1: 启用
+  sort        Int           @default(0) // 排序权重
+  remark      String?       // 备注信息
+  items       DictionaryItem[] // 字典项列表
+
+  // 审计字段
+  createdById String? // 创建者ID
+  createdBy   User?   @relation("DictionaryTypeCreatedBy", fields: [createdById], references: [userId])
+  updatedById String? // 更新者ID
+  updatedBy   User?   @relation("DictionaryTypeUpdatedBy", fields: [updatedById], references: [userId])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("dictionary_types")
+}
+
+model DictionaryItem {
+  id          Int            @id @default(autoincrement())
+  itemId      String         @unique @default(uuid())
+  typeId      String         // 字典类型ID
+  type        DictionaryType @relation(fields: [typeId], references: [typeId], onDelete: Cascade)
+  code        String         // 字典项编码
+  name        String         // 字典项名称
+  value       String         // 字典项值
+  label       String         // 显示标签
+  description String?        // 描述
+  status      Int            @default(1) // 0: 禁用, 1: 启用
+  sort        Int            @default(0) // 排序权重
+  remark      String?        // 备注信息
+
+  // 审计字段
+  createdById String? // 创建者ID
+  createdBy   User?   @relation("DictionaryItemCreatedBy", fields: [createdById], references: [userId])
+  updatedById String? // 更新者ID
+  updatedBy   User?   @relation("DictionaryItemUpdatedBy", fields: [updatedById], references: [userId])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([typeId, code])
+  @@map("dictionary_items")
 }

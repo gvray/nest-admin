@@ -25,6 +25,31 @@ export class RolePermissionResponseDto {
   action: string;
 }
 
+export class RoleUserResponseDto {
+  @ApiProperty({
+    description: '用户唯一标识符（UUID）',
+    example: 'a3d7d76e-5a4e-4f0a-93c3-d0b2b27d471e',
+  })
+  @Expose()
+  userId: string;
+
+  @ApiProperty({ description: '用户名' })
+  @Expose()
+  username: string;
+
+  @ApiProperty({ description: '用户昵称' })
+  @Expose()
+  nickname: string;
+
+  @ApiProperty({ description: '用户邮箱' })
+  @Expose()
+  email: string;
+
+  @ApiProperty({ description: '用户状态：0-禁用，1-启用' })
+  @Expose()
+  status: number;
+}
+
 export class RoleResponseDto {
   @Exclude()
   id: number;
@@ -73,6 +98,18 @@ export class RoleResponseDto {
     return obj.rolePermissions?.map((rp: any) => rp.permission) || [];
   })
   permissions?: RolePermissionResponseDto[];
+
+  @ApiPropertyOptional({
+    description: '用户列表',
+    type: [RoleUserResponseDto],
+  })
+  @Expose()
+  @Type(() => RoleUserResponseDto)
+  @Transform(({ obj }) => {
+    // 从userRoles中提取users
+    return obj.userRoles?.map((ur: any) => ur.user) || [];
+  })
+  users?: RoleUserResponseDto[];
 
   @ApiProperty({ description: '创建时间' })
   @Expose()
