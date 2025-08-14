@@ -95,10 +95,10 @@ export class RolesController {
     return this.rolesService.remove(id);
   }
 
-  @Post(':id/permissions')
+  @Put(':id/permissions')
   @Roles('admin')
   @RequirePermissions('role:update')
-  @ApiOperation({ summary: '为角色分配权限' })
+  @ApiOperation({ summary: '为角色分配权限（替换所有权限）' })
   @ApiResponse({ status: 200, description: '分配成功' })
   @ApiResponse({ status: 404, description: '角色不存在' })
   assignPermissions(
