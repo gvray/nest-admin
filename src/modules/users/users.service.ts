@@ -332,18 +332,50 @@ export class UsersService extends BaseService {
       }
     }
 
+    // 先删除现有的关联关系
+    if (positionIds !== undefined) {
+      await this.prisma.userPosition.deleteMany({
+        where: { userId: user.userId },
+      });
+    }
+    
+    if (roleIds !== undefined) {
+      await this.prisma.userRole.deleteMany({
+        where: { userId: user.userId },
+      });
+    }
+
     const updatedUser = await this.prisma.user.update({
       where: { userId: user.userId },
       data: {
         ...rest,
         department: departmentId ? { connect: { departmentId } } : undefined,
-        positions: positionIds && positionIds.length > 0 ? { 
-          set: positionIds.map(id => ({ positionId: id }))
-        } : undefined,
-        roles: roleIds && roleIds.length > 0 ? { 
-          set: roleIds.map(id => ({ roleId: id }))
-        } : undefined,
       },
+    });
+
+    // 创建新的岗位关联
+    if (positionIds && positionIds.length > 0) {
+      await this.prisma.userPosition.createMany({
+        data: positionIds.map(positionId => ({
+          userId: user.userId,
+          positionId,
+        })),
+      });
+    }
+
+    // 创建新的角色关联
+    if (roleIds && roleIds.length > 0) {
+      await this.prisma.userRole.createMany({
+        data: roleIds.map(roleId => ({
+          userId: user.userId,
+          roleId,
+        })),
+      });
+    }
+
+    // 重新查询用户以获取完整的关联数据
+    const userWithRelations = await this.prisma.user.findUnique({
+      where: { userId: user.userId },
       select: {
         userId: true,
         email: true,
@@ -351,13 +383,18 @@ export class UsersService extends BaseService {
         nickname: true,
         phone: true,
         avatar: true,
+        gender: true,
         status: true,
         createdAt: true,
         updatedAt: true,
-        roles: {
+        userRoles: {
           select: {
-            roleId: true,
-            name: true,
+            role: {
+              select: {
+                roleId: true,
+                name: true,
+              },
+            },
           },
         },
         department: {
@@ -366,16 +403,20 @@ export class UsersService extends BaseService {
             name: true,
           },
         },
-        positions: {
+        userPositions: {
           select: {
-            positionId: true,
-            name: true,
+            position: {
+              select: {
+                positionId: true,
+                name: true,
+              },
+            },
           },
         },
       },
     });
 
-    return plainToInstance(UserResponseDto, updatedUser, {
+    return plainToInstance(UserResponseDto, userWithRelations, {
       excludeExtraneousValues: true,
     });
   }
@@ -407,13 +448,24 @@ export class UsersService extends BaseService {
       throw new NotFoundException(`用户ID ${userId} 不存在`);
     }
 
-    const updatedUser = await this.prisma.user.update({
+    // 先删除现有的角色关联
+    await this.prisma.userRole.deleteMany({
       where: { userId: user.userId },
-      data: {
-        roles: {
-          set: roleIds.map((roleId) => ({ roleId: roleId })),
-        },
-      },
+    });
+
+    // 创建新的角色关联
+    if (roleIds && roleIds.length > 0) {
+      await this.prisma.userRole.createMany({
+        data: roleIds.map(roleId => ({
+          userId: user.userId,
+          roleId,
+        })),
+      });
+    }
+
+    // 重新查询用户以获取完整的关联数据
+    const userWithRelations = await this.prisma.user.findUnique({
+      where: { userId: user.userId },
       select: {
         userId: true,
         email: true,
@@ -421,13 +473,18 @@ export class UsersService extends BaseService {
         nickname: true,
         phone: true,
         avatar: true,
+        gender: true,
         status: true,
         createdAt: true,
         updatedAt: true,
-        roles: {
+        userRoles: {
           select: {
-            roleId: true,
-            name: true,
+            role: {
+              select: {
+                roleId: true,
+                name: true,
+              },
+            },
           },
         },
         department: {
@@ -436,20 +493,22 @@ export class UsersService extends BaseService {
             name: true,
           },
         },
-        positions: {
+        userPositions: {
           select: {
-            positionId: true,
-            name: true,
+            position: {
+              select: {
+                positionId: true,
+                name: true,
+              },
+            },
           },
         },
       },
     });
 
-    const result = plainToInstance(UserResponseDto, updatedUser, {
+    return plainToInstance(UserResponseDto, userWithRelations, {
       excludeExtraneousValues: true,
     });
-    
-    return result;
   }
 
   // 移除用户的角色
@@ -465,13 +524,19 @@ export class UsersService extends BaseService {
       throw new NotFoundException(`用户ID ${userId} 不存在`);
     }
 
-    const updatedUser = await this.prisma.user.update({
-      where: { userId: user.userId },
-      data: {
-        roles: {
-          disconnect: roleIds.map((roleId) => ({ roleId: roleId })),
+    // 删除指定的角色关联
+    if (roleIds && roleIds.length > 0) {
+      await this.prisma.userRole.deleteMany({
+        where: {
+          userId: user.userId,
+          roleId: { in: roleIds },
         },
-      },
+      });
+    }
+
+    // 重新查询用户以获取完整的关联数据
+    const userWithRelations = await this.prisma.user.findUnique({
+      where: { userId: user.userId },
       select: {
         userId: true,
         email: true,
@@ -479,13 +544,18 @@ export class UsersService extends BaseService {
         nickname: true,
         phone: true,
         avatar: true,
+        gender: true,
         status: true,
         createdAt: true,
         updatedAt: true,
-        roles: {
+        userRoles: {
           select: {
-            roleId: true,
-            name: true,
+            role: {
+              select: {
+                roleId: true,
+                name: true,
+              },
+            },
           },
         },
         department: {
@@ -494,19 +564,21 @@ export class UsersService extends BaseService {
             name: true,
           },
         },
-        positions: {
+        userPositions: {
           select: {
-            positionId: true,
-            name: true,
+            position: {
+              select: {
+                positionId: true,
+                name: true,
+              },
+            },
           },
         },
       },
     });
 
-    const result = plainToInstance(UserResponseDto, updatedUser, {
+    return plainToInstance(UserResponseDto, userWithRelations, {
       excludeExtraneousValues: true,
     });
-    
-    return result;
   }
 }

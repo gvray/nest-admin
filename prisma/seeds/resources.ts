@@ -99,6 +99,18 @@ export async function seedResources(prisma: PrismaClient) {
       description: '字典管理菜单',
       parentCode: 'system',
     },
+    // 配置管理
+    {
+      type: 'MENU',
+      name: '配置管理',
+      code: 'config',
+      path: '/system/config',
+      icon: 'ToolOutlined',
+      sort: 8,
+      status: 1,
+      description: '配置管理菜单',
+      parentCode: 'system',
+    },
   ];
 
   const createdResources = {};

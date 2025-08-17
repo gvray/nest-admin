@@ -1,0 +1,152 @@
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+export async function seedConfigs() {
+  console.log('🌱 开始创建配置数据...');
+
+  const configsData = [
+    {
+      key: 'system.name',
+      value: 'Nest Admin',
+      name: '系统名称',
+      description: '系统显示名称',
+      type: 'string',
+      group: 'system',
+      status: 1,
+      sort: 0,
+      remark: '系统基础配置',
+    },
+    {
+      key: 'system.version',
+      value: '1.0.0',
+      name: '系统版本',
+      description: '系统版本号',
+      type: 'string',
+      group: 'system',
+      status: 1,
+      sort: 1,
+      remark: '系统版本信息',
+    },
+    {
+      key: 'system.description',
+      value: '基于NestJS的管理后台系统',
+      name: '系统描述',
+      description: '系统描述信息',
+      type: 'string',
+      group: 'system',
+      status: 1,
+      sort: 2,
+      remark: '系统描述配置',
+    },
+    {
+      key: 'user.default.password',
+      value: 'admin123',
+      name: '默认密码',
+      description: '新用户的默认密码',
+      type: 'string',
+      group: 'user',
+      status: 1,
+      sort: 0,
+      remark: '用户管理配置',
+    },
+    {
+      key: 'user.password.minLength',
+      value: '6',
+      name: '密码最小长度',
+      description: '用户密码的最小长度要求',
+      type: 'number',
+      group: 'user',
+      status: 1,
+      sort: 1,
+      remark: '密码策略配置',
+    },
+    {
+      key: 'user.session.timeout',
+      value: '7200',
+      name: '会话超时时间',
+      description: '用户会话超时时间（秒）',
+      type: 'number',
+      group: 'user',
+      status: 1,
+      sort: 2,
+      remark: '会话管理配置',
+    },
+    {
+      key: 'file.upload.maxSize',
+      value: '10485760',
+      name: '文件上传最大大小',
+      description: '文件上传的最大大小限制（字节）',
+      type: 'number',
+      group: 'file',
+      status: 1,
+      sort: 0,
+      remark: '文件管理配置',
+    },
+    {
+      key: 'file.upload.allowedTypes',
+      value: 'jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx',
+      name: '允许上传的文件类型',
+      description: '允许上传的文件类型列表',
+      type: 'string',
+      group: 'file',
+      status: 1,
+      sort: 1,
+      remark: '文件类型限制',
+    },
+    {
+      key: 'email.enabled',
+      value: 'false',
+      name: '邮件功能启用',
+      description: '是否启用邮件功能',
+      type: 'boolean',
+      group: 'email',
+      status: 1,
+      sort: 0,
+      remark: '邮件功能配置',
+    },
+    {
+      key: 'email.smtp.host',
+      value: 'smtp.example.com',
+      name: 'SMTP服务器地址',
+      description: 'SMTP服务器主机地址',
+      type: 'string',
+      group: 'email',
+      status: 1,
+      sort: 1,
+      remark: 'SMTP配置',
+    },
+    {
+      key: 'email.smtp.port',
+      value: '587',
+      name: 'SMTP端口',
+      description: 'SMTP服务器端口',
+      type: 'number',
+      group: 'email',
+      status: 1,
+      sort: 2,
+      remark: 'SMTP端口配置',
+    },
+    {
+      key: 'notification.settings',
+      value: '{"email": true, "sms": false, "push": true}',
+      name: '通知设置',
+      description: '系统通知设置',
+      type: 'json',
+      group: 'notification',
+      status: 1,
+      sort: 0,
+      remark: '通知功能配置',
+    },
+  ];
+
+  for (const configData of configsData) {
+    await prisma.config.upsert({
+      where: { key: configData.key },
+      update: configData,
+      create: configData,
+    });
+  }
+
+  console.log('✅ 配置数据创建完成');
+} 

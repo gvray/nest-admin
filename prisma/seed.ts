@@ -7,6 +7,7 @@ import { seedRoles } from './seeds/roles';
 import { seedRolePermissions } from './seeds/role-permissions';
 import { seedUsers } from './seeds/users';
 import { seedDictionaries } from './seeds/dictionaries';
+import { seedConfigs } from './seeds/configs';
 
 const prisma = new PrismaClient();
 
@@ -42,18 +43,15 @@ async function main() {
   // 8. 创建字典数据
   await seedDictionaries(prisma);
 
+  // 9. 创建配置数据
+  await seedConfigs();
+
   console.log('数据库初始化完成！');
   console.log('管理员账户信息:');
   console.log(`  邮箱: ${adminUser.email}`);
   console.log(`  用户名: ${adminUser.username}`);
   console.log(`  手机号: ${adminUser.phone}`);
   console.log(`  密码: admin123`);
-  console.log(
-    `  角色: ${adminUser.roles?.map((role: any) => role.name).join(', ') || ''}`,
-  );
-  console.log(
-    `  权限数量: ${adminUser.roles?.reduce((total: number, role: any) => total + (role.rolePermissions?.length || 0), 0) || 0}`,
-  );
 }
 
 main()

@@ -104,10 +104,25 @@ export async function seedDictionaries(prisma: PrismaClient) {
         { value: '0', label: '禁用', sort: 1 },
       ],
     },
+    // 配置分组
+    {
+      typeCode: 'config_group',
+      items: [
+        { value: 'system', label: '系统配置', sort: 0 },
+        { value: 'email', label: '邮箱配置', sort: 1 },
+        { value: 'sms', label: '短信配置', sort: 2 },
+        { value: 'oss', label: '对象存储配置', sort: 3 },
+        { value: 'wechat', label: '微信配置', sort: 4 },
+        { value: 'alipay', label: '支付宝配置', sort: 5 },
+        { value: 'wechatpay', label: '微信支付配置', sort: 6 },
+        { value: 'alipay', label: '支付宝支付配置', sort: 7 },
+      ],
+    },
+    // 配置分组
   ];
 
   for (const itemGroup of dictionaryItems) {
-    const type = createdTypes.find(t => t.code === itemGroup.typeCode);
+    const type = createdTypes.find((t) => t.code === itemGroup.typeCode);
     if (!type) continue;
 
     for (const itemData of itemGroup.items) {
@@ -122,4 +137,4 @@ export async function seedDictionaries(prisma: PrismaClient) {
   }
 
   console.log('✅ 字典数据创建完成');
-} 
+}

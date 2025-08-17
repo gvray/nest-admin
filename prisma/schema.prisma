@@ -58,6 +58,8 @@ model User {
   updatedDictionaryTypes DictionaryType[] @relation("DictionaryTypeUpdatedBy")
   createdDictionaryItems DictionaryItem[] @relation("DictionaryItemCreatedBy")
   updatedDictionaryItems DictionaryItem[] @relation("DictionaryItemUpdatedBy")
+  createdConfigs Config[] @relation("ConfigCreatedBy")
+  updatedConfigs Config[] @relation("ConfigUpdatedBy")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -298,3 +300,28 @@ model DictionaryItem {
 
   @@map("dictionary_items")
 }
+model Config {
+  id          Int      @id @default(autoincrement())
+  configId    String   @unique @default(uuid())
+  key         String   @unique // 配置键
+  value       String   // 配置值
+  name        String   // 配置名称
+  description String?  // 描述
+  type        String   @default("string") // 配置类型: string, number, boolean, json
+  group       String   @default("system") // 配置分组
+  status      Int      @default(1) // 0: 禁用, 1: 启用
+  sort        Int      @default(0) // 排序权重
+  remark      String?  // 备注信息
+
+  // 审计字段
+  createdById String? // 创建者ID
+  createdBy   User?   @relation("ConfigCreatedBy", fields: [createdById], references: [userId])
+  updatedById String? // 更新者ID
+  updatedBy   User?   @relation("ConfigUpdatedBy", fields: [updatedById], references: [userId])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("configs")
+}
+

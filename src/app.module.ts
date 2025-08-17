@@ -10,6 +10,7 @@ import { ResourcesModule } from './modules/resources/resources.module';
 import { DepartmentsModule } from './modules/departments/departments.module';
 import { PositionsModule } from './modules/positions/positions.module';
 import { DictionariesModule } from './modules/dictionaries/dictionaries.module';
+import { ConfigsModule } from './modules/configs/configs.module';
 import configuration from './config/configuration';
 import { ResponseInterceptor } from './core/interceptors/response.interceptor';
 import { HttpExceptionFilter } from './core/filters/http-exception.filter';
@@ -33,6 +34,7 @@ import { HttpExceptionFilter } from './core/filters/http-exception.filter';
     DepartmentsModule,
     PositionsModule,
     DictionariesModule,
+    ConfigsModule,
   ],
   providers: [
     {

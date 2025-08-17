@@ -318,6 +318,50 @@ export async function seedPermissions(prisma: PrismaClient) {
       resourceId: null,
       description: '导出字典数据',
     },
+
+    // 配置管理权限
+    {
+      name: '配置管理查看',
+      code: 'config:view',
+      action: 'view',
+      resourceId: null,
+      description: '查看配置列表和详情',
+    },
+    {
+      name: '配置管理创建',
+      code: 'config:create',
+      action: 'create',
+      resourceId: null,
+      description: '创建新配置',
+    },
+    {
+      name: '配置管理更新',
+      code: 'config:update',
+      action: 'update',
+      resourceId: null,
+      description: '更新配置信息',
+    },
+    {
+      name: '配置管理删除',
+      code: 'config:delete',
+      action: 'delete',
+      resourceId: null,
+      description: '删除配置',
+    },
+    {
+      name: '配置管理导入',
+      code: 'config:import',
+      action: 'import',
+      resourceId: null,
+      description: '导入配置数据',
+    },
+    {
+      name: '配置管理导出',
+      code: 'config:export',
+      action: 'export',
+      resourceId: null,
+      description: '导出配置数据',
+    },
   ];
 
   // 获取资源ID映射
