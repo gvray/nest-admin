@@ -64,44 +64,44 @@ export async function seedDictionaries(prisma: PrismaClient) {
     {
       typeCode: 'user_status',
       items: [
-        { code: 'enabled', name: '启用', value: '1', label: '启用', sort: 0 },
-        { code: 'disabled', name: '禁用', value: '0', label: '禁用', sort: 1 },
-        { code: 'pending', name: '审核中', value: '2', label: '审核中', sort: 2 },
-        { code: 'banned', name: '封禁', value: '3', label: '封禁', sort: 3 },
+        { value: '1', label: '启用', sort: 0 },
+        { value: '0', label: '禁用', sort: 1 },
+        { value: '2', label: '审核中', sort: 2 },
+        { value: '3', label: '封禁', sort: 3 },
       ],
     },
     // 用户性别
     {
       typeCode: 'user_gender',
       items: [
-        { code: 'unknown', name: '未知', value: '0', label: '未知', sort: 0 },
-        { code: 'male', name: '男', value: '1', label: '男', sort: 1 },
-        { code: 'female', name: '女', value: '2', label: '女', sort: 2 },
-        { code: 'other', name: '其他', value: '3', label: '其他', sort: 3 },
+        { value: '0', label: '未知', sort: 0 },
+        { value: '1', label: '男', sort: 1 },
+        { value: '2', label: '女', sort: 2 },
+        { value: '3', label: '其他', sort: 3 },
       ],
     },
     // 角色状态
     {
       typeCode: 'role_status',
       items: [
-        { code: 'enabled', name: '启用', value: '1', label: '启用', sort: 0 },
-        { code: 'disabled', name: '禁用', value: '0', label: '禁用', sort: 1 },
+        { value: '1', label: '启用', sort: 0 },
+        { value: '0', label: '禁用', sort: 1 },
       ],
     },
     // 部门状态
     {
       typeCode: 'department_status',
       items: [
-        { code: 'enabled', name: '启用', value: '1', label: '启用', sort: 0 },
-        { code: 'disabled', name: '禁用', value: '0', label: '禁用', sort: 1 },
+        { value: '1', label: '启用', sort: 0 },
+        { value: '0', label: '禁用', sort: 1 },
       ],
     },
     // 岗位状态
     {
       typeCode: 'position_status',
       items: [
-        { code: 'enabled', name: '启用', value: '1', label: '启用', sort: 0 },
-        { code: 'disabled', name: '禁用', value: '0', label: '禁用', sort: 1 },
+        { value: '1', label: '启用', sort: 0 },
+        { value: '0', label: '禁用', sort: 1 },
       ],
     },
   ];
@@ -111,20 +111,13 @@ export async function seedDictionaries(prisma: PrismaClient) {
     if (!type) continue;
 
     for (const itemData of itemGroup.items) {
-      await prisma.dictionaryItem.upsert({
-        where: {
-          typeId_code: {
-            typeId: type.typeId,
-            code: itemData.code,
-          },
-        },
-        update: {},
-        create: {
+      await prisma.dictionaryItem.create({
+        data: {
           ...itemData,
-          typeId: type.typeId,
+          typeCode: type.code,
         },
       });
-      console.log(`✅ 创建字典项: ${itemData.name} (${type.name})`);
+      console.log(`✅ 创建字典项: ${itemData.label} (${type.name})`);
     }
   }
 

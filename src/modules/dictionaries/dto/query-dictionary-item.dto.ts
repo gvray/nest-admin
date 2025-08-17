@@ -4,28 +4,14 @@ import { PaginationDto } from '../../../shared/dtos/pagination.dto';
 
 export class QueryDictionaryItemDto extends PaginationDto {
   @ApiPropertyOptional({
-    description: '字典类型ID（UUID）',
-    example: '550e8400-e29b-41d4-a716-446655440001',
+    description: '字典类型编码',
+    example: 'user_status',
   })
   @IsOptional()
-  @IsString({ message: '字典类型ID必须是字符串' })
-  typeId?: string;
+  @IsString({ message: '字典类型编码必须是字符串' })
+  typeCode?: string;
 
-  @ApiPropertyOptional({
-    description: '字典项编码',
-    example: 'enabled',
-  })
-  @IsOptional()
-  @IsString({ message: '字典项编码必须是字符串' })
-  code?: string;
 
-  @ApiPropertyOptional({
-    description: '字典项名称',
-    example: '启用',
-  })
-  @IsOptional()
-  @IsString({ message: '字典项名称必须是字符串' })
-  name?: string;
 
   @ApiPropertyOptional({
     description: '字典项值',

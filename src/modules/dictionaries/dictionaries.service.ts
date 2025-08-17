@@ -101,6 +101,7 @@ export class DictionariesService {
   }
 
   async findOneDictionaryType(typeId: string): Promise<DictionaryTypeResponseDto> {
+    console.log('findOneDictionaryType called with typeId:', typeId);
     const dictionaryType = await this.prisma.dictionaryType.findUnique({
       where: { typeId },
       include: {
@@ -188,24 +189,14 @@ export class DictionariesService {
   ): Promise<DictionaryItemResponseDto> {
     // 检查字典类型是否存在
     const dictionaryType = await this.prisma.dictionaryType.findUnique({
-      where: { typeId: createDictionaryItemDto.typeId },
+      where: { code: createDictionaryItemDto.typeCode },
     });
 
     if (!dictionaryType) {
       throw new NotFoundException('字典类型不存在');
     }
 
-    // 检查编码是否已存在
-    const existingItem = await this.prisma.dictionaryItem.findFirst({
-      where: {
-        typeId: createDictionaryItemDto.typeId,
-        code: createDictionaryItemDto.code,
-      },
-    });
 
-    if (existingItem) {
-      throw new ConflictException('字典项编码已存在');
-    }
 
     const dictionaryItem = await this.prisma.dictionaryItem.create({
       data: {
@@ -222,17 +213,11 @@ export class DictionariesService {
   async findAllDictionaryItems(
     query: QueryDictionaryItemDto,
   ): Promise<DictionaryItemResponseDto[] | any> {
-    const { page, pageSize, typeId, code, name, value, status, ...rest } = query;
+    const { page, pageSize, typeCode, value, status, ...rest } = query;
 
     const where: any = {};
-    if (typeId) {
-      where.typeId = typeId;
-    }
-    if (code) {
-      where.code = { contains: code };
-    }
-    if (name) {
-      where.name = { contains: name };
+    if (typeCode) {
+      where.typeCode = typeCode;
     }
     if (value) {
       where.value = { contains: value };
@@ -256,6 +241,7 @@ export class DictionariesService {
             type: {
               select: {
                 typeId: true,
+                code: true,
                 name: true,
               },
             },
@@ -308,6 +294,7 @@ export class DictionariesService {
         type: {
           select: {
             typeId: true,
+            code: true,
             name: true,
           },
         },
@@ -336,20 +323,7 @@ export class DictionariesService {
       throw new NotFoundException('字典项不存在');
     }
 
-    // 检查编码是否与其他项冲突
-    if (updateDictionaryItemDto.code) {
-      const conflictItem = await this.prisma.dictionaryItem.findFirst({
-        where: {
-          typeId: existingItem.typeId,
-          code: updateDictionaryItemDto.code,
-          NOT: { itemId },
-        },
-      });
 
-      if (conflictItem) {
-        throw new ConflictException('字典项编码已存在');
-      }
-    }
 
     const dictionaryItem = await this.prisma.dictionaryItem.update({
       where: { itemId },
@@ -380,6 +354,7 @@ export class DictionariesService {
 
   // 根据字典类型编码获取字典项列表
   async getDictionaryItemsByTypeCode(typeCode: string): Promise<DictionaryItemResponseDto[]> {
+    console.log('getDictionaryItemsByTypeCode called with typeCode:', typeCode);
     const dictionaryType = await this.prisma.dictionaryType.findUnique({
       where: { code: typeCode },
       include: {
@@ -397,5 +372,43 @@ export class DictionariesService {
     return plainToInstance(DictionaryItemResponseDto, dictionaryType.items, {
       excludeExtraneousValues: true,
     });
+  }
+
+  // 根据多个字典类型编码获取字典项列表
+  async getDictionaryItemsByTypeCodes(typeCodes: string[]): Promise<Record<string, any[]>> {
+    console.log('getDictionaryItemsByTypeCodes called with typeCodes:', typeCodes);
+    const result: Record<string, any[]> = {};
+
+    for (const typeCode of typeCodes) {
+      try {
+        // 首先检查字典类型是否存在
+        const dictionaryType = await this.prisma.dictionaryType.findUnique({
+          where: { code: typeCode },
+        });
+
+        if (!dictionaryType) {
+          result[typeCode] = [];
+          continue;
+        }
+
+        const dictionaryItems = await this.prisma.dictionaryItem.findMany({
+          where: { 
+            typeCode: typeCode,
+            status: 1 
+          },
+          orderBy: { sort: 'asc' },
+        });
+
+        result[typeCode] = dictionaryItems.map(item => ({
+          value: item.value,
+          label: item.label,
+        }));
+      } catch (error) {
+        // 如果某个字典类型不存在，返回空数组
+        result[typeCode] = [];
+      }
+    }
+
+    return result;
   }
 } 

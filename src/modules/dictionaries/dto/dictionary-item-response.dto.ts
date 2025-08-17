@@ -10,25 +10,13 @@ export class DictionaryItemResponseDto {
   itemId: string;
 
   @ApiProperty({
-    description: '字典类型ID（UUID）',
-    example: '550e8400-e29b-41d4-a716-446655440002',
+    description: '字典类型编码',
+    example: 'user_status',
   })
   @Expose()
-  typeId: string;
+  typeCode: string;
 
-  @ApiProperty({
-    description: '字典项编码',
-    example: 'enabled',
-  })
-  @Expose()
-  code: string;
 
-  @ApiProperty({
-    description: '字典项名称',
-    example: '启用',
-  })
-  @Expose()
-  name: string;
 
   @ApiProperty({
     description: '字典项值',

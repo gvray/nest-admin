@@ -278,10 +278,8 @@ model DictionaryType {
 model DictionaryItem {
   id          Int            @id @default(autoincrement())
   itemId      String         @unique @default(uuid())
-  typeId      String         // 字典类型ID
-  type        DictionaryType @relation(fields: [typeId], references: [typeId], onDelete: Cascade)
-  code        String         // 字典项编码
-  name        String         // 字典项名称
+  typeCode    String         // 字典类型编码
+  type        DictionaryType @relation(fields: [typeCode], references: [code], onDelete: Cascade)
   value       String         // 字典项值
   label       String         // 显示标签
   description String?        // 描述
@@ -298,6 +296,5 @@ model DictionaryItem {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([typeId, code])
   @@map("dictionary_items")
 }

@@ -45,7 +45,11 @@ export class DictionariesController {
   @RequirePermissions('dictionary:create')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '创建字典类型' })
-  @ApiResponse({ status: 201, description: '创建成功', type: DictionaryTypeResponseDto })
+  @ApiResponse({
+    status: 201,
+    description: '创建成功',
+    type: DictionaryTypeResponseDto,
+  })
   createDictionaryType(
     @Body() createDictionaryTypeDto: CreateDictionaryTypeDto,
     @CurrentUser() user: IUser,
@@ -66,8 +70,41 @@ export class DictionariesController {
     description: '字典类型列表',
     type: [DictionaryTypeResponseDto],
   })
-  findAllDictionaryTypes(@Query() query: QueryDictionaryTypeDto = new QueryDictionaryTypeDto()) {
+  findAllDictionaryTypes(
+    @Query() query: QueryDictionaryTypeDto = new QueryDictionaryTypeDto(),
+  ) {
     return this.dictionariesService.findAllDictionaryTypes(query);
+  }
+
+  // 根据多个字典类型编码获取字典项列表
+  @Get('types/batch')
+  @Roles('admin')
+  @RequirePermissions('dictionary:view')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '根据多个字典类型编码获取字典项列表' })
+  @ApiResponse({
+    status: 200,
+    description: '获取成功',
+    schema: {
+      type: 'object',
+      additionalProperties: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            value: { type: 'string' },
+            label: { type: 'string' },
+          },
+        },
+      },
+    },
+  })
+  getDictionaryItemsByTypeCodes(@Query('typeCodes') typeCodes: string) {
+    console.log('Controller getDictionaryItemsByTypeCodes called with typeCodes:', typeCodes);
+    const typeCodeArray = typeCodes.split(',').map((code) => code.trim());
+    return this.dictionariesService.getDictionaryItemsByTypeCodes(
+      typeCodeArray,
+    );
   }
 
   @Get('types/:typeId')
@@ -82,6 +119,7 @@ export class DictionariesController {
   })
   @ApiResponse({ status: 404, description: '字典类型不存在' })
   findOneDictionaryType(@Param('typeId') typeId: string) {
+    console.log('Controller findOneDictionaryType called with typeId:', typeId);
     return this.dictionariesService.findOneDictionaryType(typeId);
   }
 
@@ -90,7 +128,11 @@ export class DictionariesController {
   @RequirePermissions('dictionary:update')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '更新字典类型（通过TypeId）' })
-  @ApiResponse({ status: 200, description: '更新成功', type: DictionaryTypeResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: '更新成功',
+    type: DictionaryTypeResponseDto,
+  })
   @ApiResponse({ status: 404, description: '字典类型不存在' })
   updateDictionaryType(
     @Param('typeId') typeId: string,
@@ -121,7 +163,11 @@ export class DictionariesController {
   @RequirePermissions('dictionary:create')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '创建字典项' })
-  @ApiResponse({ status: 201, description: '创建成功', type: DictionaryItemResponseDto })
+  @ApiResponse({
+    status: 201,
+    description: '创建成功',
+    type: DictionaryItemResponseDto,
+  })
   createDictionaryItem(
     @Body() createDictionaryItemDto: CreateDictionaryItemDto,
     @CurrentUser() user: IUser,
@@ -142,7 +188,7 @@ export class DictionariesController {
     description: '字典项列表',
     type: [DictionaryItemResponseDto],
   })
-  findAllDictionaryItems(@Query() query: QueryDictionaryItemDto = new QueryDictionaryItemDto()) {
+  findAllDictionaryItems(@Query() query: QueryDictionaryItemDto) {
     return this.dictionariesService.findAllDictionaryItems(query);
   }
 
@@ -166,7 +212,11 @@ export class DictionariesController {
   @RequirePermissions('dictionary:update')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '更新字典项（通过ItemId）' })
-  @ApiResponse({ status: 200, description: '更新成功', type: DictionaryItemResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: '更新成功',
+    type: DictionaryItemResponseDto,
+  })
   @ApiResponse({ status: 404, description: '字典项不存在' })
   updateDictionaryItem(
     @Param('itemId') itemId: string,
@@ -204,6 +254,7 @@ export class DictionariesController {
   })
   @ApiResponse({ status: 404, description: '字典类型不存在' })
   getDictionaryItemsByTypeCode(@Param('typeCode') typeCode: string) {
+    console.log('Controller getDictionaryItemsByTypeCode called with typeCode:', typeCode);
     return this.dictionariesService.getDictionaryItemsByTypeCode(typeCode);
   }
-} 
+}
