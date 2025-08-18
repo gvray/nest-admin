@@ -79,6 +79,35 @@ export class RolesService extends BaseService {
       };
     }
 
+    if (query?.roleKey) {
+      where.roleKey = {
+        contains: query.roleKey,
+      };
+    }
+
+    if (query?.status !== undefined) {
+      where.status = query.status;
+    }
+
+    // 处理日期范围查询
+    if (query?.dateRange) {
+      const [startDate, endDate] = query.dateRange.split('_to_');
+      if (startDate && endDate) {
+        where.createdAt = {
+          gte: new Date(startDate + 'T00:00:00.000Z'),
+          lte: new Date(endDate + 'T23:59:59.999Z'),
+        };
+      }
+    } else if (query?.createdAtStart || query?.createdAtEnd) {
+      where.createdAt = {};
+      if (query.createdAtStart) {
+        where.createdAt.gte = new Date(query.createdAtStart);
+      }
+      if (query.createdAtEnd) {
+        where.createdAt.lte = new Date(query.createdAtEnd);
+      }
+    }
+
     // 基本字段选择，不包含关联数据
     const select = {
       id: true,
