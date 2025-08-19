@@ -38,11 +38,11 @@ export class QueryResourceDto {
   status?: number;
 
   @ApiPropertyOptional({
-    description: '过滤模式（strict: 严格模式，loose: 宽松模式，默认strict）',
+    description: '过滤模式（strict: 严格模式，loose: 宽松模式，默认loose）',
     enum: ['strict', 'loose'],
-    example: 'strict',
+    example: 'loose',
   })
   @IsOptional()
   @IsIn(['strict', 'loose'])
-  filterMode?: 'strict' | 'loose' = 'strict';
+  filterMode?: 'strict' | 'loose' = 'loose';
 }

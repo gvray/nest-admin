@@ -159,12 +159,12 @@ export class ResourcesService {
     console.log('findTree called with queryDto:', queryDto);
 
     const hasFilters = queryDto?.name || queryDto?.code || queryDto?.type;
-    const filterMode = queryDto?.filterMode || 'strict';
+    const filterMode = queryDto?.filterMode || 'loose';
 
     if (!hasFilters) {
-      // 没有过滤条件，返回所有资源
+      // 没有过滤条件，返回所有资源（管理接口应该显示所有状态）
       const allResources = await this.prisma.resource.findMany({
-        where: { status: queryDto?.status ?? 1 },
+        where: queryDto?.status !== undefined ? { status: queryDto.status } : {},
         orderBy: [{ parentId: 'asc' }, { sort: 'asc' }, { createdAt: 'asc' }],
       });
 
@@ -185,7 +185,12 @@ export class ResourcesService {
 
     if (filterMode === 'strict') {
       // 严格模式：只返回匹配条件的资源
-      const whereConditions: any = { status: queryDto?.status ?? 1 };
+      const whereConditions: any = {};
+
+      // 只有当明确指定 status 时才过滤状态
+      if (queryDto?.status !== undefined) {
+        whereConditions.status = queryDto.status;
+      }
 
       if (queryDto?.name) {
         // 修复字符编码问题：对名称进行 URL 解码
@@ -632,7 +637,12 @@ export class ResourcesService {
     queryDto: QueryResourceDto,
   ): Promise<ApiResponse<ResourceResponseDto[]>> {
     // 构建过滤条件
-    const whereConditions: any = { status: queryDto?.status ?? 1 };
+    const whereConditions: any = {};
+
+    // 只有当明确指定 status 时才过滤状态
+    if (queryDto?.status !== undefined) {
+      whereConditions.status = queryDto.status;
+    }
 
     if (queryDto?.name) {
       whereConditions.name = { contains: queryDto.name };
@@ -673,11 +683,17 @@ export class ResourcesService {
     }
 
     // 获取所有需要包含的资源
+    const ancestorWhereConditions: any = {
+      resourceId: { in: Array.from(resourceIdsToInclude) },
+    };
+
+    // 只有当明确指定 status 时才过滤状态
+    if (queryDto?.status !== undefined) {
+      ancestorWhereConditions.status = queryDto.status;
+    }
+
     const allIncludedResources = await this.prisma.resource.findMany({
-      where: {
-        resourceId: { in: Array.from(resourceIdsToInclude) },
-        status: queryDto?.status ?? 1,
-      },
+      where: ancestorWhereConditions,
       orderBy: [{ parentId: 'asc' }, { sort: 'asc' }, { createdAt: 'asc' }],
     });
 
