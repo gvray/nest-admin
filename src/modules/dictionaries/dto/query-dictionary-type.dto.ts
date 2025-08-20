@@ -28,4 +28,12 @@ export class QueryDictionaryTypeDto extends PaginationDto {
   @Min(0, { message: '状态不能小于0' })
   @Max(1, { message: '状态不能大于1' })
   status?: number;
+
+  @ApiPropertyOptional({
+    description: '时间范围，格式：YYYY-MM-DD_to_YYYY-MM-DD',
+    example: '2025-08-05_to_2025-08-21',
+  })
+  @IsOptional()
+  @IsString({ message: '时间范围必须是字符串' })
+  dateRange?: string;
 } 

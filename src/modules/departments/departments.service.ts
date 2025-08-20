@@ -263,12 +263,96 @@ export class DepartmentsService extends BaseService {
     });
   }
 
-  async getTree(): Promise<DepartmentResponseDto[]> {
-    // 获取所有启用的部门
-    const allDepartments = await this.prisma.department.findMany({
-      where: { status: 1 },
-      orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
-    });
+  async getTree(queryDto?: QueryDepartmentDto): Promise<ApiResponse<DepartmentResponseDto[]>> {
+    console.log('getTree called with queryDto:', queryDto);
+
+    let allDepartments: any[] = [];
+
+    // 检查是否有搜索条件
+    const hasSearchConditions = queryDto?.name || queryDto?.status !== undefined || queryDto?.parentId;
+
+    if (hasSearchConditions) {
+      // 有搜索条件时，先找到匹配的部门，然后获取对应的父级路径
+      const whereConditions: any = {};
+
+      // 处理状态过滤
+      if (queryDto?.status !== undefined) {
+        whereConditions.status = queryDto.status;
+      } else {
+        // 默认只显示启用状态的部门
+        whereConditions.status = 1;
+      }
+
+      // 处理名称搜索
+      if (queryDto?.name) {
+        // 修复字符编码问题：对名称进行 URL 解码
+        let processedName = queryDto.name;
+
+        // 方法1：尝试 URL 解码
+        try {
+          processedName = decodeURIComponent(queryDto.name);
+        } catch (error) {
+          // 忽略错误
+        }
+
+        // 方法2：如果还是乱码，尝试 Buffer 转换
+        if (processedName.includes('å') || processedName.includes('ä')) {
+          try {
+            const buffer = Buffer.from(queryDto.name, 'latin1');
+            processedName = buffer.toString('utf8');
+          } catch (error) {
+            // 忽略错误
+          }
+        }
+
+        whereConditions.name = { contains: processedName };
+        console.log('getTree - Original name:', queryDto.name);
+        console.log('getTree - Processed name:', processedName);
+      }
+
+      // 处理父部门ID过滤
+      if (queryDto?.parentId !== undefined) {
+        whereConditions.parentId = queryDto.parentId;
+      }
+
+      console.log('getTree - Final whereConditions:', whereConditions);
+
+      // 找到匹配的部门
+      const matchedDepartments = await this.prisma.department.findMany({
+        where: whereConditions,
+        orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
+      });
+
+      console.log('getTree - Found departments count:', matchedDepartments.length);
+
+      if (matchedDepartments.length > 0) {
+        // 收集所有需要包含的部门ID（匹配的部门 + 它们的父级路径）
+        const departmentIdsToInclude = new Set<string>();
+
+        for (const department of matchedDepartments) {
+          departmentIdsToInclude.add(department.departmentId);
+          // 添加父级部门
+          await this.addDepartmentAncestorIds(department.parentId, departmentIdsToInclude);
+        }
+
+        // 获取所有需要包含的部门
+        allDepartments = await this.prisma.department.findMany({
+          where: {
+            departmentId: { in: Array.from(departmentIdsToInclude) },
+            status: queryDto?.status !== undefined ? queryDto.status : 1,
+          },
+          orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
+        });
+      }
+    } else {
+      // 没有搜索条件时，获取所有启用状态的部门
+      allDepartments = await this.prisma.department.findMany({
+        where: { status: 1 },
+        orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
+      });
+    }
+
+    console.log('getTree - Final departments count:', allDepartments.length);
 
     // 构建完整的树形结构
     interface DepartmentNode {
@@ -295,6 +379,9 @@ export class DepartmentsService extends BaseService {
         const parentNode = departmentMap.get(dept.parentId);
         if (parentNode && departmentNode) {
           parentNode.children.push(departmentNode);
+        } else if (departmentNode) {
+          // 如果父节点不在当前结果中，将其作为根节点
+          rootDepartments.push(departmentNode);
         }
       } else if (departmentNode) {
         rootDepartments.push(departmentNode);
@@ -316,7 +403,36 @@ export class DepartmentsService extends BaseService {
       });
     };
 
-    return convertToDto(rootDepartments);
+    const result = convertToDto(rootDepartments);
+
+    return {
+      success: true,
+      code: 200,
+      message: '操作成功',
+      data: result,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * 递归添加部门祖先ID
+   */
+  private async addDepartmentAncestorIds(
+    parentId: string | null,
+    departmentIds: Set<string>,
+  ): Promise<void> {
+    if (!parentId) return;
+
+    departmentIds.add(parentId);
+
+    const parentDepartment = await this.prisma.department.findUnique({
+      where: { departmentId: parentId },
+      select: { parentId: true },
+    });
+
+    if (parentDepartment?.parentId) {
+      await this.addDepartmentAncestorIds(parentDepartment.parentId, departmentIds);
+    }
   }
 
   private async checkCircularReference(

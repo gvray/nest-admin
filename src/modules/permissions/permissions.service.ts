@@ -406,25 +406,94 @@ export class PermissionsService extends BaseService {
    * 获取权限树结构
    * @returns 按照资源层级组织的权限树
    */
-  async getPermissionTree(): Promise<ApiResponse<unknown>> {
-    // 获取所有资源（包括目录和菜单）和权限
-    const allResources = await this.prisma.resource.findMany({
-      include: {
-        permissions: {
-          select: {
-            permissionId: true,
-            name: true,
-            code: true,
-            action: true,
-            description: true,
-            createdAt: true,
-            updatedAt: true,
-          },
-          orderBy: [{ action: 'asc' }],
+  async getPermissionTree(queryDto?: QueryPermissionDto): Promise<ApiResponse<unknown>> {
+    console.log('getPermissionTree called with queryDto:', queryDto);
+
+    let allResources: any[] = [];
+
+    // 检查是否有搜索条件
+    const hasSearchConditions = queryDto?.name || queryDto?.code || queryDto?.action || queryDto?.resourceId;
+
+    if (hasSearchConditions) {
+      // 有搜索条件时，先找到匹配的权限，然后获取对应的资源
+      const permissionWhereConditions: any = {};
+
+      if (queryDto?.name) {
+        permissionWhereConditions.name = { contains: queryDto.name };
+      }
+
+      if (queryDto?.code) {
+        permissionWhereConditions.code = { contains: queryDto.code };
+      }
+
+      if (queryDto?.action) {
+        permissionWhereConditions.action = { contains: queryDto.action };
+      }
+
+      // 找到匹配的权限
+      const matchedPermissions = await this.prisma.permission.findMany({
+        where: permissionWhereConditions,
+        include: {
+          resource: true,
         },
-      },
-      orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
-    });
+      });
+
+      console.log('getPermissionTree - Found permissions count:', matchedPermissions.length);
+
+      if (matchedPermissions.length > 0) {
+        // 收集所有需要包含的资源ID（匹配权限的资源 + 它们的父级路径）
+        const resourceIdsToInclude = new Set<string>();
+
+        for (const permission of matchedPermissions) {
+          resourceIdsToInclude.add(permission.resourceId);
+          // 添加父级资源
+          await this.addResourceAncestorIds(permission.resource.parentId, resourceIdsToInclude);
+        }
+
+        // 获取所有需要包含的资源
+        allResources = await this.prisma.resource.findMany({
+          where: {
+            resourceId: { in: Array.from(resourceIdsToInclude) },
+          },
+          include: {
+            permissions: {
+              select: {
+                permissionId: true,
+                name: true,
+                code: true,
+                action: true,
+                description: true,
+                createdAt: true,
+                updatedAt: true,
+              },
+              orderBy: [{ action: 'asc' }],
+            },
+          },
+          orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
+        });
+      }
+    } else {
+      // 没有搜索条件时，获取所有资源
+      allResources = await this.prisma.resource.findMany({
+        include: {
+          permissions: {
+            select: {
+              permissionId: true,
+              name: true,
+              code: true,
+              action: true,
+              description: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+            orderBy: [{ action: 'asc' }],
+          },
+        },
+        orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
+      });
+    }
+
+    console.log('getPermissionTree - Found resources count:', allResources.length);
 
     // 构建树结构
     const treeMap = new Map();
@@ -537,6 +606,27 @@ export class PermissionsService extends BaseService {
     };
 
     return ResponseUtil.success(result, '权限树获取成功');
+  }
+
+  /**
+   * 递归添加资源祖先ID
+   */
+  private async addResourceAncestorIds(
+    parentId: string | null,
+    resourceIds: Set<string>,
+  ): Promise<void> {
+    if (!parentId) return;
+
+    resourceIds.add(parentId);
+
+    const parentResource = await this.prisma.resource.findUnique({
+      where: { resourceId: parentId },
+      select: { parentId: true },
+    });
+
+    if (parentResource?.parentId) {
+      await this.addResourceAncestorIds(parentResource.parentId, resourceIds);
+    }
   }
 
   /**

@@ -62,8 +62,8 @@ export class PermissionsController {
   @RequirePermissions('permission:view')
   @ApiOperation({ summary: '获取权限树结构' })
   @ApiResponse({ status: 200, description: '权限树结构' })
-  getTree() {
-    return this.permissionsService.getPermissionTree();
+  getTree(@Query() queryDto: QueryPermissionDto) {
+    return this.permissionsService.getPermissionTree(queryDto);
   }
 
   @Get('tree/simple')

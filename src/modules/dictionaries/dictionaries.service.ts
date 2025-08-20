@@ -43,7 +43,7 @@ export class DictionariesService {
   async findAllDictionaryTypes(
     query: QueryDictionaryTypeDto,
   ): Promise<DictionaryTypeResponseDto[] | any> {
-    const { page, pageSize, code, name, status, ...rest } = query;
+    const { page, pageSize, code, name, status, dateRange, ...rest } = query;
 
     const where: any = {};
     if (code) {
@@ -54,6 +54,17 @@ export class DictionariesService {
     }
     if (status !== undefined) {
       where.status = status;
+    }
+
+    // 处理时间范围查询
+    if (dateRange) {
+      const [startDate, endDate] = dateRange.split('_to_');
+      if (startDate && endDate) {
+        where.createdAt = {
+          gte: new Date(startDate + 'T00:00:00.000Z'),
+          lte: new Date(endDate + 'T23:59:59.999Z'),
+        };
+      }
     }
 
     const hasPaginationParams = query.page !== undefined || query.pageSize !== undefined;
@@ -213,11 +224,14 @@ export class DictionariesService {
   async findAllDictionaryItems(
     query: QueryDictionaryItemDto,
   ): Promise<DictionaryItemResponseDto[] | any> {
-    const { page, pageSize, typeCode, value, status, ...rest } = query;
+    const { page, pageSize, typeCode, label, value, status, ...rest } = query;
 
     const where: any = {};
     if (typeCode) {
       where.typeCode = typeCode;
+    }
+    if (label) {
+      where.label = { contains: label };
     }
     if (value) {
       where.value = { contains: value };

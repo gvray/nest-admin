@@ -11,7 +11,13 @@ export class QueryDictionaryItemDto extends PaginationDto {
   @IsString({ message: '字典类型编码必须是字符串' })
   typeCode?: string;
 
-
+  @ApiPropertyOptional({
+    description: '字典项标签',
+    example: '启用',
+  })
+  @IsOptional()
+  @IsString({ message: '字典项标签必须是字符串' })
+  label?: string;
 
   @ApiPropertyOptional({
     description: '字典项值',

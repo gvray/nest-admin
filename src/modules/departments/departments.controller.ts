@@ -54,8 +54,8 @@ export class DepartmentsController {
     description: '获取部门树形结构成功',
     type: [DepartmentResponseDto],
   })
-  getTree() {
-    return this.departmentsService.getTree();
+  getTree(@Query() queryDto: QueryDepartmentDto) {
+    return this.departmentsService.getTree(queryDto);
   }
 
   @Get(':departmentId')
