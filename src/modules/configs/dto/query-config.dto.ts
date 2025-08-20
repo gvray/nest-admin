@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsOptional, IsString, IsInt } from 'class-validator';
 import { PaginationDto } from '../../../shared/dtos/pagination.dto';
+import { Type } from 'class-transformer';
 
 export class QueryConfigDto extends PaginationDto {
   @ApiProperty({ description: '配置键', required: false })
@@ -25,6 +26,7 @@ export class QueryConfigDto extends PaginationDto {
 
   @ApiProperty({ description: '状态', required: false })
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   status?: number;
-} 
+}
