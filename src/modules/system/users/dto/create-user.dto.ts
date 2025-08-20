@@ -1,0 +1,105 @@
+import {
+  IsEmail,
+  IsEnum,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+  IsArray,
+} from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { UserStatus } from '@/shared/constants/user-status.constant';
+import { Gender } from '@/shared/constants/gender.constant';
+
+export class CreateUserDto {
+  @ApiPropertyOptional({
+    description: '用户唯一标识符（UUID）',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+    readOnly: true,
+  })
+  @IsOptional()
+  @IsString({ message: '用户ID必须是字符串' })
+  userId?: string;
+
+  @ApiPropertyOptional({ description: '邮箱', example: 'user@example.com' })
+  @IsOptional()
+  @IsEmail({}, { message: '邮箱格式不正确' })
+  email?: string;
+
+  @ApiProperty({ description: '用户名' })
+  @IsString({ message: '用户名必须是字符串' })
+  @MinLength(3, { message: '用户名至少3个字符' })
+  username: string;
+
+  @ApiProperty({ description: '昵称' })
+  @IsString({ message: '昵称必须是字符串' })
+  @MaxLength(50, { message: '昵称不能超过50个字符' })
+  nickname: string;
+
+  @ApiPropertyOptional({ description: '手机号码', example: '13800138000' })
+  @IsOptional()
+  @IsString({ message: '手机号码必须是字符串' })
+  phone?: string;
+
+  @ApiPropertyOptional({ description: '备注信息', example: '这是一个备注' })
+  @IsOptional()
+  @IsString({ message: '备注信息必须是字符串' })
+  @MaxLength(500, { message: '备注信息不能超过500个字符' })
+  remark?: string;
+
+  @ApiProperty({ description: '密码' })
+  @IsString({ message: '密码必须是字符串' })
+  @MinLength(6, { message: '密码至少需要6个字符' })
+  password: string;
+
+  @ApiPropertyOptional({ description: '头像URL' })
+  @IsOptional()
+  @IsString({ message: '头像URL必须是字符串' })
+  avatar?: string;
+
+  @ApiPropertyOptional({
+    description: '性别',
+    enum: Gender,
+    example: Gender.MALE,
+  })
+  @IsOptional()
+  @IsEnum(Gender, { message: '性别必须是有效的枚举值' })
+  gender?: Gender;
+
+  @ApiPropertyOptional({
+    description: '用户状态',
+    enum: UserStatus,
+    example: UserStatus.ENABLED,
+  })
+  @IsOptional()
+  @IsEnum(UserStatus, { message: '用户状态必须是有效的枚举值' })
+  status?: UserStatus;
+
+  @ApiPropertyOptional({
+    description: '部门ID（UUID）',
+    example: '550e8400-e29b-41d4-a716-446655440001',
+  })
+  @IsOptional()
+  @IsString({ message: '部门ID必须是字符串' })
+  departmentId?: string;
+
+  @ApiPropertyOptional({
+    description: '岗位ID列表（UUID）',
+    type: [String],
+    example: ['550e8400-e29b-41d4-a716-446655440002'],
+  })
+  @IsOptional()
+  @IsArray({ message: '岗位ID必须是数组' })
+  @IsString({ each: true, message: '岗位ID必须是字符串' })
+  positionIds?: string[];
+
+  @ApiPropertyOptional({
+    description: '角色ID列表（UUID）',
+    type: [String],
+    example: ['550e8400-e29b-41d4-a716-446655440003'],
+  })
+  @IsOptional()
+  @IsArray({ message: '角色ID必须是数组' })
+  @IsString({ each: true, message: '角色ID必须是字符串' })
+  roleIds?: string[];
+}

@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Exclude, Expose, Transform, Type } from 'class-transformer';
-import { UserStatus } from '../../../shared/constants/user-status.constant';
+import { UserStatus } from '@/shared/constants/user-status.constant';
 
 export class PermissionResponseDto {
   @ApiProperty({ description: '权限ID' })
