@@ -24,6 +24,7 @@ import { AssignPermissionsDto } from './dto/assign-permissions.dto';
 import { AssignUsersDto } from './dto/assign-users.dto';
 import { QueryRoleDto } from './dto/query-role.dto';
 import { RoleResponseDto } from './dto/role-response.dto';
+import { AssignDataScopeDto } from './dto/assign-data-scope.dto';
 
 import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
 import { RolesGuard } from '@/core/guards/roles.guard';
@@ -153,5 +154,36 @@ export class RolesController {
   @ApiResponse({ status: 404, description: '角色不存在' })
   removeUsers(@Param('id') id: string, @Body() removeUsersDto: AssignUsersDto) {
     return this.rolesService.removeUsers(id, removeUsersDto.userIds);
+  }
+
+  @Put(':id/data-scope')
+  @Roles('admin')
+  @RequirePermissions('role:update')
+  @Audit('update')
+  @ApiOperation({ summary: '为角色分配数据权限' })
+  @ApiResponse({ status: 200, description: '数据权限分配成功' })
+  @ApiResponse({ status: 404, description: '角色不存在' })
+  assignDataScope(
+    @Param('id') id: string,
+    @Body() assignDataScopeDto: AssignDataScopeDto,
+    @Request() req: any,
+  ) {
+    const currentUserId = req.user?.sub;
+    return this.rolesService.assignDataScope(
+      id,
+      assignDataScopeDto.dataScope,
+      assignDataScopeDto.departmentIds,
+      currentUserId,
+    );
+  }
+
+  @Get(':id/data-scope')
+  @Roles('admin')
+  @RequirePermissions('role:view')
+  @ApiOperation({ summary: '获取角色的数据权限' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 404, description: '角色不存在' })
+  getRoleDataScope(@Param('id') id: string) {
+    return this.rolesService.getRoleDataScope(id);
   }
 }

@@ -60,6 +60,8 @@ model User {
   updatedDictionaryItems DictionaryItem[] @relation("DictionaryItemUpdatedBy")
   createdConfigs Config[] @relation("ConfigCreatedBy")
   updatedConfigs Config[] @relation("ConfigUpdatedBy")
+  createdRoleDepartments RoleDepartment[] @relation("RoleDepartmentCreatedBy")
+  updatedRoleDepartments RoleDepartment[] @relation("RoleDepartmentUpdatedBy")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -76,9 +78,11 @@ model Role {
   remark          String? // 备注信息
   sort            Int              @default(0) // 排序权重
   status          Int              @default(1) // 0: 禁用, 1: 启用
+  dataScope       Int              @default(1) // 数据权限：1-仅本人, 2-本部门, 3-本部门及以下, 4-自定义, 5-全部
   users           User[]
   userRoles       UserRole[]
   rolePermissions RolePermission[]
+  roleDepartments RoleDepartment[] // 角色-部门关联（一对多）
 
   // 审计字段
   createdById String? // 创建者ID
@@ -108,6 +112,27 @@ model RolePermission {
 
   @@unique([roleId, permissionId])
   @@map("role_permissions")
+}
+
+// 角色-部门关联表（一对多关系）
+model RoleDepartment {
+  id           Int        @id @default(autoincrement())
+  roleId       String
+  departmentId String
+  role         Role       @relation(fields: [roleId], references: [roleId], onDelete: Cascade)
+  department   Department @relation(fields: [departmentId], references: [departmentId], onDelete: Cascade)
+
+  // 审计字段
+  createdById String? // 创建者ID
+  createdBy   User?   @relation("RoleDepartmentCreatedBy", fields: [createdById], references: [userId])
+  updatedById String? // 更新者ID
+  updatedBy   User?   @relation("RoleDepartmentUpdatedBy", fields: [updatedById], references: [userId])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([roleId, departmentId])
+  @@map("role_departments")
 }
 
 model Resource {
@@ -179,6 +204,7 @@ model Department {
   parent   Department?  @relation("DepartmentHierarchy", fields: [parentId], references: [departmentId])
   children           Department[] @relation("DepartmentHierarchy")
   users              User[]
+  roleDepartments    RoleDepartment[] // 角色-部门关联
   status             Int          @default(1) // 0: 禁用, 1: 启用
   sort               Int          @default(0)
 

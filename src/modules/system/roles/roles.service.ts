@@ -8,10 +8,14 @@ import { RoleResponseDto } from './dto/role-response.dto';
 import { BaseService } from '@/shared/services/base.service';
 import { Prisma } from '@prisma/client';
 import { ApiResponse, PaginationResponse } from '@/shared/interfaces/response.interface';
+import { DataScopeService } from './services/data-scope.service';
 
 @Injectable()
 export class RolesService extends BaseService {
-  constructor(protected readonly prisma: PrismaService) {
+  constructor(
+    protected readonly prisma: PrismaService,
+    private readonly dataScopeService: DataScopeService
+  ) {
     super(prisma);
   }
 
@@ -503,5 +507,41 @@ export class RolesService extends BaseService {
     return plainToInstance(RoleResponseDto, updatedRole, {
       excludeExtraneousValues: true,
     });
+  }
+
+  // 为角色分配数据权限
+  async assignDataScope(
+    roleId: string,
+    dataScope: number,
+    departmentIds?: string[],
+    currentUserId?: string
+  ): Promise<{ message: string }> {
+    const role = await this.prisma.role.findUnique({
+      where: { roleId },
+    });
+
+    if (!role) {
+      throw new NotFoundException(`角色ID ${roleId} 不存在`);
+    }
+
+    return this.dataScopeService.assignDataScopeToRole(
+      roleId,
+      dataScope,
+      departmentIds,
+      currentUserId
+    );
+  }
+
+  // 获取角色的数据权限
+  async getRoleDataScope(roleId: string) {
+    const role = await this.prisma.role.findUnique({
+      where: { roleId },
+    });
+
+    if (!role) {
+      throw new NotFoundException(`角色ID ${roleId} 不存在`);
+    }
+
+    return this.dataScopeService.getRoleDataScope(roleId);
   }
 }

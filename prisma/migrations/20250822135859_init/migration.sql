@@ -34,6 +34,7 @@ CREATE TABLE `roles` (
     `remark` VARCHAR(191) NULL,
     `sort` INTEGER NOT NULL DEFAULT 0,
     `status` INTEGER NOT NULL DEFAULT 1,
+    `dataScope` INTEGER NOT NULL DEFAULT 1,
     `createdById` VARCHAR(191) NULL,
     `updatedById` VARCHAR(191) NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
@@ -55,6 +56,20 @@ CREATE TABLE `role_permissions` (
     `updatedAt` DATETIME(3) NOT NULL,
 
     UNIQUE INDEX `role_permissions_roleId_permissionId_key`(`roleId`, `permissionId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `role_departments` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `roleId` VARCHAR(191) NOT NULL,
+    `departmentId` VARCHAR(191) NOT NULL,
+    `createdById` VARCHAR(191) NULL,
+    `updatedById` VARCHAR(191) NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `role_departments_roleId_departmentId_key`(`roleId`, `departmentId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -277,6 +292,18 @@ ALTER TABLE `role_permissions` ADD CONSTRAINT `role_permissions_permissionId_fke
 
 -- AddForeignKey
 ALTER TABLE `role_permissions` ADD CONSTRAINT `role_permissions_createdById_fkey` FOREIGN KEY (`createdById`) REFERENCES `users`(`userId`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `role_departments` ADD CONSTRAINT `role_departments_roleId_fkey` FOREIGN KEY (`roleId`) REFERENCES `roles`(`roleId`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `role_departments` ADD CONSTRAINT `role_departments_departmentId_fkey` FOREIGN KEY (`departmentId`) REFERENCES `departments`(`departmentId`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `role_departments` ADD CONSTRAINT `role_departments_createdById_fkey` FOREIGN KEY (`createdById`) REFERENCES `users`(`userId`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `role_departments` ADD CONSTRAINT `role_departments_updatedById_fkey` FOREIGN KEY (`updatedById`) REFERENCES `users`(`userId`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `resources` ADD CONSTRAINT `resources_parentId_fkey` FOREIGN KEY (`parentId`) REFERENCES `resources`(`resourceId`) ON DELETE SET NULL ON UPDATE CASCADE;
