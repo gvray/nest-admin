@@ -23,6 +23,7 @@ import { ResourceResponseDto } from './dto/resource-response.dto';
 import { QueryResourceDto } from './dto/query-resource.dto';
 import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
 import { ApiResponse as IApiResponse } from '@/shared/interfaces/response.interface';
+import { RequirePermissions } from '@/core/decorators/permissions.decorator';
 
 @ApiTags('资源管理')
 @ApiBearerAuth()
@@ -32,6 +33,7 @@ export class ResourcesController {
   constructor(private readonly resourcesService: ResourcesService) {}
 
   @Post()
+  @RequirePermissions('system:resource:create')
   @ApiOperation({ summary: '创建资源' })
   @ApiResponse({
     status: 201,
@@ -45,6 +47,7 @@ export class ResourcesController {
   }
 
   @Get()
+  @RequirePermissions('system:resource:view')
   @ApiOperation({ summary: '获取资源列表' })
   @ApiResponse({
     status: 200,
@@ -56,6 +59,7 @@ export class ResourcesController {
   }
 
   @Get('tree')
+  @RequirePermissions('system:resource:view')
   @ApiOperation({ summary: '获取资源树' })
   @ApiResponse({
     status: 200,
@@ -69,6 +73,7 @@ export class ResourcesController {
   }
 
   @Get('menus')
+  @RequirePermissions('system:resource:view')
   @ApiOperation({ summary: '获取菜单资源' })
   @ApiResponse({
     status: 200,
@@ -80,6 +85,7 @@ export class ResourcesController {
   }
 
   @Get(':resourceId')
+  @RequirePermissions('system:resource:view')
   @ApiOperation({ summary: '获取资源详情' })
   @ApiParam({ name: 'resourceId', description: '资源ID', type: 'string' })
   @ApiResponse({
@@ -94,6 +100,7 @@ export class ResourcesController {
   }
 
   @Patch(':resourceId')
+  @RequirePermissions('system:resource:update')
   @ApiOperation({ summary: '更新资源' })
   @ApiParam({ name: 'resourceId', description: '资源ID', type: 'string' })
   @ApiResponse({
@@ -109,6 +116,7 @@ export class ResourcesController {
   }
 
   @Delete(':resourceId')
+  @RequirePermissions('system:resource:delete')
   @ApiOperation({ summary: '删除资源' })
   @ApiParam({ name: 'resourceId', description: '资源ID', type: 'string' })
   @ApiResponse({

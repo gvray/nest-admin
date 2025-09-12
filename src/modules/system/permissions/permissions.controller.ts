@@ -23,11 +23,10 @@ import { QueryPermissionDto } from './dto/query-permission.dto';
 import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
 import { RolesGuard } from '@/core/guards/roles.guard';
 import { PermissionsGuard } from '@/core/guards/permissions.guard';
-import { Roles } from '@/core/decorators/roles.decorator';
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
 import { Audit } from '@/core/decorators/audit.decorator';
 
-@ApiTags('权限管理')
+@ApiTags('系统-权限管理')
 @Controller('system/permissions')
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 @ApiBearerAuth('JWT-auth')
@@ -35,7 +34,7 @@ export class PermissionsController {
   constructor(private readonly permissionsService: PermissionsService) {}
 
   @Post()
-  @RequirePermissions('permission:create')
+  @RequirePermissions('system:permission:create')
   @Audit('create')
   @ApiOperation({ summary: '创建权限' })
   @ApiResponse({ status: 201, description: '创建成功' })
@@ -48,7 +47,7 @@ export class PermissionsController {
   }
 
   @Get()
-  @RequirePermissions('permission:view')
+  @RequirePermissions('system:permission:view')
   @ApiOperation({ summary: '获取权限列表' })
   @ApiResponse({ status: 200, description: '权限列表' })
   findAll(@Query() query: QueryPermissionDto) {
@@ -56,7 +55,7 @@ export class PermissionsController {
   }
 
   @Get('tree')
-  @RequirePermissions('permission:view')
+  @RequirePermissions('system:permission:view')
   @ApiOperation({ summary: '获取权限树结构' })
   @ApiResponse({ status: 200, description: '权限树结构' })
   getTree(@Query() queryDto: QueryPermissionDto) {
@@ -64,7 +63,7 @@ export class PermissionsController {
   }
 
   @Get('tree/simple')
-  @RequirePermissions('permission:view')
+  @RequirePermissions('system:permission:view')
   @ApiOperation({ summary: '获取简化权限树（仅包含权限代码）' })
   @ApiResponse({ status: 200, description: '简化权限树结构' })
   getSimpleTree() {
@@ -72,7 +71,7 @@ export class PermissionsController {
   }
 
   @Get(':id')
-  @RequirePermissions('permission:view')
+  @RequirePermissions('system:permission:view')
   @ApiOperation({ summary: '获取指定权限' })
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 404, description: '权限不存在' })
@@ -81,7 +80,7 @@ export class PermissionsController {
   }
 
   @Patch(':id')
-  @RequirePermissions('permission:update')
+  @RequirePermissions('system:permission:update')
   @Audit('update')
   @ApiOperation({ summary: '更新权限' })
   @ApiResponse({ status: 200, description: '更新成功' })
@@ -100,7 +99,7 @@ export class PermissionsController {
   }
 
   @Delete(':id')
-  @RequirePermissions('permission:delete')
+  @RequirePermissions('system:permission:delete')
   @Audit('delete')
   @ApiOperation({ summary: '删除权限' })
   @ApiResponse({ status: 200, description: '删除成功' })

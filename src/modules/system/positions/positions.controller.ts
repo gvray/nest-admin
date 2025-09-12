@@ -24,7 +24,6 @@ import { PositionResponseDto } from './dto/position-response.dto';
 import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
 import { RolesGuard } from '@/core/guards/roles.guard';
 import { PermissionsGuard } from '@/core/guards/permissions.guard';
-import { Roles } from '@/core/decorators/roles.decorator';
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
 import { Audit } from '@/core/decorators/audit.decorator';
 
@@ -36,7 +35,7 @@ export class PositionsController {
   constructor(private readonly positionsService: PositionsService) {}
 
   @Post()
-  @RequirePermissions('position:create')
+  @RequirePermissions('system:position:create')
   @Audit('create')
   @ApiOperation({ summary: '创建岗位' })
   @ApiResponse({
@@ -50,7 +49,7 @@ export class PositionsController {
   }
 
   @Get()
-  @RequirePermissions('position:view')
+  @RequirePermissions('system:position:view')
   @ApiOperation({ summary: '获取岗位列表' })
   @ApiResponse({
     status: 200,
@@ -61,7 +60,7 @@ export class PositionsController {
   }
 
   @Get(':id')
-  @RequirePermissions('position:view')
+  @RequirePermissions('system:position:view')
   @ApiOperation({ summary: '获取岗位详情' })
   @ApiResponse({
     status: 200,
@@ -73,7 +72,7 @@ export class PositionsController {
   }
 
   @Patch(':id')
-  @RequirePermissions('position:update')
+  @RequirePermissions('system:position:update')
   @Audit('update')
   @ApiOperation({ summary: '更新岗位' })
   @ApiResponse({
@@ -91,7 +90,7 @@ export class PositionsController {
   }
 
   @Delete(':id')
-  @RequirePermissions('position:delete')
+  @RequirePermissions('system:position:delete')
   @Audit('delete')
   @ApiOperation({ summary: '删除岗位' })
   @ApiResponse({

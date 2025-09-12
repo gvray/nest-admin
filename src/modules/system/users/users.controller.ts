@@ -20,10 +20,11 @@ import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AssignRolesDto } from './dto/assign-roles.dto';
+
 import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
 import { RolesGuard } from '@/core/guards/roles.guard';
 import { PermissionsGuard } from '@/core/guards/permissions.guard';
-import { Roles } from '@/core/decorators/roles.decorator';
+
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
 import { QueryUserDto } from './dto/query-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
@@ -36,7 +37,7 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  @RequirePermissions('user:create')
+  @RequirePermissions('system:user:create')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '创建用户' })
   @ApiResponse({ status: 201, description: '创建成功', type: UserResponseDto })
@@ -45,7 +46,7 @@ export class UsersController {
   }
 
   @Get()
-  @RequirePermissions('user:view')
+  @RequirePermissions('system:user:view')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '获取用户列表' })
   @ApiResponse({
@@ -58,7 +59,7 @@ export class UsersController {
   }
 
   @Get(':userId')
-  @RequirePermissions('user:view')
+  @RequirePermissions('system:user:view')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '获取指定用户（通过UserId）' })
   @ApiResponse({
@@ -72,7 +73,7 @@ export class UsersController {
   }
 
   @Patch(':userId')
-  @RequirePermissions('user:update')
+  @RequirePermissions('system:user:update')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '更新用户（通过UserId）' })
   @ApiResponse({ status: 200, description: '获取成功', type: UserResponseDto })
@@ -85,7 +86,7 @@ export class UsersController {
   }
 
   @Delete(':userId')
-  @RequirePermissions('user:delete')
+  @RequirePermissions('system:user:delete')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '删除用户（通过UserId）' })
   @ApiResponse({ status: 200, description: '删除成功' })
@@ -95,7 +96,7 @@ export class UsersController {
   }
 
   @Put(':userId/roles')
-  @RequirePermissions('user:manage')
+  @RequirePermissions('system:user:manage')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '为用户分配角色（替换所有角色）' })
   @ApiResponse({
@@ -112,7 +113,7 @@ export class UsersController {
   }
 
   @Delete(':userId/roles')
-  @RequirePermissions('user:manage')
+  @RequirePermissions('system:user:manage')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '移除用户的角色' })
   @ApiResponse({

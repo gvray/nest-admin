@@ -19,6 +19,7 @@ import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
 import { QueryDepartmentDto } from './dto/query-department.dto';
 import { DepartmentResponseDto } from './dto/department-response.dto';
+import { RequirePermissions } from '@/core/decorators/permissions.decorator';
 
 @ApiTags('部门管理')
 @ApiBearerAuth()
@@ -27,6 +28,7 @@ export class DepartmentsController {
   constructor(private readonly departmentsService: DepartmentsService) {}
 
   @Post()
+  @RequirePermissions('system:department:create')
   @ApiOperation({ summary: '创建部门' })
   @ApiResponse({
     status: 201,
@@ -38,6 +40,7 @@ export class DepartmentsController {
   }
 
   @Get()
+  @RequirePermissions('system:department:view')
   @ApiOperation({ summary: '获取部门列表' })
   @ApiResponse({
     status: 200,
@@ -48,6 +51,7 @@ export class DepartmentsController {
   }
 
   @Get('tree')
+  @RequirePermissions('system:department:view')
   @ApiOperation({ summary: '获取部门树形结构' })
   @ApiResponse({
     status: 200,
@@ -59,6 +63,7 @@ export class DepartmentsController {
   }
 
   @Get(':departmentId')
+  @RequirePermissions('system:department:view')
   @ApiOperation({ summary: '获取部门详情' })
   @ApiResponse({
     status: 200,
@@ -70,6 +75,7 @@ export class DepartmentsController {
   }
 
   @Patch(':departmentId')
+  @RequirePermissions('system:department:update')
   @ApiOperation({ summary: '更新部门' })
   @ApiResponse({
     status: 200,
@@ -84,6 +90,7 @@ export class DepartmentsController {
   }
 
   @Delete(':departmentId')
+  @RequirePermissions('system:department:delete')
   @ApiOperation({ summary: '删除部门' })
   @ApiResponse({
     status: 200,

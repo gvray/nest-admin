@@ -23,7 +23,7 @@ import { ConfigResponseDto } from './dto/config-response.dto';
 import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
 import { RolesGuard } from '@/core/guards/roles.guard';
 import { PermissionsGuard } from '@/core/guards/permissions.guard';
-import { Roles } from '@/core/decorators/roles.decorator';
+
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
 import { CurrentUser } from '@/core/decorators/current-user.decorator';
 import { IUser } from '@/core/interfaces/user.interface';
@@ -36,7 +36,7 @@ export class ConfigsController {
   constructor(private readonly configsService: ConfigsService) {}
 
   @Post()
-  @RequirePermissions('config:create')
+  @RequirePermissions('system:config:create')
   @ApiOperation({ summary: '创建配置' })
   @ApiResponse({
     status: 201,
@@ -48,7 +48,7 @@ export class ConfigsController {
   }
 
   @Get()
-  @RequirePermissions('config:view')
+  @RequirePermissions('system:config:view')
   @ApiOperation({ summary: '获取配置列表' })
   @ApiResponse({
     status: 200,
@@ -60,7 +60,7 @@ export class ConfigsController {
   }
 
   @Get('key/:key')
-  @RequirePermissions('config:view')
+  @RequirePermissions('system:config:view')
   @ApiOperation({ summary: '根据配置键获取配置' })
   @ApiResponse({
     status: 200,
@@ -72,7 +72,7 @@ export class ConfigsController {
   }
 
   @Get('group/:group')
-  @RequirePermissions('config:view')
+  @RequirePermissions('system:config:view')
   @ApiOperation({ summary: '根据分组获取配置列表' })
   @ApiResponse({
     status: 200,
@@ -84,7 +84,7 @@ export class ConfigsController {
   }
 
   @Get('batch')
-  @RequirePermissions('config:view')
+  @RequirePermissions('system:config:view')
   @ApiOperation({ summary: '根据多个配置键获取配置' })
   @ApiResponse({
     status: 200,
@@ -100,7 +100,7 @@ export class ConfigsController {
   }
 
   @Get(':configId')
-  @RequirePermissions('config:view')
+  @RequirePermissions('system:config:view')
   @ApiOperation({ summary: '根据ID获取配置详情' })
   @ApiResponse({
     status: 200,
@@ -112,7 +112,7 @@ export class ConfigsController {
   }
 
   @Patch(':configId')
-  @RequirePermissions('config:update')
+  @RequirePermissions('system:config:update')
   @ApiOperation({ summary: '更新配置' })
   @ApiResponse({
     status: 200,
@@ -128,7 +128,7 @@ export class ConfigsController {
   }
 
   @Delete(':configId')
-  @RequirePermissions('config:delete')
+  @RequirePermissions('system:config:delete')
   @ApiOperation({ summary: '删除配置' })
   @ApiResponse({
     status: 200,
