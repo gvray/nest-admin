@@ -1,6 +1,7 @@
 export interface IRole {
   roleId: string;
   name: string;
+  roleKey: string;
   description: string | null;
   createdAt: Date;
   updatedAt: Date;
