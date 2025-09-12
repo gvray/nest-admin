@@ -36,7 +36,6 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  @Roles('admin')
   @RequirePermissions('user:create')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '创建用户' })
@@ -46,7 +45,6 @@ export class UsersController {
   }
 
   @Get()
-  @Roles('admin')
   @RequirePermissions('user:view')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '获取用户列表' })
@@ -60,7 +58,6 @@ export class UsersController {
   }
 
   @Get(':userId')
-  @Roles('admin')
   @RequirePermissions('user:view')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '获取指定用户（通过UserId）' })
@@ -75,7 +72,6 @@ export class UsersController {
   }
 
   @Patch(':userId')
-  @Roles('admin')
   @RequirePermissions('user:update')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '更新用户（通过UserId）' })
@@ -89,7 +85,6 @@ export class UsersController {
   }
 
   @Delete(':userId')
-  @Roles('admin')
   @RequirePermissions('user:delete')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '删除用户（通过UserId）' })
@@ -100,7 +95,6 @@ export class UsersController {
   }
 
   @Put(':userId/roles')
-  @Roles('admin')
   @RequirePermissions('user:manage')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '为用户分配角色（替换所有角色）' })
@@ -118,7 +112,6 @@ export class UsersController {
   }
 
   @Delete(':userId/roles')
-  @Roles('admin')
   @RequirePermissions('user:manage')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '移除用户的角色' })

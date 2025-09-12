@@ -41,7 +41,6 @@ export class DictionariesController {
 
   // 字典类型相关接口
   @Post('types')
-  @Roles('admin')
   @RequirePermissions('dictionary:create')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '创建字典类型' })
@@ -61,7 +60,6 @@ export class DictionariesController {
   }
 
   @Get('types')
-  @Roles('admin')
   @RequirePermissions('dictionary:view')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '获取字典类型列表' })
@@ -78,7 +76,6 @@ export class DictionariesController {
 
   // 根据多个字典类型编码获取字典项列表
   @Get('types/batch')
-  @Roles('admin')
   @RequirePermissions('dictionary:view')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '根据多个字典类型编码获取字典项列表' })
@@ -108,7 +105,6 @@ export class DictionariesController {
   }
 
   @Get('types/:typeId')
-  @Roles('admin')
   @RequirePermissions('dictionary:view')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '获取指定字典类型（通过TypeId）' })
@@ -124,7 +120,6 @@ export class DictionariesController {
   }
 
   @Patch('types/:typeId')
-  @Roles('admin')
   @RequirePermissions('dictionary:update')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '更新字典类型（通过TypeId）' })
@@ -147,7 +142,6 @@ export class DictionariesController {
   }
 
   @Delete('types/:typeId')
-  @Roles('admin')
   @RequirePermissions('dictionary:delete')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '删除字典类型（通过TypeId）' })
@@ -159,7 +153,6 @@ export class DictionariesController {
 
   // 字典项相关接口
   @Post('items')
-  @Roles('admin')
   @RequirePermissions('dictionary:create')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '创建字典项' })
@@ -179,7 +172,6 @@ export class DictionariesController {
   }
 
   @Get('items')
-  @Roles('admin')
   @RequirePermissions('dictionary:view')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '获取字典项列表' })
@@ -193,7 +185,6 @@ export class DictionariesController {
   }
 
   @Get('items/:itemId')
-  @Roles('admin')
   @RequirePermissions('dictionary:view')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '获取指定字典项（通过ItemId）' })
@@ -208,7 +199,6 @@ export class DictionariesController {
   }
 
   @Patch('items/:itemId')
-  @Roles('admin')
   @RequirePermissions('dictionary:update')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '更新字典项（通过ItemId）' })
@@ -231,7 +221,6 @@ export class DictionariesController {
   }
 
   @Delete('items/:itemId')
-  @Roles('admin')
   @RequirePermissions('dictionary:delete')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '删除字典项（通过ItemId）' })
@@ -243,7 +232,6 @@ export class DictionariesController {
 
   // 根据字典类型编码获取字典项列表
   @Get('items/type/:typeCode')
-  @Roles('admin')
   @RequirePermissions('dictionary:view')
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '根据字典类型编码获取字典项列表' })

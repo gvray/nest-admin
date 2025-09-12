@@ -9,7 +9,12 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { ConfigsService } from './configs.service';
 import { CreateConfigDto } from './dto/create-config.dto';
 import { UpdateConfigDto } from './dto/update-config.dto';
@@ -31,7 +36,6 @@ export class ConfigsController {
   constructor(private readonly configsService: ConfigsService) {}
 
   @Post()
-  @Roles('admin')
   @RequirePermissions('config:create')
   @ApiOperation({ summary: '创建配置' })
   @ApiResponse({
@@ -44,7 +48,6 @@ export class ConfigsController {
   }
 
   @Get()
-  @Roles('admin')
   @RequirePermissions('config:view')
   @ApiOperation({ summary: '获取配置列表' })
   @ApiResponse({
@@ -57,7 +60,6 @@ export class ConfigsController {
   }
 
   @Get('key/:key')
-  @Roles('admin')
   @RequirePermissions('config:view')
   @ApiOperation({ summary: '根据配置键获取配置' })
   @ApiResponse({
@@ -70,7 +72,6 @@ export class ConfigsController {
   }
 
   @Get('group/:group')
-  @Roles('admin')
   @RequirePermissions('config:view')
   @ApiOperation({ summary: '根据分组获取配置列表' })
   @ApiResponse({
@@ -83,7 +84,6 @@ export class ConfigsController {
   }
 
   @Get('batch')
-  @Roles('admin')
   @RequirePermissions('config:view')
   @ApiOperation({ summary: '根据多个配置键获取配置' })
   @ApiResponse({
@@ -100,7 +100,6 @@ export class ConfigsController {
   }
 
   @Get(':configId')
-  @Roles('admin')
   @RequirePermissions('config:view')
   @ApiOperation({ summary: '根据ID获取配置详情' })
   @ApiResponse({
@@ -113,7 +112,6 @@ export class ConfigsController {
   }
 
   @Patch(':configId')
-  @Roles('admin')
   @RequirePermissions('config:update')
   @ApiOperation({ summary: '更新配置' })
   @ApiResponse({
@@ -130,7 +128,6 @@ export class ConfigsController {
   }
 
   @Delete(':configId')
-  @Roles('admin')
   @RequirePermissions('config:delete')
   @ApiOperation({ summary: '删除配置' })
   @ApiResponse({
@@ -140,4 +137,4 @@ export class ConfigsController {
   remove(@Param('configId') configId: string) {
     return this.configsService.remove(configId);
   }
-} 
+}

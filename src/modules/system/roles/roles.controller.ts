@@ -41,7 +41,6 @@ export class RolesController {
   constructor(private readonly rolesService: RolesService) {}
 
   @Post()
-  @Roles('admin')
   @RequirePermissions('role:create')
   @Audit('create')
   @ApiOperation({ summary: '创建角色' })
@@ -52,7 +51,6 @@ export class RolesController {
   }
 
   @Get()
-  @Roles('admin')
   @RequirePermissions('role:view')
   @ApiOperation({ summary: '获取角色列表' })
   @ApiResponse({ status: 200, description: '获取成功' })
@@ -61,7 +59,6 @@ export class RolesController {
   }
 
   @Get(':id')
-  @Roles('admin')
   @RequirePermissions('role:view')
   @ApiOperation({ summary: '获取指定角色' })
   @ApiResponse({ status: 200, description: '获取成功' })
@@ -71,7 +68,6 @@ export class RolesController {
   }
 
   @Patch(':id')
-  @Roles('admin')
   @RequirePermissions('role:update')
   @Audit('update')
   @ApiOperation({ summary: '更新角色' })
@@ -87,7 +83,6 @@ export class RolesController {
   }
 
   @Delete(':id')
-  @Roles('admin')
   @RequirePermissions('role:delete')
   @ApiOperation({ summary: '删除角色' })
   @ApiResponse({ status: 200, description: '删除成功' })
@@ -97,7 +92,6 @@ export class RolesController {
   }
 
   @Put(':id/permissions')
-  @Roles('admin')
   @RequirePermissions('role:update')
   @ApiOperation({ summary: '为角色分配权限（替换所有权限）' })
   @ApiResponse({ status: 200, description: '分配成功' })
@@ -113,7 +107,6 @@ export class RolesController {
   }
 
   @Delete(':id/permissions')
-  @Roles('admin')
   @RequirePermissions('role:update')
   @ApiOperation({ summary: '移除角色的权限' })
   @ApiResponse({ status: 200, description: '移除成功' })
@@ -129,7 +122,6 @@ export class RolesController {
   }
 
   @Put(':id/users')
-  @Roles('admin')
   @RequirePermissions('role:update')
   @ApiOperation({ summary: '为角色分配用户（替换所有用户）' })
   @ApiResponse({
@@ -143,7 +135,6 @@ export class RolesController {
   }
 
   @Delete(':id/users')
-  @Roles('admin')
   @RequirePermissions('role:update')
   @ApiOperation({ summary: '移除角色用户' })
   @ApiResponse({
@@ -157,7 +148,6 @@ export class RolesController {
   }
 
   @Put(':id/data-scope')
-  @Roles('admin')
   @RequirePermissions('role:update')
   @Audit('update')
   @ApiOperation({ summary: '为角色分配数据权限' })
@@ -178,7 +168,6 @@ export class RolesController {
   }
 
   @Get(':id/data-scope')
-  @Roles('admin')
   @RequirePermissions('role:view')
   @ApiOperation({ summary: '获取角色的数据权限' })
   @ApiResponse({ status: 200, description: '获取成功' })

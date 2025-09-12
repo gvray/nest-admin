@@ -36,7 +36,6 @@ export class PositionsController {
   constructor(private readonly positionsService: PositionsService) {}
 
   @Post()
-  @Roles('admin')
   @RequirePermissions('position:create')
   @Audit('create')
   @ApiOperation({ summary: '创建岗位' })
@@ -51,7 +50,6 @@ export class PositionsController {
   }
 
   @Get()
-  @Roles('admin', 'user')
   @RequirePermissions('position:view')
   @ApiOperation({ summary: '获取岗位列表' })
   @ApiResponse({
@@ -62,10 +60,7 @@ export class PositionsController {
     return this.positionsService.findAll(query);
   }
 
-
-
   @Get(':id')
-  @Roles('admin', 'user')
   @RequirePermissions('position:view')
   @ApiOperation({ summary: '获取岗位详情' })
   @ApiResponse({
@@ -78,7 +73,6 @@ export class PositionsController {
   }
 
   @Patch(':id')
-  @Roles('admin')
   @RequirePermissions('position:update')
   @Audit('update')
   @ApiOperation({ summary: '更新岗位' })
@@ -97,7 +91,6 @@ export class PositionsController {
   }
 
   @Delete(':id')
-  @Roles('admin')
   @RequirePermissions('position:delete')
   @Audit('delete')
   @ApiOperation({ summary: '删除岗位' })

@@ -35,7 +35,6 @@ export class PermissionsController {
   constructor(private readonly permissionsService: PermissionsService) {}
 
   @Post()
-  @Roles('admin')
   @RequirePermissions('permission:create')
   @Audit('create')
   @ApiOperation({ summary: '创建权限' })
@@ -49,7 +48,6 @@ export class PermissionsController {
   }
 
   @Get()
-  @Roles('admin', 'user')
   @RequirePermissions('permission:view')
   @ApiOperation({ summary: '获取权限列表' })
   @ApiResponse({ status: 200, description: '权限列表' })
@@ -58,7 +56,6 @@ export class PermissionsController {
   }
 
   @Get('tree')
-  @Roles('admin', 'user')
   @RequirePermissions('permission:view')
   @ApiOperation({ summary: '获取权限树结构' })
   @ApiResponse({ status: 200, description: '权限树结构' })
@@ -67,7 +64,6 @@ export class PermissionsController {
   }
 
   @Get('tree/simple')
-  @Roles('admin', 'user')
   @RequirePermissions('permission:view')
   @ApiOperation({ summary: '获取简化权限树（仅包含权限代码）' })
   @ApiResponse({ status: 200, description: '简化权限树结构' })
@@ -76,7 +72,6 @@ export class PermissionsController {
   }
 
   @Get(':id')
-  @Roles('admin', 'user')
   @RequirePermissions('permission:view')
   @ApiOperation({ summary: '获取指定权限' })
   @ApiResponse({ status: 200, description: '获取成功' })
@@ -86,7 +81,6 @@ export class PermissionsController {
   }
 
   @Patch(':id')
-  @Roles('admin')
   @RequirePermissions('permission:update')
   @Audit('update')
   @ApiOperation({ summary: '更新权限' })
@@ -106,7 +100,6 @@ export class PermissionsController {
   }
 
   @Delete(':id')
-  @Roles('admin')
   @RequirePermissions('permission:delete')
   @Audit('delete')
   @ApiOperation({ summary: '删除权限' })
