@@ -157,8 +157,16 @@ export class DepartmentsService extends BaseService {
         children: true,
         users: {
           include: {
-            roles: true,
-            positions: true,
+            userRoles: {
+              include: {
+                role: true,
+              },
+            },
+            userPositions: {
+              include: {
+                position: true,
+              },
+            },
           },
         },
       },

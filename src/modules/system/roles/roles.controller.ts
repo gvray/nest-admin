@@ -130,8 +130,17 @@ export class RolesController {
     type: RoleResponseDto,
   })
   @ApiResponse({ status: 404, description: '角色不存在' })
-  assignUsers(@Param('id') id: string, @Body() assignUsersDto: AssignUsersDto) {
-    return this.rolesService.assignUsers(id, assignUsersDto.userIds);
+  assignUsers(
+    @Param('id') id: string,
+    @Body() assignUsersDto: AssignUsersDto,
+    @Request() req: any,
+  ) {
+    const currentUserId = req.user?.userId;
+    return this.rolesService.assignUsers(
+      id,
+      assignUsersDto.userIds,
+      currentUserId,
+    );
   }
 
   @Delete(':id/users')
@@ -143,8 +152,17 @@ export class RolesController {
     type: RoleResponseDto,
   })
   @ApiResponse({ status: 404, description: '角色不存在' })
-  removeUsers(@Param('id') id: string, @Body() removeUsersDto: AssignUsersDto) {
-    return this.rolesService.removeUsers(id, removeUsersDto.userIds);
+  removeUsers(
+    @Param('id') id: string,
+    @Body() removeUsersDto: AssignUsersDto,
+    @Request() req: any,
+  ) {
+    const currentUserId = req.user?.userId;
+    return this.rolesService.removeUsers(
+      id,
+      removeUsersDto.userIds,
+      currentUserId,
+    );
   }
 
   @Put(':id/data-scope')

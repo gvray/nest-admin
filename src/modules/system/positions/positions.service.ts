@@ -128,7 +128,21 @@ export class PositionsService extends BaseService {
     // 返回全量数据
     const positions = await this.prisma.position.findMany({
       where,
-      include,
+      include: {
+        userPositions: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                userId: true,
+                username: true,
+                nickname: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
       orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
     });
 
@@ -148,10 +162,17 @@ export class PositionsService extends BaseService {
     const position = await this.prisma.position.findUnique({
       where: whereClause,
       include: {
-        users: {
+        userPositions: {
           include: {
-            roles: true,
-            positions: true,
+            user: {
+              select: {
+                id: true,
+                userId: true,
+                username: true,
+                nickname: true,
+                email: true,
+              },
+            },
           },
         },
       },
@@ -244,7 +265,7 @@ export class PositionsService extends BaseService {
     const position = await this.prisma.position.findUnique({
       where: whereClause,
       include: {
-        users: true,
+        userPositions: true,
       },
     });
 
@@ -253,7 +274,7 @@ export class PositionsService extends BaseService {
     }
 
     // 检查是否有用户关联
-    if (position.users && position.users.length > 0) {
+    if (position.userPositions && position.userPositions.length > 0) {
       throw new ConflictException('该岗位下还有用户，无法删除');
     }
 

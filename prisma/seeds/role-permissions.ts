@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { SUPER_ROLE_KEY } from '@/shared/constants/role.constant';
+import { SUPER_ROLE_KEY } from '../../src/shared/constants/role.constant';
 
 export async function seedRolePermissions(prisma: PrismaClient) {
   console.log('🔗 开始创建角色权限关联...');

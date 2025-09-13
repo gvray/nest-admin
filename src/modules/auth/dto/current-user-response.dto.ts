@@ -44,6 +44,11 @@ export class CurrentUserRoleResponseDto {
   @Expose()
   name: string;
 
+  @ApiPropertyOptional({ description: '角色标识（用于判断是否超管）' })
+  @Expose()
+  @Transform(({ value }): string => value ?? '')
+  roleKey?: string;
+
   @ApiPropertyOptional({ description: '角色描述' })
   @Expose()
   @Transform(({ value }): string => value ?? '')
@@ -57,10 +62,10 @@ export class CurrentUserRoleResponseDto {
   @Type(() => PermissionResponseDto)
   @Transform(({ obj }: { obj: any }): PermissionResponseDto[] => {
     try {
-      if (!obj || !obj?.rolePermissions || !Array.isArray(obj?.rolePermissions)) {
+      if (!obj || !obj?.role?.rolePermissions || !Array.isArray(obj?.role?.rolePermissions)) {
         return [];
       }
-      return obj.rolePermissions
+      return obj.role.rolePermissions
         .map((rp: any) => {
           if (!rp || !rp?.permission) {
             return null;
@@ -171,12 +176,47 @@ export class CurrentUserResponseDto {
   @Expose()
   updatedAt: Date;
 
+  @ApiPropertyOptional({ description: '是否为超级管理员' })
+  @Expose()
+  isSuperAdmin?: boolean;
+
+  @ApiPropertyOptional({
+    description: '权限代码聚合（超管返回 ["*:*:*"]）',
+    type: [String],
+  })
+  @Expose()
+  permissionCodes?: string[];
+
   @ApiPropertyOptional({
     description: '用户角色列表（包含权限信息）',
     type: [CurrentUserRoleResponseDto],
   })
   @Expose()
   @Type(() => CurrentUserRoleResponseDto)
+  @Transform(({ obj }: { obj: any }): CurrentUserRoleResponseDto[] => {
+    try {
+      if (!obj || !obj?.userRoles || !Array.isArray(obj?.userRoles)) {
+        return [];
+      }
+      return obj.userRoles
+        .map((ur: any) => {
+          if (!ur || !ur?.role) {
+            return null;
+          }
+          return {
+            roleId: ur.role.roleId,
+            name: ur.role.name,
+            roleKey: ur.role.roleKey,
+            description: ur.role.description,
+            rolePermissions: ur.role.rolePermissions || [],
+          };
+        })
+        .filter((role: any) => role !== null);
+    } catch (error) {
+      console.error('Transform roles error:', error);
+      return [];
+    }
+  })
   roles?: CurrentUserRoleResponseDto[];
 
   @ApiPropertyOptional({
@@ -189,9 +229,31 @@ export class CurrentUserResponseDto {
 
   @ApiPropertyOptional({
     description: '所属岗位',
-    type: CurrentUserPositionResponseDto,
+    type: [CurrentUserPositionResponseDto],
   })
   @Expose()
   @Type(() => CurrentUserPositionResponseDto)
-  position?: CurrentUserPositionResponseDto;
+  @Transform(({ obj }: { obj: any }): CurrentUserPositionResponseDto[] => {
+    try {
+      if (!obj || !obj?.userPositions || !Array.isArray(obj?.userPositions)) {
+        return [];
+      }
+      return obj.userPositions
+        .map((up: any) => {
+          if (!up || !up?.position) {
+            return null;
+          }
+          return {
+            positionId: up.position.positionId,
+            name: up.position.name,
+            description: up.position.description,
+          };
+        })
+        .filter((position: any) => position !== null);
+    } catch (error) {
+      console.error('Transform positions error:', error);
+      return [];
+    }
+  })
+  positions?: CurrentUserPositionResponseDto[];
 }

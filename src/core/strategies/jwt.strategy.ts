@@ -15,24 +15,27 @@ interface DbUser {
   status: number;
   createdAt: Date;
   updatedAt: Date;
-  roles: Array<{
-    roleId: string;
-    name: string;
-    description: string | null;
-    createdAt: Date;
-    updatedAt: Date;
-    rolePermissions: Array<{
-      permission: {
-        permissionId: string;
-        name: string;
-        code: string;
-        action: string;
-        resourceId: string;
-        description: string | null;
-        createdAt: Date;
-        updatedAt: Date;
-      };
-    }>;
+  userRoles: Array<{
+    role: {
+      roleId: string;
+      name: string;
+      roleKey: string;
+      description: string | null;
+      createdAt: Date;
+      updatedAt: Date;
+      rolePermissions: Array<{
+        permission: {
+          permissionId: string;
+          name: string;
+          code: string;
+          action: string;
+          resourceId: string;
+          description: string | null;
+          createdAt: Date;
+          updatedAt: Date;
+        };
+      }>;
+    };
   }>;
 }
 
@@ -66,25 +69,30 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         status: true,
         createdAt: true,
         updatedAt: true,
-        roles: {
+        userRoles: {
           select: {
-            roleId: true,
-            name: true,
-            description: true,
-            createdAt: true,
-            updatedAt: true,
-            rolePermissions: {
+            role: {
               select: {
-                permission: {
+                roleId: true,
+                name: true,
+                roleKey: true,
+                description: true,
+                createdAt: true,
+                updatedAt: true,
+                rolePermissions: {
                   select: {
-                    permissionId: true,
-                    name: true,
-                    code: true,
-                    action: true,
-                    resourceId: true,
-                    description: true,
-                    createdAt: true,
-                    updatedAt: true,
+                    permission: {
+                      select: {
+                        permissionId: true,
+                        name: true,
+                        code: true,
+                        action: true,
+                        resourceId: true,
+                        description: true,
+                        createdAt: true,
+                        updatedAt: true,
+                      },
+                    },
                   },
                 },
               },
@@ -107,13 +115,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       status: user.status,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
-      roles: user.roles.map((role) => ({
-        roleId: role.roleId,
-        name: role.name,
-        description: role.description,
-        createdAt: role.createdAt,
-        updatedAt: role.updatedAt,
-        permissions: role.rolePermissions.map((rp) => ({
+      roles: user.userRoles.map((userRole) => ({
+        roleId: userRole.role.roleId,
+        name: userRole.role.name,
+        roleKey: userRole.role.roleKey,
+        description: userRole.role.description,
+        createdAt: userRole.role.createdAt,
+        updatedAt: userRole.role.updatedAt,
+        permissions: userRole.role.rolePermissions.map((rp) => ({
           permissionId: rp.permission.permissionId,
           name: rp.permission.name,
           code: rp.permission.code,

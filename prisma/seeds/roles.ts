@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import {
   SUPER_ROLE_KEY,
   SUPER_ROLE_NAME,
-} from '@/shared/constants/role.constant';
+} from '../../src/shared/constants/role.constant';
 
 export async function seedRoles(prisma: PrismaClient) {
   console.log('开始创建角色...');
@@ -66,5 +66,5 @@ export async function seedRoles(prisma: PrismaClient) {
   console.log('角色创建完成');
 
   // 返回创建的角色
-  return { superAdminRole, adminRole, userRole, managerRole };
+  return { superRole: superAdminRole, adminRole, userRole, managerRole };
 }

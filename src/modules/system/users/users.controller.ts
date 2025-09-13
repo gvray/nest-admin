@@ -26,8 +26,10 @@ import { RolesGuard } from '@/core/guards/roles.guard';
 import { PermissionsGuard } from '@/core/guards/permissions.guard';
 
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
+import { CurrentUser } from '@/core/decorators/current-user.decorator';
 import { QueryUserDto } from './dto/query-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
+import { IUser } from '@/core/interfaces/user.interface';
 
 @ApiTags('用户管理')
 @Controller('system/users')
@@ -108,8 +110,13 @@ export class UsersController {
   assignRoles(
     @Param('userId') userId: string,
     @Body() assignRolesDto: AssignRolesDto,
+    @CurrentUser() currentUser: IUser,
   ) {
-    return this.usersService.assignRoles(userId, assignRolesDto.roleIds);
+    return this.usersService.assignRoles(
+      userId,
+      assignRolesDto.roleIds,
+      currentUser.userId,
+    );
   }
 
   @Delete(':userId/roles')

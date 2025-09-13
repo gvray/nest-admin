@@ -27,9 +27,7 @@ model User {
   status       Int         @default(1) // 0: 禁用, 1: 启用, 2: 审核中, 3: 封禁
   departmentId String?
   department   Department? @relation(fields: [departmentId], references: [departmentId])
-  positions    Position[]
   userPositions UserPosition[]
-  roles        Role[]
   userRoles    UserRole[]
 
   // 审计字段
@@ -48,8 +46,8 @@ model User {
   updatedResources Resource[]       @relation("ResourceUpdatedBy")
   createdPerms     Permission[]     @relation("PermissionCreatedBy")
   updatedPerms     Permission[]     @relation("PermissionUpdatedBy")
-  createdDepts     Department[]     @relation("DepartmentCreatedBy")
-  updatedDepts     Department[]     @relation("DepartmentUpdatedBy")
+  createdDepartments Department[]     @relation("DepartmentCreatedBy")
+  updatedDepartments Department[]     @relation("DepartmentUpdatedBy")
   createdPositions Position[]       @relation("PositionCreatedBy")
   updatedPositions Position[]       @relation("PositionUpdatedBy")
   createdUserPositions UserPosition[] @relation("UserPositionCreatedBy")
@@ -79,7 +77,6 @@ model Role {
   sort            Int              @default(0) // 排序权重
   status          Int              @default(1) // 0: 禁用, 1: 启用
   dataScope       Int              @default(1) // 数据权限：1-仅本人, 2-本部门, 3-本部门及以下, 4-自定义, 5-全部
-  users           User[]
   userRoles       UserRole[]
   rolePermissions RolePermission[]
   roleDepartments RoleDepartment[] // 角色-部门关联（一对多）
@@ -203,7 +200,7 @@ model Department {
   email              String?
   parent   Department?  @relation("DepartmentHierarchy", fields: [parentId], references: [departmentId])
   children           Department[] @relation("DepartmentHierarchy")
-  users              User[]
+  users              User[] // 部门下的用户
   roleDepartments    RoleDepartment[] // 角色-部门关联
   status             Int          @default(1) // 0: 禁用, 1: 启用
   sort               Int          @default(0)
@@ -227,7 +224,6 @@ model Position {
   code        String  @unique
   description String?
   remark      String? // 备注信息
-  users       User[]
   userPositions UserPosition[]
   status      Int     @default(1) // 0: 禁用, 1: 启用
   sort        Int     @default(0)

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreateRoleDto } from './dto/create-role.dto';
@@ -13,6 +17,7 @@ import {
 } from '@/shared/interfaces/response.interface';
 import { DataScopeService } from './services/data-scope.service';
 import { SUPER_ROLE_KEY } from '@/shared/constants/role.constant';
+import { SUPER_USER_KEY } from '@/shared/constants/user.constant';
 
 @Injectable()
 export class RolesService extends BaseService {
@@ -23,16 +28,38 @@ export class RolesService extends BaseService {
     super(prisma);
   }
 
+  // 检查用户是否为超级管理员
+  private async isSuperAdmin(userId: string): Promise<boolean> {
+    const userWithRoles = await this.prisma.user.findUnique({
+      where: { userId },
+      include: {
+        userRoles: {
+          include: {
+            role: true,
+          },
+        },
+      },
+    });
+
+    if (!userWithRoles) {
+      return false;
+    }
+
+    return userWithRoles.userRoles.some(
+      (userRole) => userRole.role.roleKey === SUPER_ROLE_KEY,
+    );
+  }
+
   async create(
     createRoleDto: CreateRoleDto,
     currentUserId?: string,
   ): Promise<RoleResponseDto> {
     const { name, roleKey, description, remark, sort, status, permissionIds } = createRoleDto;
     
-    // 检查是否尝试创建超级角色
-    if (roleKey === SUPER_ROLE_KEY) {
-      throw new ForbiddenException('不允许创建超级管理员角色');
-    }
+// 检查是否尝试创建超级角色
+if (roleKey === SUPER_ROLE_KEY) {
+  throw new ForbiddenException('不允许创建超级管理员角色');
+}
 
     const role = await this.prisma.role.create({
       data: {
@@ -71,10 +98,9 @@ export class RolesService extends BaseService {
         },
       },
     });
-    
-    return plainToInstance(RoleResponseDto, result, {
-      excludeExtraneousValues: true,
-    });
+return plainToInstance(RoleResponseDto, result, {
+  excludeExtraneousValues: true,
+});
   }
 
   async findAll(
@@ -249,10 +275,10 @@ export class RolesService extends BaseService {
       throw new NotFoundException(`角色ID ${roleId} 不存在`);
     }
     
-    // 检查是否为超级角色，如果是则不允许修改
-    if (role.roleKey === SUPER_ROLE_KEY) {
-      throw new ForbiddenException('超级管理员角色不允许修改');
-    }
+// 检查是否为超级角色，如果是则不允许修改
+if (role.roleKey === SUPER_ROLE_KEY) {
+  throw new ForbiddenException('超级管理员角色不允许修改');
+}
 
     // 更新角色基本信息
     await this.prisma.role.update({
@@ -301,9 +327,9 @@ export class RolesService extends BaseService {
       },
     });
     
-    return plainToInstance(RoleResponseDto, result, {
-      excludeExtraneousValues: true,
-    });
+return plainToInstance(RoleResponseDto, result, {
+  excludeExtraneousValues: true,
+});
   }
 
   async remove(roleId: string): Promise<void> {
@@ -338,10 +364,10 @@ export class RolesService extends BaseService {
       throw new NotFoundException(`角色ID ${roleId} 不存在`);
     }
     
-    // 检查是否为超级角色，如果是则不允许修改权限
-    if (role.roleKey === SUPER_ROLE_KEY) {
-      throw new ForbiddenException('超级管理员角色不允许修改权限');
-    }
+// 检查是否为超级角色，如果是则不允许修改权限
+if (role.roleKey === SUPER_ROLE_KEY) {
+  throw new ForbiddenException('超级管理员角色不允许修改权限');
+}
 
     // 删除现有的角色权限关联
     await this.prisma.rolePermission.deleteMany({
@@ -373,9 +399,9 @@ export class RolesService extends BaseService {
       },
     });
     
-    return plainToInstance(RoleResponseDto, result, {
-      excludeExtraneousValues: true,
-    });
+return plainToInstance(RoleResponseDto, result, {
+  excludeExtraneousValues: true,
+});
   }
 
   // 移除角色的权限
@@ -421,15 +447,16 @@ export class RolesService extends BaseService {
       },
     });
     
-    return plainToInstance(RoleResponseDto, result, {
-      excludeExtraneousValues: true,
-    });
+return plainToInstance(RoleResponseDto, result, {
+  excludeExtraneousValues: true,
+});
   }
 
   // 为角色分配用户
   async assignUsers(
     roleId: string,
     userIds: string[],
+    currentUserId?: string,
   ): Promise<RoleResponseDto> {
     const role = await this.prisma.role.findUnique({
       where: { roleId },
@@ -439,9 +466,40 @@ export class RolesService extends BaseService {
       throw new NotFoundException(`角色ID ${roleId} 不存在`);
     }
     
-    // 检查是否为超级角色，如果是则不允许修改用户
+    // 检查是否为超级角色，如果是则需要验证当前用户权限
     if (role.roleKey === SUPER_ROLE_KEY) {
-      throw new ForbiddenException('超级管理员角色不允许修改用户');
+      if (!currentUserId) {
+        throw new ForbiddenException('操作超级管理员角色需要提供当前用户信息');
+      }
+      // 只有超级管理员才能操作超级管理员角色
+      const isCurrentUserSuperAdmin = await this.isSuperAdmin(currentUserId);
+      if (!isCurrentUserSuperAdmin) {
+        throw new ForbiddenException('只有超级管理员才能操作超级管理员角色');
+      }
+      
+      // 获取当前超级角色的所有用户
+      const currentSuperUsers = await this.prisma.userRole.findMany({
+        where: { roleId },
+        include: {
+          user: true,
+        },
+      });
+      
+      // 检查是否试图移除超级管理员用户
+      const superAdminUsers = currentSuperUsers.filter(
+        (userRole) => userRole.user.username === SUPER_USER_KEY,
+      );
+      
+      if (superAdminUsers.length > 0) {
+        const superAdminUserIds = superAdminUsers.map((userRole) => userRole.userId);
+        const isRemovingSuperAdmin = superAdminUserIds.some(
+          (superUserId) => !userIds.includes(superUserId),
+        );
+        
+        if (isRemovingSuperAdmin) {
+          throw new ForbiddenException('不允许将超级管理员用户从超级管理员角色中移除');
+        }
+      }
     }
 
     // 验证用户是否存在
@@ -499,15 +557,16 @@ export class RolesService extends BaseService {
       },
     });
 
-    return plainToInstance(RoleResponseDto, updatedRole, {
-      excludeExtraneousValues: true,
-    });
+return plainToInstance(RoleResponseDto, updatedRole, {
+  excludeExtraneousValues: true,
+});
   }
 
   // 移除角色的用户
   async removeUsers(
     roleId: string,
     userIds: string[],
+    currentUserId?: string,
   ): Promise<RoleResponseDto> {
     const role = await this.prisma.role.findUnique({
       where: { roleId },
@@ -517,9 +576,16 @@ export class RolesService extends BaseService {
       throw new NotFoundException(`角色ID ${roleId} 不存在`);
     }
     
-    // 检查是否为超级角色，如果是则不允许移除用户
+    // 检查是否为超级角色，如果是则需要验证当前用户权限
     if (role.roleKey === SUPER_ROLE_KEY) {
-      throw new ForbiddenException('超级管理员角色不允许移除用户');
+      if (!currentUserId) {
+        throw new ForbiddenException('操作超级管理员角色需要提供当前用户信息');
+      }
+      // 只有超级管理员才能操作超级管理员角色
+      const isCurrentUserSuperAdmin = await this.isSuperAdmin(currentUserId);
+      if (!isCurrentUserSuperAdmin) {
+        throw new ForbiddenException('只有超级管理员才能操作超级管理员角色');
+      }
     }
 
     await this.prisma.userRole.deleteMany({
@@ -558,9 +624,9 @@ export class RolesService extends BaseService {
       },
     });
 
-    return plainToInstance(RoleResponseDto, updatedRole, {
-      excludeExtraneousValues: true,
-    });
+return plainToInstance(RoleResponseDto, updatedRole, {
+  excludeExtraneousValues: true,
+});
   }
 
   // 为角色分配数据权限
@@ -574,10 +640,10 @@ export class RolesService extends BaseService {
       where: { roleId },
     });
     
-    // 检查是否为超级角色，如果是则不允许修改数据权限
-    if (role?.roleKey === SUPER_ROLE_KEY) {
-      throw new ForbiddenException('超级管理员角色不允许修改数据权限');
-    }
+// 检查是否为超级角色，如果是则不允许修改数据权限
+if (role?.roleKey === SUPER_ROLE_KEY) {
+  throw new ForbiddenException('超级管理员角色不允许修改数据权限');
+}
 
     if (!role) {
       throw new NotFoundException(`角色ID ${roleId} 不存在`);

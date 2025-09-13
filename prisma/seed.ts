@@ -27,17 +27,17 @@ async function main() {
   const { managerPosition, hrPosition } = await seedPositions(prisma);
 
   // 5. 创建角色
-  const { adminRole, userRole } = await seedRoles(prisma);
+  const { superRole, adminRole, userRole } = await seedRoles(prisma);
 
   // 6. 创建角色权限关联
   await seedRolePermissions(prisma);
 
   // 7. 创建用户
-  const { adminUser } = await seedUsers(
+  const { superUser, adminUser } = await seedUsers(
     prisma,
     { itDepartment, hrDepartment },
     { managerPosition, hrPosition },
-    { adminRole, userRole },
+    { superRole, adminRole, userRole },
   );
 
   // 8. 创建字典数据
@@ -47,6 +47,12 @@ async function main() {
   await seedConfigs();
 
   console.log('数据库初始化完成！');
+  console.log('超级管理员账户信息:');
+  console.log(`  邮箱: ${superUser.email}`);
+  console.log(`  用户名: ${superUser.username}`);
+  console.log(`  手机号: ${superUser.phone}`);
+  console.log(`  密码: super123`);
+
   console.log('管理员账户信息:');
   console.log(`  邮箱: ${adminUser.email}`);
   console.log(`  用户名: ${adminUser.username}`);

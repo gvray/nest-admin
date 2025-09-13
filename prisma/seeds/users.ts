@@ -1,28 +1,60 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Department, Position, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { Gender } from '../../src/shared/constants/gender.constant';
+import { SUPER_ROLE_KEY } from '../../src/shared/constants/role.constant';
 
 export async function seedUsers(
   prisma: PrismaClient,
-  departments: { itDepartment: any; hrDepartment: any },
-  positions: { managerPosition: any; hrPosition: any },
-  roles: { adminRole: any; userRole: any }
+  departments: { itDepartment: Department; hrDepartment: Department },
+  positions: { managerPosition: Position; hrPosition: Position },
+  roles: { superRole: Role; adminRole: Role; userRole: Role },
 ) {
   console.log('开始创建用户...');
-  
+
+  // 创建超级管理员用户（不可删除和禁用）
+  console.log('创建超级管理员用户...');
+  const hashedSuperPassword = await bcrypt.hash('super123', 10);
+  const superUser = await prisma.user.upsert({
+    where: { email: 'super@example.com' },
+    update: {
+      phone: '13900139000',
+      status: 1, // 确保启用状态
+    },
+    create: {
+      email: 'super@example.com',
+      username: SUPER_ROLE_KEY,
+      nickname: '超级管理员',
+      phone: '13900139000',
+      password: hashedSuperPassword,
+      gender: Gender.OTHER, // 3-未知
+      status: 1, // 确保启用状态
+      remark: '系统超级管理员，不可删除和禁用',
+    },
+  });
+
+  // 创建用户角色关联
+  await prisma.userRole.upsert({
+    where: {
+      userId_roleId: {
+        userId: superUser.userId,
+        roleId: roles.superRole.roleId,
+      },
+    },
+    update: {},
+    create: {
+      userId: superUser.userId,
+      roleId: roles.superRole.roleId,
+    },
+  });
+  console.log(`超级管理员用户创建成功: ${superUser.username}`);
+
   // 创建管理员用户
   console.log('创建管理员用户...');
   const hashedAdminPassword = await bcrypt.hash('admin123', 10);
   const adminUser = await prisma.user.upsert({
     where: { email: 'admin@example.com' },
     update: {
-      roles: {
-        connect: [{ roleId: roles.adminRole.roleId }],
-      },
       departmentId: departments.itDepartment.departmentId,
-      positions: {
-        connect: [{ positionId: positions.managerPosition.positionId }],
-      },
       phone: '13800138000',
     },
     create: {
@@ -32,25 +64,38 @@ export async function seedUsers(
       phone: '13800138000',
       password: hashedAdminPassword,
       gender: Gender.MALE, // 1-男
-      status: 1, // 启用状态
+      status: 1 as const, // 启用状态
       departmentId: departments.itDepartment.departmentId,
-      positions: {
-        connect: [{ positionId: positions.managerPosition.positionId }],
-      },
-      roles: {
-        connect: [{ roleId: roles.adminRole.roleId }],
+    },
+  });
+
+  // 创建用户角色关联
+  await prisma.userRole.upsert({
+    where: {
+      userId_roleId: {
+        userId: adminUser.userId,
+        roleId: roles.adminRole.roleId,
       },
     },
-    include: {
-      roles: {
-        include: {
-          rolePermissions: {
-            include: {
-              permission: true,
-            },
-          },
-        },
+    update: {},
+    create: {
+      userId: adminUser.userId,
+      roleId: roles.adminRole.roleId,
+    },
+  });
+
+  // 创建用户岗位关联
+  await prisma.userPosition.upsert({
+    where: {
+      userId_positionId: {
+        userId: adminUser.userId,
+        positionId: positions.managerPosition.positionId,
       },
+    },
+    update: {},
+    create: {
+      userId: adminUser.userId,
+      positionId: positions.managerPosition.positionId,
     },
   });
 
@@ -206,10 +251,12 @@ export async function seedUsers(
     // 批量创建测试用户
     for (let i = 0; i < testUsers.length; i++) {
       const userData = testUsers[i];
-      const departmentToUse = i % 2 === 0 ? departments.itDepartment : departments.hrDepartment; // 交替分配部门
-      const positionToUse = i % 2 === 0 ? positions.managerPosition : positions.hrPosition; // 交替分配岗位
+      const departmentToUse =
+        i % 2 === 0 ? departments.itDepartment : departments.hrDepartment; // 交替分配部门
+      const positionToUse =
+        i % 2 === 0 ? positions.managerPosition : positions.hrPosition; // 交替分配岗位
 
-      await prisma.user.upsert({
+      const user = await prisma.user.upsert({
         where: { email: userData.email },
         update: {},
         create: {
@@ -220,14 +267,38 @@ export async function seedUsers(
           password: hashedPassword,
           avatar: '',
           remark: `测试用户 - ${userData.nickname}`,
-          status: 1,
+          status: 1 as const,
           departmentId: departmentToUse.departmentId,
-          positions: {
-            connect: [{ positionId: positionToUse.positionId }],
+        },
+      });
+
+      // 创建用户角色关联
+      await prisma.userRole.upsert({
+        where: {
+          userId_roleId: {
+            userId: user.userId,
+            roleId: roles.userRole.roleId,
           },
-          roles: {
-            connect: [{ roleId: roles.userRole.roleId }],
+        },
+        update: {},
+        create: {
+          userId: user.userId,
+          roleId: roles.userRole.roleId,
+        },
+      });
+
+      // 创建用户岗位关联
+      await prisma.userPosition.upsert({
+        where: {
+          userId_positionId: {
+            userId: user.userId,
+            positionId: positionToUse.positionId,
           },
+        },
+        update: {},
+        create: {
+          userId: user.userId,
+          positionId: positionToUse.positionId,
         },
       });
     }
@@ -240,6 +311,8 @@ export async function seedUsers(
   }
 
   console.log('用户创建完成');
-  
-  return { adminUser };
-} 
+
+  return { superUser, adminUser };
+}
+
+

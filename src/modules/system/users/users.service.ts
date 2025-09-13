@@ -1,6 +1,7 @@
 import {
   Injectable,
   NotFoundException,
+  ForbiddenException,
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
@@ -17,6 +18,11 @@ import {
   PaginationResponse,
 } from '@/shared/interfaces/response.interface';
 import { UserStatus } from '@/shared/constants/user-status.constant';
+
+import {
+  SUPER_ROLE_KEY,
+  SUPER_USER_KEY,
+} from '@/shared/constants/role.constant';
 import { plainToInstance } from 'class-transformer';
 
 @Injectable()
@@ -25,10 +31,91 @@ export class UsersService extends BaseService {
     super(prisma);
   }
 
+  /**
+   * 检查用户是否为超级管理员
+   * @param userId 用户ID
+   * @returns 是否为超级管理员
+   */
+  private async isSuperAdmin(userId: string): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { userId },
+      select: {
+        userRoles: {
+          select: {
+            role: {
+              select: {
+                roleKey: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      return false;
+    }
+
+    return user.userRoles.some((ur) => ur.role.roleKey === SUPER_ROLE_KEY);
+  }
+
+  /**
+   * 检查用户名是否为超级管理员用户名
+   * @param username 用户名
+   * @returns 是否为超级管理员用户名
+   */
+  private isSuperAdminUsername(username: string): boolean {
+    return username === SUPER_USER_KEY;
+  }
+
+  /**
+   * 检查角色ID列表中是否包含超级管理员角色
+   * @param roleIds 角色ID列表
+   * @returns 是否包含超级管理员角色
+   */
+  private async containsSuperAdminRole(roleIds: string[]): Promise<boolean> {
+    if (!roleIds || roleIds.length === 0) {
+      return false;
+    }
+
+    const roles = await this.prisma.role.findMany({
+      where: { roleId: { in: roleIds } },
+      select: { roleKey: true },
+    });
+
+    return roles.some((role) => role.roleKey === SUPER_ROLE_KEY);
+  }
+
   async create(
     createUserDto: CreateUserDto,
   ): Promise<ApiResponse<UserResponseDto>> {
-    const { password, departmentId, positionIds, roleIds, ...rest } = createUserDto;
+    const { password, departmentId, positionIds, ...rest } = createUserDto;
+
+    // 检查邮箱是否已存在（如果提供了邮箱）
+    if (rest.email) {
+      const existingUser = await this.prisma.user.findUnique({
+        where: { email: rest.email },
+      });
+      if (existingUser) {
+        throw new ConflictException('邮箱已被注册');
+      }
+    }
+
+    // 检查用户名是否已存在
+    if (rest.username) {
+      const existingUser = await this.prisma.user.findUnique({
+        where: { username: rest.username },
+      });
+      if (existingUser) {
+        throw new ConflictException('用户名已被注册');
+      }
+    }
+
+    // 禁止创建超级管理员账号
+    if (this.isSuperAdminUsername(rest.username)) {
+      throw new ForbiddenException('不允许创建超级管理员账号');
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // 验证部门是否存在
@@ -51,31 +138,39 @@ export class UsersService extends BaseService {
       }
     }
 
-    // 验证角色是否存在
-    if (roleIds && roleIds.length > 0) {
-      const roles = await this.prisma.role.findMany({
-        where: { roleId: { in: roleIds } },
-      });
-      if (roles.length !== roleIds.length) {
-        throw new NotFoundException('部分角色不存在');
-      }
-    }
-
     const user = await this.prisma.user.create({
       data: {
         ...rest,
         password: hashedPassword,
         department: departmentId ? { connect: { departmentId } } : undefined,
-        positions: positionIds && positionIds.length > 0 ? { connect: positionIds.map(id => ({ positionId: id })) } : undefined,
-        roles: roleIds && roleIds.length > 0 ? { connect: roleIds.map(id => ({ roleId: id })) } : undefined,
+        // 岗位关联将在创建用户后单独处理
+        // 角色关联将在创建用户后单独处理
         status: rest.status ?? UserStatus.ENABLED,
       },
       include: {
-        roles: true,
+        userRoles: {
+          include: {
+            role: true,
+          },
+        },
         department: true,
-        positions: true,
+        userPositions: {
+          include: {
+            position: true,
+          },
+        },
       },
     });
+
+    // 创建用户岗位关联
+    if (positionIds && positionIds.length > 0) {
+      await this.prisma.userPosition.createMany({
+        data: positionIds.map((positionId) => ({
+          userId: user.userId,
+          positionId: positionId,
+        })),
+      });
+    }
 
     // 移除密码字段
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -146,10 +241,14 @@ export class UsersService extends BaseService {
           name: true,
         },
       },
-      positions: {
+      userPositions: {
         select: {
-          positionId: true,
-          name: true,
+          position: {
+            select: {
+              positionId: true,
+              name: true,
+            },
+          },
         },
       },
     };
@@ -157,7 +256,7 @@ export class UsersService extends BaseService {
     // 使用 PaginationDto 的方法来判断是否需要分页
     const skip = query?.getSkip();
     const take = query?.getTake();
-    
+
     if (skip !== undefined && take !== undefined && query) {
       const result = (await this.paginateWithSortAndResponse(
         this.prisma.user,
@@ -221,10 +320,14 @@ export class UsersService extends BaseService {
             name: true,
           },
         },
-        positions: {
+        userPositions: {
           select: {
-            positionId: true,
-            name: true,
+            position: {
+              select: {
+                positionId: true,
+                name: true,
+              },
+            },
           },
         },
       },
@@ -269,10 +372,14 @@ export class UsersService extends BaseService {
             name: true,
           },
         },
-        positions: {
+        userPositions: {
           select: {
-            positionId: true,
-            name: true,
+            position: {
+              select: {
+                positionId: true,
+                name: true,
+              },
+            },
           },
         },
       },
@@ -292,7 +399,7 @@ export class UsersService extends BaseService {
     userId: string,
     updateUserDto: UpdateUserDto,
   ): Promise<UserResponseDto> {
-    const { departmentId, positionIds, roleIds, ...rest } = updateUserDto;
+    const { departmentId, positionIds, ...rest } = updateUserDto;
 
     const user = await this.prisma.user.findUnique({
       where: { userId },
@@ -300,6 +407,11 @@ export class UsersService extends BaseService {
 
     if (!user) {
       throw new NotFoundException(`用户ID ${userId} 不存在`);
+    }
+
+    // 禁止修改超级管理员账号
+    if (await this.isSuperAdmin(userId)) {
+      throw new ForbiddenException('不允许修改超级管理员账号');
     }
 
     // 验证部门是否存在
@@ -322,30 +434,14 @@ export class UsersService extends BaseService {
       }
     }
 
-    // 验证角色是否存在
-    if (roleIds && roleIds.length > 0) {
-      const roles = await this.prisma.role.findMany({
-        where: { roleId: { in: roleIds } },
-      });
-      if (roles.length !== roleIds.length) {
-        throw new NotFoundException('部分角色不存在');
-      }
-    }
-
     // 先删除现有的关联关系
     if (positionIds !== undefined) {
       await this.prisma.userPosition.deleteMany({
         where: { userId: user.userId },
       });
     }
-    
-    if (roleIds !== undefined) {
-      await this.prisma.userRole.deleteMany({
-        where: { userId: user.userId },
-      });
-    }
 
-    const updatedUser = await this.prisma.user.update({
+    await this.prisma.user.update({
       where: { userId: user.userId },
       data: {
         ...rest,
@@ -356,19 +452,9 @@ export class UsersService extends BaseService {
     // 创建新的岗位关联
     if (positionIds && positionIds.length > 0) {
       await this.prisma.userPosition.createMany({
-        data: positionIds.map(positionId => ({
+        data: positionIds.map((positionId) => ({
           userId: user.userId,
           positionId,
-        })),
-      });
-    }
-
-    // 创建新的角色关联
-    if (roleIds && roleIds.length > 0) {
-      await this.prisma.userRole.createMany({
-        data: roleIds.map(roleId => ({
-          userId: user.userId,
-          roleId,
         })),
       });
     }
@@ -430,6 +516,11 @@ export class UsersService extends BaseService {
       throw new NotFoundException(`用户ID ${userId} 不存在`);
     }
 
+    // 禁止删除超级管理员账号
+    if (await this.isSuperAdmin(userId)) {
+      throw new ForbiddenException('不允许删除超级管理员账号');
+    }
+
     return this.prisma.user.delete({
       where: { userId: user.userId },
     });
@@ -439,6 +530,7 @@ export class UsersService extends BaseService {
   async assignRoles(
     userId: string,
     roleIds: string[],
+    currentUserId: string,
   ): Promise<UserResponseDto> {
     const user = await this.prisma.user.findUnique({
       where: { userId },
@@ -446,6 +538,29 @@ export class UsersService extends BaseService {
 
     if (!user) {
       throw new NotFoundException(`用户ID ${userId} 不存在`);
+    }
+
+    // 检查是否要修改超级管理员的角色
+    if (await this.isSuperAdmin(userId)) {
+      // 只有超级管理员才能修改超级管理员的角色
+      const isCurrentUserSuperAdmin = await this.isSuperAdmin(currentUserId);
+      if (!isCurrentUserSuperAdmin) {
+        throw new ForbiddenException('只有超级管理员才能修改超级管理员的角色');
+      }
+      // 检查是否试图修改超级管理员用户的角色
+      if (this.isSuperAdminUsername(user.username)) {
+        throw new ForbiddenException('不允许修改超级管理员用户的角色分配');
+      }
+    }
+
+    // 检查是否要分配超级管理员角色
+    const containsSuperRole = await this.containsSuperAdminRole(roleIds);
+    if (containsSuperRole) {
+      // 只有超级管理员才能分配超级管理员角色
+      const isCurrentUserSuperAdmin = await this.isSuperAdmin(currentUserId);
+      if (!isCurrentUserSuperAdmin) {
+        throw new ForbiddenException('只有超级管理员才能分配超级管理员角色');
+      }
     }
 
     // 先删除现有的角色关联
@@ -456,7 +571,7 @@ export class UsersService extends BaseService {
     // 创建新的角色关联
     if (roleIds && roleIds.length > 0) {
       await this.prisma.userRole.createMany({
-        data: roleIds.map(roleId => ({
+        data: roleIds.map((roleId) => ({
           userId: user.userId,
           roleId,
         })),

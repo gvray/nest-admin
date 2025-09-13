@@ -145,5 +145,9 @@ export class UserResponseDto {
   })
   @Expose()
   @Type(() => PositionResponseDto)
+  @Transform(({ obj }) => {
+    // 从userPositions中提取positions
+    return obj.userPositions?.map((up: any) => up.position) || [];
+  })
   positions?: PositionResponseDto[];
 }

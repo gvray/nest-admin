@@ -10,6 +10,7 @@ import { plainToInstance } from 'class-transformer';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UserStatus } from '../../shared/constants/user-status.constant';
+import { SUPER_ROLE_KEY } from '../../shared/constants/role.constant';
 
 @Injectable()
 export class AuthService {
@@ -48,9 +49,17 @@ export class AuthService {
         status: UserStatus.ENABLED,
       },
       include: {
-        roles: true,
+        userRoles: {
+          include: {
+            role: true,
+          },
+        },
         department: true,
-        positions: true,
+        userPositions: {
+          include: {
+            position: true,
+          },
+        },
       },
     });
 
@@ -79,19 +88,33 @@ export class AuthService {
       // 直接从数据库查询用户，包含密码字段
       const user = await this.prisma.user.findFirst({
         where: {
-          OR: [{ email: account }, { username: account }, { phone: account }, { userId: account }],
+          OR: [
+            { email: account },
+            { username: account },
+            { phone: account },
+            { userId: account },
+          ],
         },
       });
-      
+
       console.log('Query result:', user);
 
-      console.log('Found user:', user ? { userId: user.userId, username: user.username, status: user.status } : 'null');
-      
+      console.log(
+        'Found user:',
+        user
+          ? {
+              userId: user.userId,
+              username: user.username,
+              status: user.status,
+            }
+          : 'null',
+      );
+
       if (user) {
         console.log('User password hash:', user.password);
         const passwordMatch = await bcrypt.compare(password, user.password);
         console.log('Password match:', passwordMatch);
-        
+
         if (passwordMatch) {
           console.log('Password validation successful');
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -143,21 +166,26 @@ export class AuthService {
         createdAt: true,
         updatedAt: true,
         avatar: true,
-        roles: {
+        userRoles: {
           select: {
-            roleId: true,
-            name: true,
-            description: true,
-            rolePermissions: {
+            role: {
               select: {
-                permission: {
+                roleId: true,
+                name: true,
+                roleKey: true,
+                description: true,
+                rolePermissions: {
                   select: {
-                    permissionId: true,
-                    name: true,
-                    code: true,
-                    action: true,
-                    resourceId: true,
-                    description: true,
+                    permission: {
+                      select: {
+                        permissionId: true,
+                        name: true,
+                        code: true,
+                        action: true,
+                        resourceId: true,
+                        description: true,
+                      },
+                    },
                   },
                 },
               },
@@ -171,11 +199,15 @@ export class AuthService {
             description: true,
           },
         },
-        positions: {
+        userPositions: {
           select: {
-            positionId: true,
-            name: true,
-            description: true,
+            position: {
+              select: {
+                positionId: true,
+                name: true,
+                description: true,
+              },
+            },
           },
         },
       },
@@ -188,6 +220,33 @@ export class AuthService {
     const userResponse = plainToInstance(CurrentUserResponseDto, user, {
       excludeExtraneousValues: true,
     });
+
+    // 计算是否为超级管理员（约定：仅当存在 roleKey === 'super_admin' 的角色时为超管）
+    const isSuperAdmin =
+      Array.isArray(user.userRoles) &&
+      user.userRoles.some((ur) => ur.role?.roleKey === SUPER_ROLE_KEY);
+
+    // 将 isSuperAdmin 合并到响应对象
+    Object.assign(userResponse, { isSuperAdmin });
+
+    // 计算前端使用的权限代码聚合：超管 -> ['*:*:*']；非超管 -> 角色权限并集
+    const permissionCodes: string[] = isSuperAdmin
+      ? ['*:*:*']
+      : Array.isArray(user.userRoles)
+        ? Array.from(
+            new Set(
+              user.userRoles
+                .flatMap((ur) => ur.role?.rolePermissions || [])
+                .map((rp) => rp?.permission?.code)
+                .filter(
+                  (c): c is string =>
+                    typeof c === 'string' && c.length > 0,
+                ),
+            ),
+          )
+        : [];
+
+    Object.assign(userResponse, { permissionCodes });
 
     return ResponseUtil.success(userResponse, '获取用户信息成功');
   }
