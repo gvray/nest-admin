@@ -43,7 +43,7 @@ export class PositionsService extends BaseService {
       if (existingPosition.code === createPositionDto.code) {
         throw new ConflictException('岗位编码已存在');
       }
-    }})
+    }
 
     const position = await this.prisma.position.create({
       data: {
@@ -126,66 +126,36 @@ export class PositionsService extends BaseService {
             ...result.data,
             items: transformedItems,
           },
-        } as PaginationResponse<PositionResponseDto>;
+        };
       }
-      return result as PaginationResponse<PositionResponseDto>;
+
+      return result;
     }
 
-    // 返回全量数据
+    // 不分页查询
     const positions = await this.prisma.position.findMany({
       where,
-      include: {
-        userPositions: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                userId: true,
-                username: true,
-                nickname: true,
-                email: true,
-              },
-            },
-          },
-        },
-      },
+      include,
       orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
     });
 
-    const positionResponses = plainToInstance(PositionResponseDto, positions, {
-      excludeExtraneousValues: true,
-    });
+    const positionResponses = plainToInstance(
+      PositionResponseDto,
+      positions,
+      {
+        excludeExtraneousValues: true,
+      },
+    );
     return ResponseUtil.found(positionResponses, '岗位列表查询成功');
   }
 
   async findOne(id: string): Promise<PositionResponseDto> {
-    // 判断是数字ID还是UUID
-    const isNumericId = !isNaN(Number(id));
-    const whereClause = isNumericId 
-      ? { id: Number(id) } 
-      : { positionId: id };
-
-    const position = await this.prisma.position.findUnique({
-      where: whereClause,
-      include: {
-        userPositions: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                userId: true,
-                username: true,
-                nickname: true,
-                email: true,
-              },
-            },
-          },
-        },
-      },
+    const position = await this.prisma.position.findFirst({
+      where: isNaN(Number(id)) ? { positionId: id } : { id: Number(id) },
     });
 
     if (!position) {
-      throw new NotFoundException('岗位不存在');
+      throw new NotFoundException(`岗位ID ${id} 不存在`);
     }
 
     return plainToInstance(PositionResponseDto, position, {
@@ -198,34 +168,37 @@ export class PositionsService extends BaseService {
     updatePositionDto: UpdatePositionDto,
     currentUserId?: string,
   ): Promise<PositionResponseDto> {
-    // 判断是数字ID还是UUID
-    const isNumericId = !isNaN(Number(id));
-    const whereClause = isNumericId 
-      ? { id: Number(id) } 
-      : { positionId: id };
-
     // 检查岗位是否存在
-    const existingPosition = await this.prisma.position.findUnique({
-      where: whereClause,
+    const existingPosition = await this.prisma.position.findFirst({
+      where: isNaN(Number(id)) ? { positionId: id } : { id: Number(id) },
     });
 
     if (!existingPosition) {
-      throw new NotFoundException('岗位不存在');
+      throw new NotFoundException(`岗位ID ${id} 不存在`);
     }
 
-    // 检查名称和编码是否与其他岗位冲突
+    // 检查名称和编码是否已被其他岗位使用
     if (updatePositionDto.name || updatePositionDto.code) {
       const conflictPosition = await this.prisma.position.findFirst({
         where: {
-          OR: [
-            ...(updatePositionDto.name
-              ? [{ name: updatePositionDto.name }]
-              : []),
-            ...(updatePositionDto.code
-              ? [{ code: updatePositionDto.code }]
-              : []),
+          AND: [
+            {
+              OR: [
+                { positionId: { not: existingPosition.positionId } },
+                { id: { not: existingPosition.id } },
+              ],
+            },
+            {
+              OR: [
+                updatePositionDto.name
+                  ? { name: updatePositionDto.name }
+                  : {},
+                updatePositionDto.code
+                  ? { code: updatePositionDto.code }
+                  : {},
+              ].filter((condition) => Object.keys(condition).length > 0),
+            },
           ],
-          NOT: { id: existingPosition.id },
         },
       });
 
@@ -243,7 +216,7 @@ export class PositionsService extends BaseService {
           throw new ConflictException('岗位编码已存在');
         }
       }
-    }})
+    }
 
     const position = await this.prisma.position.update({
       where: { id: existingPosition.id },
@@ -259,31 +232,16 @@ export class PositionsService extends BaseService {
   }
 
   async remove(id: string): Promise<void> {
-    // 判断是数字ID还是UUID
-    const isNumericId = !isNaN(Number(id));
-    const whereClause = isNumericId 
-      ? { id: Number(id) } 
-      : { positionId: id };
-
-    // 检查岗位是否存在
-    const position = await this.prisma.position.findUnique({
-      where: whereClause,
-      include: {
-        userPositions: true,
-      },
+    const existingPosition = await this.prisma.position.findFirst({
+      where: isNaN(Number(id)) ? { positionId: id } : { id: Number(id) },
     });
 
-    if (!position) {
-      throw new NotFoundException('岗位不存在');
-    }
-
-    // 检查是否有用户关联
-    if (position.userPositions && position.userPositions.length > 0) {
-      throw new ConflictException('该岗位下还有用户，无法删除');
+    if (!existingPosition) {
+      throw new NotFoundException(`岗位ID ${id} 不存在`);
     }
 
     await this.prisma.position.delete({
-      where: { id: position.id },
+      where: { id: existingPosition.id },
     });
   }
 }
