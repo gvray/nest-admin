@@ -11,7 +11,10 @@ import { QueryPositionDto } from './dto/query-position.dto';
 import { PositionResponseDto } from './dto/position-response.dto';
 import { BaseService } from '@/shared/services/base.service';
 import { ResponseUtil } from '@/shared/utils/response.util';
-import { ApiResponse, PaginationResponse } from '@/shared/interfaces/response.interface';
+import {
+  ApiResponse,
+  PaginationResponse,
+} from '@/shared/interfaces/response.interface';
 
 @Injectable()
 export class PositionsService extends BaseService {
@@ -40,9 +43,7 @@ export class PositionsService extends BaseService {
       if (existingPosition.code === createPositionDto.code) {
         throw new ConflictException('岗位编码已存在');
       }
-    }
-
-
+    }})
 
     const position = await this.prisma.position.create({
       data: {
@@ -58,7 +59,9 @@ export class PositionsService extends BaseService {
 
   async findAll(
     query: QueryPositionDto,
-  ): Promise<PaginationResponse<PositionResponseDto> | ApiResponse<PositionResponseDto[]>> {
+  ): Promise<
+    PaginationResponse<PositionResponseDto> | ApiResponse<PositionResponseDto[]>
+  > {
     const { name, code, status } = query;
 
     const where: Record<string, unknown> = {};
@@ -76,13 +79,16 @@ export class PositionsService extends BaseService {
     }
 
     const include = {
-      users: {
+      userPositions: {
         select: {
-          id: true,
-          userId: true,
-          username: true,
-          nickname: true,
-          email: true,
+          user: {
+            select: {
+              userId: true,
+              username: true,
+              nickname: true,
+              email: true,
+            },
+          },
         },
       },
     };
@@ -237,9 +243,7 @@ export class PositionsService extends BaseService {
           throw new ConflictException('岗位编码已存在');
         }
       }
-    }
-
-
+    }})
 
     const position = await this.prisma.position.update({
       where: { id: existingPosition.id },
@@ -282,6 +286,4 @@ export class PositionsService extends BaseService {
       where: { id: position.id },
     });
   }
-
-
 }
