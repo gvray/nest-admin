@@ -111,14 +111,50 @@ export async function seedResources(prisma: PrismaClient) {
       description: '配置管理菜单',
       parentCode: 'system',
     },
+    // 日志管理
+    {
+      type: 'DIRECTORY',
+      name: '日志管理',
+      code: 'log',
+      path: '/system/log',
+      icon: 'FileTextOutlined',
+      sort: 9,
+      status: 1,
+      description: '日志管理目录',
+      parentCode: 'system',
+    },
+    // 操作日志
+    {
+      type: 'MENU',
+      name: '操作日志',
+      code: 'operation-log',
+      path: '/system/log/operation',
+      icon: 'AuditOutlined',
+      sort: 1,
+      status: 1,
+      description: '操作日志菜单',
+      parentCode: 'log',
+    },
+    // 登录日志
+    {
+      type: 'MENU',
+      name: '登录日志',
+      code: 'login-log',
+      path: '/system/log/login',
+      icon: 'LoginOutlined',
+      sort: 2,
+      status: 1,
+      description: '登录日志菜单',
+      parentCode: 'log',
+    },
   ];
 
-  const createdResources = {};
+  const createdResources: Record<string, { resourceId: string }> = {};
 
   for (const resourceData of resources) {
     const { parentCode, ...data } = resourceData;
-    
-    let parentId = null;
+
+    let parentId: string | null = null;
     if (parentCode) {
       const parentResource = createdResources[parentCode];
       if (parentResource) {

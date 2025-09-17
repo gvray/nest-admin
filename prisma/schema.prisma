@@ -60,6 +60,7 @@ model User {
   updatedConfigs Config[] @relation("ConfigUpdatedBy")
   createdRoleDepartments RoleDepartment[] @relation("RoleDepartmentCreatedBy")
   updatedRoleDepartments RoleDepartment[] @relation("RoleDepartmentUpdatedBy")
+  loginLogs LoginLog[] // 用户登录日志
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -345,5 +346,28 @@ model Config {
   updatedAt DateTime @updatedAt
 
   @@map("configs")
+}
+
+model LoginLog {
+  id          Int      @id @default(autoincrement())
+  logId       String   @unique @default(uuid())
+  userId      String?  // 用户ID，登录失败时可能为空
+  user        User?    @relation(fields: [userId], references: [userId], onDelete: SetNull)
+  username    String   // 登录用户名/邮箱/手机号
+  ipAddress   String   // 登录IP地址
+  userAgent   String?  // 用户代理信息
+  loginTime   DateTime @default(now()) // 登录时间
+  status      Int      // 登录状态：1-成功, 0-失败
+  failReason  String?  // 失败原因
+  location    String?  // 登录地点（可选，基于IP解析）
+  device      String?  // 设备信息
+  browser     String?  // 浏览器信息
+  os          String?  // 操作系统信息
+  remark      String?  // 备注信息
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("login_logs")
 }
 

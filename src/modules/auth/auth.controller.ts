@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards, Req } from '@nestjs/common';
 import {
   ApiOperation,
   ApiResponse,
@@ -87,8 +87,8 @@ export class AuthController {
     },
   })
   @ApiResponse({ status: 401, description: '用户名/邮箱或密码错误' })
-  async login(@Body() loginDto: LoginDto): Promise<any> {
-    return this.authService.login(loginDto);
+  async login(@Body() loginDto: LoginDto, @Req() req: any): Promise<any> {
+    return this.authService.login(loginDto, req);
   }
 
   @Get('profile')

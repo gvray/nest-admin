@@ -7,6 +7,7 @@ import { DepartmentsModule } from './departments/departments.module';
 import { PositionsModule } from './positions/positions.module';
 import { DictionariesModule } from './dictionaries/dictionaries.module';
 import { ConfigsModule } from './configs/configs.module';
+import { LoginLogsModule } from './login-logs/login-logs.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { ConfigsModule } from './configs/configs.module';
     PositionsModule,
     DictionariesModule,
     ConfigsModule,
+    LoginLogsModule,
   ],
   exports: [
     UsersModule,
@@ -28,6 +30,7 @@ import { ConfigsModule } from './configs/configs.module';
     PositionsModule,
     DictionariesModule,
     ConfigsModule,
+    LoginLogsModule,
   ],
 })
-export class SystemModule {} 
+export class SystemModule {}
