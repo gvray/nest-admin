@@ -15,7 +15,6 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { LoginLogsService } from './login-logs.service';
-import { CreateLoginLogDto } from './dto/create-login-log.dto';
 import { QueryLoginLogDto } from './dto/query-login-log.dto';
 import { LoginLogResponseDto } from './dto/login-log-response.dto';
 import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
@@ -29,18 +28,6 @@ import { RequirePermissions } from '@/core/decorators/permissions.decorator';
 @ApiBearerAuth('JWT-auth')
 export class LoginLogsController {
   constructor(private readonly loginLogsService: LoginLogsService) {}
-
-  @Post()
-  @RequirePermissions('system:loginlog:create')
-  @ApiOperation({ summary: '创建登录日志' })
-  @ApiResponse({
-    status: 201,
-    description: '创建成功',
-    type: LoginLogResponseDto,
-  })
-  create(@Body() createLoginLogDto: CreateLoginLogDto) {
-    return this.loginLogsService.create(createLoginLogDto);
-  }
 
   @Get()
   @RequirePermissions('system:loginlog:view')

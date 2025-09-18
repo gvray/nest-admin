@@ -73,14 +73,14 @@ export abstract class BaseService {
    */
   protected async paginateWithResponse<T>(
     model: {
-      findMany: (args: {
+      findMany: (args?: {
         where?: Record<string, unknown>;
         include?: Record<string, unknown>;
         orderBy?: any;
         skip?: number;
         take?: number;
       }) => Promise<T[]>;
-      count: (args: { where?: Record<string, unknown> }) => Promise<number>;
+      count: (args?: { where?: Record<string, unknown> }) => Promise<number>;
     },
     pagination: PaginationDto,
     where?: Record<string, unknown>,

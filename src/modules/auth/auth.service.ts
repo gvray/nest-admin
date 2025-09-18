@@ -14,6 +14,13 @@ import { UserStatus } from '../../shared/constants/user-status.constant';
 import { SUPER_ROLE_KEY } from '../../shared/constants/role.constant';
 import { UAParser } from 'ua-parser-js';
 
+interface RequestWithHeaders {
+  headers?: Record<string, string | string[]>;
+  connection?: { remoteAddress?: string };
+  socket?: { remoteAddress?: string };
+  ip?: string;
+}
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -135,14 +142,15 @@ export class AuthService {
     return null;
   }
 
-  async login(loginDto: LoginDto, req?: any): Promise<ApiResponse<unknown>> {
+  async login(
+    loginDto: LoginDto,
+    req?: RequestWithHeaders,
+  ): Promise<ApiResponse<unknown>> {
     const ipAddress = this.getClientIp(req);
-    const userAgent: string =
-      (req?.headers?.['user-agent'] as string) || '';
+    const userAgent: string = (req?.headers?.['user-agent'] as string) || '';
 
     let loginStatus = 0; // 默认失败
     let failReason = '';
-    let userId: string | null = null;
 
     try {
       const user = await this.validateUser(loginDto.account, loginDto.password);
@@ -151,7 +159,6 @@ export class AuthService {
         throw new UnauthorizedException(failReason);
       }
 
-      userId = user.userId;
       loginStatus = 1; // 成功
 
       const payload = {
@@ -165,30 +172,26 @@ export class AuthService {
       };
 
       // 记录登录日志
-      await this.recordLoginLog(
-        {
-          userId: user.userId,
-          username: loginDto.account,
-          ipAddress,
-          userAgent,
-          status: loginStatus,
-          failReason: undefined,
-        },
-      );
+      await this.recordLoginLog({
+        account: loginDto.account,
+        ipAddress,
+        userAgent,
+        status: loginStatus,
+        loginType: 'username',
+      });
 
       return ResponseUtil.success(result, '登录成功');
     } catch (error: unknown) {
       // 记录失败的登录日志
-      await this.recordLoginLog(
-        {
-          userId,
-          username: loginDto.account,
-          ipAddress,
-          userAgent,
-          status: loginStatus,
-          failReason: failReason || (error instanceof Error ? error.message : '未知错误'),
-        },
-      );
+      await this.recordLoginLog({
+        account: loginDto.account,
+        ipAddress,
+        userAgent,
+        status: loginStatus,
+        loginType: 'username',
+        failReason:
+          failReason || (error instanceof Error ? error.message : '未知错误'),
+      });
 
       throw error;
     }
@@ -282,8 +285,7 @@ export class AuthService {
                 .flatMap((ur) => ur.role?.rolePermissions || [])
                 .map((rp) => rp?.permission?.code)
                 .filter(
-                  (c): c is string =>
-                    typeof c === 'string' && c.length > 0,
+                  (c): c is string => typeof c === 'string' && c.length > 0,
                 ),
             ),
           )
@@ -300,33 +302,34 @@ export class AuthService {
     return ResponseUtil.success(null, '退出登录成功');
   }
 
-  private getClientIp(req: any): string {
-    if (!req) return '';
-    const ip: string =
+  private getClientIp(req?: RequestWithHeaders): string {
+    const ip =
       (req?.headers?.['x-forwarded-for'] as string) ||
       (req?.headers?.['x-real-ip'] as string) ||
-      (req?.connection?.remoteAddress as string) ||
-      (req?.socket?.remoteAddress as string) ||
-      (req?.ip as string) ||
-      '';
-    return typeof ip === 'string' ? ip.split(',')[0].trim() : '';
+      (req?.headers?.['x-client-ip'] as string) ||
+      (req?.headers?.['x-cluster-client-ip'] as string) ||
+      req?.connection?.remoteAddress ||
+      req?.socket?.remoteAddress ||
+      req?.ip ||
+      '127.0.0.1';
+
+    // 将 IPv6 本地回环地址标准化为 IPv4
+    return ip === '::1' ? '127.0.0.1' : ip;
   }
 
-  private async recordLoginLog(
-    logData: {
-      userId: string | null;
-      username: string;
-      ipAddress: string;
-      userAgent: string;
-      status: number;
-      failReason: string | undefined;
-    },
-  ): Promise<void> {
+  private async recordLoginLog(logData: {
+    account: string;
+    ipAddress: string;
+    userAgent: string;
+    status: number;
+    loginType: string;
+    failReason?: string;
+  }): Promise<void> {
     try {
       // 解析用户代理信息
       const parser = new UAParser(logData.userAgent);
       const result = parser.getResult();
-      
+
       // 提取设备、浏览器、操作系统信息
       const device = result.device.model || result.device.type || 'Unknown';
       const browser = result.browser.name
@@ -336,16 +339,15 @@ export class AuthService {
         ? `${result.os.name} ${result.os.version || ''}`.trim()
         : 'Unknown';
 
-      // TODO: 可以集成IP地理位置解析服务来获取location
-      // 目前暂时设置为空，后续可以集成如GeoIP等服务
-      const location = undefined;
-      
+      // 获取IP地理位置信息
+      const location = await this.getLocationFromIP(logData.ipAddress);
+
       await this.loginLogsService.create({
-        userId: logData.userId || undefined,
-        username: logData.username,
+        account: logData.account,
         ipAddress: logData.ipAddress,
         userAgent: logData.userAgent,
         status: logData.status,
+        loginType: logData.loginType,
         failReason: logData.failReason,
         location,
         device,
@@ -355,6 +357,66 @@ export class AuthService {
     } catch (error) {
       // 记录日志失败不应该影响登录流程，只记录错误
       console.error('记录登录日志失败:', error);
+    }
+  }
+
+  /**
+   * 根据IP地址获取地理位置信息
+   * @param ipAddress IP地址
+   * @returns 地理位置字符串
+   */
+  private async getLocationFromIP(
+    ipAddress: string,
+  ): Promise<string | undefined> {
+    try {
+      // 跳过本地IP地址
+      if (
+        ipAddress === '127.0.0.1' ||
+        ipAddress === '::1' ||
+        ipAddress.startsWith('192.168.') ||
+        ipAddress.startsWith('10.') ||
+        ipAddress.startsWith('172.')
+      ) {
+        return '本地网络';
+      }
+
+      // 使用 ip-api.com 免费服务获取地理位置
+      const response = await fetch(
+        `http://ip-api.com/json/${ipAddress}?lang=zh-CN`,
+      );
+
+      if (!response.ok) {
+        console.warn(`IP地理位置查询失败: ${response.status}`);
+        return undefined;
+      }
+
+      const data = (await response.json()) as {
+        status: string;
+        country?: string;
+        regionName?: string;
+        city?: string;
+        message?: string;
+      };
+
+      if (data.status === 'success') {
+        // 构建地理位置字符串：国家-省份-城市
+        const locationParts: string[] = [];
+        if (data.country) locationParts.push(data.country);
+        if (data.regionName && data.regionName !== data.country) {
+          locationParts.push(data.regionName);
+        }
+        if (data.city && data.city !== data.regionName) {
+          locationParts.push(data.city);
+        }
+
+        return locationParts.length > 0 ? locationParts.join('-') : undefined;
+      } else {
+        console.warn(`IP地理位置查询失败: ${data.message}`);
+        return undefined;
+      }
+    } catch (error) {
+      console.warn('获取IP地理位置时发生错误:', error);
+      return undefined;
     }
   }
 }

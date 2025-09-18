@@ -1,15 +1,10 @@
-import { IsString, IsOptional, IsInt, IsDateString } from 'class-validator';
+import { IsString, IsOptional, IsInt } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateLoginLogDto {
-  @ApiPropertyOptional({ description: '用户ID' })
-  @IsOptional()
-  @IsString()
-  userId?: string;
-
   @ApiProperty({ description: '登录用户名/邮箱/手机号' })
   @IsString()
-  username: string;
+  account: string;
 
   @ApiProperty({ description: '登录IP地址' })
   @IsString()
@@ -20,21 +15,20 @@ export class CreateLoginLogDto {
   @IsString()
   userAgent?: string;
 
-  @ApiPropertyOptional({ description: '登录时间' })
-  @IsOptional()
-  @IsDateString()
-  loginTime?: string;
-
   @ApiProperty({ description: '登录状态：1-成功, 0-失败' })
   @IsInt()
   status: number;
+
+  @ApiProperty({ description: '登录类型', default: 'username' })
+  @IsString()
+  loginType: string;
 
   @ApiPropertyOptional({ description: '失败原因' })
   @IsOptional()
   @IsString()
   failReason?: string;
 
-  @ApiPropertyOptional({ description: '登录地点' })
+  @ApiPropertyOptional({ description: '登录地点（可选，基于IP解析）' })
   @IsOptional()
   @IsString()
   location?: string;
@@ -53,9 +47,4 @@ export class CreateLoginLogDto {
   @IsOptional()
   @IsString()
   os?: string;
-
-  @ApiPropertyOptional({ description: '备注信息' })
-  @IsOptional()
-  @IsString()
-  remark?: string;
 }

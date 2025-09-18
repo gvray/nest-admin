@@ -4,15 +4,10 @@ import { Type } from 'class-transformer';
 import { PaginationDto } from '@/shared/dtos/pagination.dto';
 
 export class QueryLoginLogDto extends PaginationDto {
-  @ApiPropertyOptional({ description: '用户ID' })
+  @ApiPropertyOptional({ description: '登录用户名/邮箱/手机号' })
   @IsOptional()
   @IsString()
-  userId?: string;
-
-  @ApiPropertyOptional({ description: '登录用户名' })
-  @IsOptional()
-  @IsString()
-  username?: string;
+  account?: string;
 
   @ApiPropertyOptional({ description: '登录IP地址' })
   @IsOptional()
@@ -25,15 +20,29 @@ export class QueryLoginLogDto extends PaginationDto {
   @IsInt()
   status?: number;
 
-  @ApiPropertyOptional({ description: '开始时间' })
+  @ApiPropertyOptional({
+    description: '日期范围（格式：YYYY-MM-DD_to_YYYY-MM-DD）',
+    example: '2025-01-20_to_2025-01-25',
+  })
   @IsOptional()
-  @IsDateString()
-  startTime?: string;
+  @IsString()
+  dateRange?: string;
 
-  @ApiPropertyOptional({ description: '结束时间' })
+  @ApiPropertyOptional({
+    description: '创建时间开始（ISO 8601格式）',
+    example: '2024-01-01T00:00:00.000Z',
+  })
   @IsOptional()
   @IsDateString()
-  endTime?: string;
+  createdAtStart?: string;
+
+  @ApiPropertyOptional({
+    description: '创建时间结束（ISO 8601格式）',
+    example: '2024-12-31T23:59:59.999Z',
+  })
+  @IsOptional()
+  @IsDateString()
+  createdAtEnd?: string;
 
   @ApiPropertyOptional({ description: '登录地点' })
   @IsOptional()
@@ -54,4 +63,9 @@ export class QueryLoginLogDto extends PaginationDto {
   @IsOptional()
   @IsString()
   os?: string;
+
+  @ApiPropertyOptional({ description: '登录类型' })
+  @IsOptional()
+  @IsString()
+  loginType?: string;
 }

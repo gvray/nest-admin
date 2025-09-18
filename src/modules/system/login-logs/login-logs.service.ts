@@ -21,22 +21,7 @@ export class LoginLogsService extends BaseService {
     createLoginLogDto: CreateLoginLogDto,
   ): Promise<LoginLogResponseDto> {
     const loginLog = await this.prisma.loginLog.create({
-      data: {
-        ...createLoginLogDto,
-        loginTime: createLoginLogDto.loginTime
-          ? new Date(createLoginLogDto.loginTime)
-          : new Date(),
-      },
-      include: {
-        user: {
-          select: {
-            userId: true,
-            username: true,
-            nickname: true,
-            email: true,
-          },
-        },
-      },
+      data: createLoginLogDto,
     });
 
     return plainToInstance(LoginLogResponseDto, loginLog, {
@@ -50,26 +35,23 @@ export class LoginLogsService extends BaseService {
     PaginationResponse<LoginLogResponseDto> | ApiResponse<LoginLogResponseDto[]>
   > {
     const {
-      userId,
-      username,
+      account,
       ipAddress,
       status,
-      startTime,
-      endTime,
+      dateRange,
+      createdAtStart,
+      createdAtEnd,
       location,
       device,
       browser,
       os,
+      loginType,
     } = query;
 
     const where: Record<string, unknown> = {};
 
-    if (userId) {
-      where.userId = userId;
-    }
-
-    if (username) {
-      where.username = { contains: username };
+    if (account) {
+      where.account = { contains: account };
     }
 
     if (ipAddress) {
@@ -96,27 +78,30 @@ export class LoginLogsService extends BaseService {
       where.os = { contains: os };
     }
 
-    // 时间范围查询
-    if (startTime || endTime) {
-      where.loginTime = {};
-      if (startTime) {
-        (where.loginTime as any).gte = new Date(startTime);
+    if (loginType) {
+      where.loginType = { contains: loginType };
+    }
+
+    // 处理日期范围查询
+    if (dateRange) {
+      const [startDate, endDate] = dateRange.split('_to_');
+      if (startDate && endDate) {
+        where.createdAt = {
+          gte: new Date(startDate + 'T00:00:00.000Z'),
+          lte: new Date(endDate + 'T23:59:59.999Z'),
+        };
       }
-      if (endTime) {
-        (where.loginTime as any).lte = new Date(endTime);
+    } else if (createdAtStart || createdAtEnd) {
+      where.createdAt = {};
+      if (createdAtStart) {
+        (where.createdAt as Record<string, any>).gte = new Date(createdAtStart);
+      }
+      if (createdAtEnd) {
+        (where.createdAt as Record<string, any>).lte = new Date(createdAtEnd);
       }
     }
 
-    const include = {
-      user: {
-        select: {
-          userId: true,
-          username: true,
-          nickname: true,
-          email: true,
-        },
-      },
-    };
+    // 移除 user 关联，因为当前 schema 中没有这个关系
 
     // 使用 PaginationDto 的方法来判断是否需要分页
     const skip = query.getSkip();
@@ -127,8 +112,8 @@ export class LoginLogsService extends BaseService {
         this.prisma.loginLog,
         query,
         where,
-        include,
-        [{ loginTime: 'desc' }],
+        undefined,
+        [{ createdAt: 'desc' }],
         '登录日志查询成功',
       )) as PaginationResponse<any>;
 
@@ -160,33 +145,18 @@ export class LoginLogsService extends BaseService {
     // 不分页查询
     const loginLogs = await this.prisma.loginLog.findMany({
       where,
-      include,
-      orderBy: [{ loginTime: 'desc' }],
+      orderBy: [{ createdAt: 'desc' }],
     });
 
-    const loginLogResponses = plainToInstance(
-      LoginLogResponseDto,
-      loginLogs,
-      {
-        excludeExtraneousValues: true,
-      },
-    );
-    return ResponseUtil.found(loginLogResponses, '登录日志查询成功');
+    const loginLogResponses = plainToInstance(LoginLogResponseDto, loginLogs, {
+      excludeExtraneousValues: true,
+    });
+    return ResponseUtil.success(loginLogResponses, '登录日志查询成功');
   }
 
   async findOne(id: string): Promise<LoginLogResponseDto> {
     const loginLog = await this.prisma.loginLog.findFirst({
-      where: isNaN(Number(id)) ? { logId: id } : { id: Number(id) },
-      include: {
-        user: {
-          select: {
-            userId: true,
-            username: true,
-            nickname: true,
-            email: true,
-          },
-        },
-      },
+      where: { id: Number(id) },
     });
 
     if (!loginLog) {
@@ -200,7 +170,7 @@ export class LoginLogsService extends BaseService {
 
   async remove(id: string): Promise<void> {
     const existingLoginLog = await this.prisma.loginLog.findFirst({
-      where: isNaN(Number(id)) ? { logId: id } : { id: Number(id) },
+      where: { id: Number(id) },
     });
 
     if (!existingLoginLog) {
@@ -217,23 +187,12 @@ export class LoginLogsService extends BaseService {
     const numericIds = ids
       .filter((id) => !isNaN(Number(id)))
       .map((id) => Number(id));
-    const uuidIds = ids.filter((id) => isNaN(Number(id)));
 
     if (numericIds.length > 0) {
       await this.prisma.loginLog.deleteMany({
         where: {
           id: {
             in: numericIds,
-          },
-        },
-      });
-    }
-
-    if (uuidIds.length > 0) {
-      await this.prisma.loginLog.deleteMany({
-        where: {
-          logId: {
-            in: uuidIds,
           },
         },
       });
@@ -247,7 +206,7 @@ export class LoginLogsService extends BaseService {
 
     const result = await this.prisma.loginLog.deleteMany({
       where: {
-        loginTime: {
+        createdAt: {
           lt: cutoffDate,
         },
       },
@@ -264,7 +223,7 @@ export class LoginLogsService extends BaseService {
     // 总登录次数
     const totalLogins = await this.prisma.loginLog.count({
       where: {
-        loginTime: {
+        createdAt: {
           gte: startDate,
         },
       },
@@ -273,7 +232,7 @@ export class LoginLogsService extends BaseService {
     // 成功登录次数
     const successLogins = await this.prisma.loginLog.count({
       where: {
-        loginTime: {
+        createdAt: {
           gte: startDate,
         },
         status: 1,
@@ -283,22 +242,19 @@ export class LoginLogsService extends BaseService {
     // 失败登录次数
     const failedLogins = await this.prisma.loginLog.count({
       where: {
-        loginTime: {
+        createdAt: {
           gte: startDate,
         },
         status: 0,
       },
     });
 
-    // 独立用户数
-    const uniqueUsers = await this.prisma.loginLog.groupBy({
-      by: ['userId'],
+    // 独立账户数（基于 account 字段）
+    const uniqueAccounts = await this.prisma.loginLog.groupBy({
+      by: ['account'],
       where: {
-        loginTime: {
+        createdAt: {
           gte: startDate,
-        },
-        userId: {
-          not: null,
         },
       },
     });
@@ -307,7 +263,7 @@ export class LoginLogsService extends BaseService {
       totalLogins,
       successLogins,
       failedLogins,
-      uniqueUsers: uniqueUsers.length,
+      uniqueAccounts: uniqueAccounts.length,
       successRate: totalLogins > 0 ? (successLogins / totalLogins) * 100 : 0,
     };
   }
