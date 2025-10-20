@@ -365,3 +365,40 @@ model LoginLog {
   @@map("login_logs")
 }
 
+model OperationLog {
+  id         Int      @id @default(autoincrement())
+  logId      String   @unique @default(uuid())
+
+  // 用户信息
+  userId     String?
+  username   String?
+  nickname   String?
+
+  // 业务信息
+  module     String?
+  action     String?
+  resource   String?
+
+  // 请求上下文
+  method     String
+  path       String
+  query      Json?
+  body       Json?
+  ipAddress  String?
+  userAgent  String?
+
+  // 结果
+  status     Int      // 1 成功, 0 失败
+  message    String?
+  latencyMs  Int
+
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([userId])
+  @@index([module])
+  @@index([action])
+  @@index([status])
+  @@map("operation_logs")
+}
+

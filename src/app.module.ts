@@ -1,13 +1,15 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
+import { APP_INTERCEPTOR, APP_FILTER, Reflector } from '@nestjs/core';
 import { AuthModule } from '@/modules/auth/auth.module';
 import { SystemModule } from '@/modules/system/system.module';
 import { PrismaModule } from '@/prisma/prisma.module';
 import { DashboardModule } from '@/modules/dashboard/dashboard.module';
+import { OperationLogsModule } from '@/modules/system/operation-logs/operation-logs.module';
 import configuration from '@/config/configuration';
 import { ResponseInterceptor } from '@/core/interceptors/response.interceptor';
 import { HttpExceptionFilter } from '@/core/filters/http-exception.filter';
+import { OperationLogInterceptor } from '@/core/interceptors/operation-log.interceptor';
 
 @Module({
   imports: [
@@ -23,6 +25,7 @@ import { HttpExceptionFilter } from '@/core/filters/http-exception.filter';
     AuthModule,
     SystemModule,
     DashboardModule,
+    OperationLogsModule,
   ],
   providers: [
     {
@@ -30,9 +33,14 @@ import { HttpExceptionFilter } from '@/core/filters/http-exception.filter';
       useClass: ResponseInterceptor,
     },
     {
+      provide: APP_INTERCEPTOR,
+      useClass: OperationLogInterceptor,
+    },
+    {
       provide: APP_FILTER,
       useClass: HttpExceptionFilter,
     },
+    Reflector,
   ],
 })
 export class AppModule {}
