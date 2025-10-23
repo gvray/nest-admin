@@ -1,9 +1,12 @@
-import { Controller, Get, Query, Param, Delete } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Query, Param, Delete, UseGuards } from '@nestjs/common';
+import { ApiOperation, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
 import { OperationLogsService } from './operation-logs.service';
 
 @ApiTags('OperationLogs')
 @Controller('system/operation-logs')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth('JWT-auth')
 export class OperationLogsController {
   constructor(private readonly service: OperationLogsService) {}
 
