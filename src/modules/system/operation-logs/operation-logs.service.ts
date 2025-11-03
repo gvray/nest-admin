@@ -1,76 +1,121 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { QueryOperationLogDto } from './dto/query-operation-log.dto';
 import { PrismaService } from '@/prisma/prisma.service';
+import { plainToInstance } from 'class-transformer';
+import { OperationLogResponseDto } from './dto/operation-log-response.dto';
+import { BaseService } from '@/shared/services/base.service';
+import { ResponseUtil } from '@/shared/utils/response.util';
+import { ApiResponse, PaginationResponse } from '@/shared/interfaces/response.interface';
 
 @Injectable()
-export class OperationLogsService {
-  constructor(private readonly prisma: PrismaService) {}
+export class OperationLogsService extends BaseService {
+  constructor(protected readonly prisma: PrismaService) {
+    super(prisma);
+  }
 
-  async findMany(params: {
-    page?: number;
-    pageSize?: number;
-    username?: string;
-    userId?: string;
-    module?: string;
-    action?: string;
-    status?: number;
-    path?: string;
-    keyword?: string;
-    startTime?: Date;
-    endTime?: Date;
-  }) {
-    const page = Math.max(1, Number(params.page || 1));
-    const pageSize = Math.min(100, Math.max(1, Number(params.pageSize || 10)));
+  async findAll(
+    query: QueryOperationLogDto,
+  ): Promise<
+    PaginationResponse<OperationLogResponseDto> | ApiResponse<OperationLogResponseDto[]>
+  > {
+    const where: Prisma.OperationLogWhereInput = {};
+    const {
+      username,
+      userId,
+      module,
+      action,
+      status,
+      path,
+      keyword,
+      startTime,
+      endTime,
+    } = query;
 
-    const where: any = {};
-    if (params.username) where.username = { contains: params.username };
-    if (params.userId) where.userId = params.userId;
-    if (params.module) where.module = { contains: params.module };
-    if (params.action) where.action = params.action;
-    if (params.status !== undefined) where.status = params.status;
-    if (params.path) where.path = { contains: params.path };
-    if (params.keyword) {
+    if (username) where.username = { contains: username };
+    if (userId) where.userId = userId;
+    if (module) where.module = { contains: module };
+    if (action) where.action = action;
+    if (status !== undefined) where.status = status as number;
+    if (path) where.path = { contains: path };
+    if (keyword) {
       where.OR = [
-        { message: { contains: params.keyword } },
-        { path: { contains: params.keyword } },
-        { resource: { contains: params.keyword } },
+        { message: { contains: keyword } },
+        { path: { contains: keyword } },
+        { resource: { contains: keyword } },
       ];
     }
-    if (params.startTime || params.endTime) {
+    if (startTime || endTime) {
       where.createdAt = {};
-      if (params.startTime) where.createdAt.gte = params.startTime;
-      if (params.endTime) where.createdAt.lte = params.endTime;
+      if (startTime) where.createdAt.gte = new Date(startTime);
+      if (endTime) where.createdAt.lte = new Date(endTime);
     }
 
-    const [items, total] = await Promise.all([
-      this.prisma.operationLog.findMany({
+    const skip = query.getSkip?.();
+    const take = query.getTake?.();
+
+    if (skip !== undefined && take !== undefined) {
+      const paged = await this.paginateWithResponse(
+        this.prisma.operationLog,
+        query,
         where,
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      }),
-      this.prisma.operationLog.count({ where }),
-    ]);
+        undefined,
+        [{ createdAt: 'desc' }],
+        '操作日志查询成功',
+      );
 
-    return { items, total, page, pageSize };
+      if (
+        paged &&
+        paged.data &&
+        Array.isArray((paged as any).data.items)
+      ) {
+        const transformed = plainToInstance(
+          OperationLogResponseDto,
+          (paged as any).data.items,
+          { excludeExtraneousValues: true },
+        );
+        (paged as any).data.items = transformed;
+      }
+      return paged as unknown as PaginationResponse<OperationLogResponseDto>;
+    }
+
+    const logs = await this.prisma.operationLog.findMany({
+      where,
+      orderBy: [{ createdAt: 'desc' }],
+    });
+    const data = plainToInstance(OperationLogResponseDto, logs, {
+      excludeExtraneousValues: true,
+    });
+    return ResponseUtil.success(data, '操作日志查询成功');
   }
 
-  async findOne(logId: string) {
-    const log = await this.prisma.operationLog.findUnique({ where: { logId } });
+  async findOne(id: number): Promise<OperationLogResponseDto> {
+    const log = await this.prisma.operationLog.findUnique({ where: { id } });
     if (!log) throw new NotFoundException('操作日志不存在');
-    return log;
+    return plainToInstance(OperationLogResponseDto, log, {
+      excludeExtraneousValues: true,
+    });
   }
 
-  async remove(logId: string) {
-    await this.findOne(logId);
-    await this.prisma.operationLog.delete({ where: { logId } });
-    return { message: '删除成功' };
+  async remove(id: number) {
+    await this.prisma.operationLog.delete({ where: { id } });
+    return { deleted: 1 };
+  }
+
+  async removeMany(ids: number[]): Promise<void> {
+    const numericIds = ids.filter((x) => typeof x === 'number');
+    if (numericIds.length > 0) {
+      await this.prisma.operationLog.deleteMany({
+        where: { id: { in: numericIds } },
+      });
+    }
   }
 
   async clean(before?: Date) {
-    const where = before ? { createdAt: { lte: before } } : {};
+    const where: Prisma.OperationLogWhereInput = before
+      ? { createdAt: { lte: before } }
+      : {};
     const res = await this.prisma.operationLog.deleteMany({ where });
-    return { message: '清理完成', deleted: res.count };
+    return { deleted: res.count };
   }
 }
-
-
