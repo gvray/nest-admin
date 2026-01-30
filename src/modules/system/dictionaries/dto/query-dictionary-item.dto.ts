@@ -36,4 +36,4 @@ export class QueryDictionaryItemDto extends PaginationDto {
   @Min(0, { message: '状态不能小于0' })
   @Max(1, { message: '状态不能大于1' })
   status?: number;
-} 
+}

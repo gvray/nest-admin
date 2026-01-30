@@ -29,4 +29,3 @@ export class DashboardController {
     return await this.dashboardService.getLoginTrendLast7Days();
   }
 }
-

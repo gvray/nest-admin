@@ -13,8 +13,6 @@ export class CreateDepartmentDto {
   @IsString()
   name: string;
 
-
-
   @ApiPropertyOptional({ description: '部门描述' })
   @IsOptional()
   @IsString()

@@ -55,5 +55,3 @@ export class QueryOperationLogDto extends PaginationDto {
   @IsString()
   endTime?: string;
 }
-
-

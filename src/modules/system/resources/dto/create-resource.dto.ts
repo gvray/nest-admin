@@ -28,8 +28,6 @@ export class CreateResourceDto {
   @IsString()
   path?: string;
 
-
-
   @ApiProperty({
     description: '图标',
     example: 'UserOutlined',

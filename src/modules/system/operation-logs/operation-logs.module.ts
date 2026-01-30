@@ -10,5 +10,3 @@ import { OperationLogsController } from './operation-logs.controller';
   exports: [OperationLogsService],
 })
 export class OperationLogsModule {}
-
-

@@ -24,7 +24,7 @@ export class AuditService {
    */
   async getRoleAuditLogs(roleId?: number): Promise<AuditLogEntry[]> {
     const whereClause = roleId ? { id: roleId } : {};
-    
+
     const roles = await this.prisma.role.findMany({
       where: whereClause,
       include: {
@@ -60,7 +60,10 @@ export class AuditService {
       }
 
       // 更新记录（如果有更新者且更新时间不等于创建时间）
-      if (role.updatedById && role.updatedAt.getTime() !== role.createdAt.getTime()) {
+      if (
+        role.updatedById &&
+        role.updatedAt.getTime() !== role.createdAt.getTime()
+      ) {
         auditLogs.push({
           tableName: 'roles',
           recordId: role.id,
@@ -78,7 +81,9 @@ export class AuditService {
       }
     }
 
-    return auditLogs.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    return auditLogs.sort(
+      (a, b) => b.timestamp.getTime() - a.timestamp.getTime(),
+    );
   }
 
   /**
@@ -86,7 +91,7 @@ export class AuditService {
    */
   async getUserAuditLogs(userId?: string): Promise<AuditLogEntry[]> {
     const whereClause = userId ? { userId } : {};
-    
+
     const users = await this.prisma.user.findMany({
       where: whereClause,
       include: {
@@ -122,7 +127,10 @@ export class AuditService {
       }
 
       // 更新记录
-      if (user.updatedById && user.updatedAt.getTime() !== user.createdAt.getTime()) {
+      if (
+        user.updatedById &&
+        user.updatedAt.getTime() !== user.createdAt.getTime()
+      ) {
         auditLogs.push({
           tableName: 'users',
           recordId: user.id,
@@ -140,7 +148,9 @@ export class AuditService {
       }
     }
 
-    return auditLogs.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    return auditLogs.sort(
+      (a, b) => b.timestamp.getTime() - a.timestamp.getTime(),
+    );
   }
 
   /**
@@ -153,44 +163,35 @@ export class AuditService {
     updatedUsers: number;
     lastActivity: Date | null;
   }> {
-    const [
-      createdRoles,
-      updatedRoles,
-      createdUsers,
-      updatedUsers,
-    ] = await Promise.all([
-      this.prisma.role.count({ where: { createdById: operatorId } }),
-      this.prisma.role.count({ where: { updatedById: operatorId } }),
-      this.prisma.user.count({ where: { createdById: operatorId } }),
-      this.prisma.user.count({ where: { updatedById: operatorId } }),
-    ]);
+    const [createdRoles, updatedRoles, createdUsers, updatedUsers] =
+      await Promise.all([
+        this.prisma.role.count({ where: { createdById: operatorId } }),
+        this.prisma.role.count({ where: { updatedById: operatorId } }),
+        this.prisma.user.count({ where: { createdById: operatorId } }),
+        this.prisma.user.count({ where: { updatedById: operatorId } }),
+      ]);
 
     // 获取最后活动时间
     const lastRoleActivity = await this.prisma.role.findFirst({
-      where: { 
-        OR: [
-          { createdById: operatorId },
-          { updatedById: operatorId },
-        ],
+      where: {
+        OR: [{ createdById: operatorId }, { updatedById: operatorId }],
       },
       orderBy: { updatedAt: 'desc' },
       select: { updatedAt: true },
     });
 
     const lastUserActivity = await this.prisma.user.findFirst({
-      where: { 
-        OR: [
-          { createdById: operatorId },
-          { updatedById: operatorId },
-        ],
+      where: {
+        OR: [{ createdById: operatorId }, { updatedById: operatorId }],
       },
       orderBy: { updatedAt: 'desc' },
       select: { updatedAt: true },
     });
 
-    const lastActivity = [lastRoleActivity?.updatedAt, lastUserActivity?.updatedAt]
-      .filter(Boolean)
-      .sort((a, b) => b!.getTime() - a!.getTime())[0] || null;
+    const lastActivity =
+      [lastRoleActivity?.updatedAt, lastUserActivity?.updatedAt]
+        .filter(Boolean)
+        .sort((a, b) => b!.getTime() - a!.getTime())[0] || null;
 
     return {
       createdRoles,

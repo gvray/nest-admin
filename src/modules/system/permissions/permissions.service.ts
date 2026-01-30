@@ -406,13 +406,19 @@ export class PermissionsService extends BaseService {
    * 获取权限树结构
    * @returns 按照资源层级组织的权限树
    */
-  async getPermissionTree(queryDto?: QueryPermissionDto): Promise<ApiResponse<unknown>> {
+  async getPermissionTree(
+    queryDto?: QueryPermissionDto,
+  ): Promise<ApiResponse<unknown>> {
     console.log('getPermissionTree called with queryDto:', queryDto);
 
     let allResources: any[] = [];
 
     // 检查是否有搜索条件
-    const hasSearchConditions = queryDto?.name || queryDto?.code || queryDto?.action || queryDto?.resourceId;
+    const hasSearchConditions =
+      queryDto?.name ||
+      queryDto?.code ||
+      queryDto?.action ||
+      queryDto?.resourceId;
 
     if (hasSearchConditions) {
       // 有搜索条件时，先找到匹配的权限，然后获取对应的资源
@@ -438,7 +444,10 @@ export class PermissionsService extends BaseService {
         },
       });
 
-      console.log('getPermissionTree - Found permissions count:', matchedPermissions.length);
+      console.log(
+        'getPermissionTree - Found permissions count:',
+        matchedPermissions.length,
+      );
 
       if (matchedPermissions.length > 0) {
         // 收集所有需要包含的资源ID（匹配权限的资源 + 它们的父级路径）
@@ -447,7 +456,10 @@ export class PermissionsService extends BaseService {
         for (const permission of matchedPermissions) {
           resourceIdsToInclude.add(permission.resourceId);
           // 添加父级资源
-          await this.addResourceAncestorIds(permission.resource.parentId, resourceIdsToInclude);
+          await this.addResourceAncestorIds(
+            permission.resource.parentId,
+            resourceIdsToInclude,
+          );
         }
 
         // 获取所有需要包含的资源
@@ -493,7 +505,10 @@ export class PermissionsService extends BaseService {
       });
     }
 
-    console.log('getPermissionTree - Found resources count:', allResources.length);
+    console.log(
+      'getPermissionTree - Found resources count:',
+      allResources.length,
+    );
 
     // 构建树结构
     const treeMap = new Map();

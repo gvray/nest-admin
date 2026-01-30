@@ -62,7 +62,11 @@ export class CurrentUserRoleResponseDto {
   @Type(() => PermissionResponseDto)
   @Transform(({ obj }: { obj: any }): PermissionResponseDto[] => {
     try {
-      if (!obj || !obj?.role?.rolePermissions || !Array.isArray(obj?.role?.rolePermissions)) {
+      if (
+        !obj ||
+        !obj?.role?.rolePermissions ||
+        !Array.isArray(obj?.role?.rolePermissions)
+      ) {
         return [];
       }
       return obj.role.rolePermissions

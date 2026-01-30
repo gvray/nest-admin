@@ -9,8 +9,6 @@ export class CreateDictionaryItemDto {
   @IsString({ message: '字典类型编码必须是字符串' })
   typeCode: string;
 
-
-
   @ApiProperty({
     description: '字典项值',
     example: '1',
@@ -60,4 +58,4 @@ export class CreateDictionaryItemDto {
   @IsOptional()
   @IsString({ message: '备注信息必须是字符串' })
   remark?: string;
-} 
+}

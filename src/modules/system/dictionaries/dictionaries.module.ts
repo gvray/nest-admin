@@ -9,4 +9,4 @@ import { PrismaModule } from '@/prisma/prisma.module';
   providers: [DictionariesService],
   exports: [DictionariesService],
 })
-export class DictionariesModule {} 
+export class DictionariesModule {}

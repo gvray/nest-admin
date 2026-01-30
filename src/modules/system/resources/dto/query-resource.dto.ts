@@ -34,7 +34,7 @@ export class QueryResourceDto {
     type: Number,
   })
   @IsOptional()
-  @Transform(({ value }) => value ? parseInt(value) : undefined)
+  @Transform(({ value }) => (value ? parseInt(value) : undefined))
   status?: number;
 
   @ApiPropertyOptional({

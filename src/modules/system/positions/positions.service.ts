@@ -96,7 +96,7 @@ export class PositionsService extends BaseService {
     // 使用 PaginationDto 的方法来判断是否需要分页
     const skip = query.getSkip();
     const take = query.getTake();
-    
+
     if (skip !== undefined && take !== undefined && query) {
       const result = (await this.paginateWithResponse(
         this.prisma.position,
@@ -139,13 +139,9 @@ export class PositionsService extends BaseService {
       orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
     });
 
-    const positionResponses = plainToInstance(
-      PositionResponseDto,
-      positions,
-      {
-        excludeExtraneousValues: true,
-      },
-    );
+    const positionResponses = plainToInstance(PositionResponseDto, positions, {
+      excludeExtraneousValues: true,
+    });
     return ResponseUtil.found(positionResponses, '岗位列表查询成功');
   }
 
@@ -190,12 +186,8 @@ export class PositionsService extends BaseService {
             },
             {
               OR: [
-                updatePositionDto.name
-                  ? { name: updatePositionDto.name }
-                  : {},
-                updatePositionDto.code
-                  ? { code: updatePositionDto.code }
-                  : {},
+                updatePositionDto.name ? { name: updatePositionDto.name } : {},
+                updatePositionDto.code ? { code: updatePositionDto.code } : {},
               ].filter((condition) => Object.keys(condition).length > 0),
             },
           ],

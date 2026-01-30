@@ -164,7 +164,8 @@ export class ResourcesService {
     if (!hasFilters) {
       // 没有过滤条件，返回所有资源（管理接口应该显示所有状态）
       const allResources = await this.prisma.resource.findMany({
-        where: queryDto?.status !== undefined ? { status: queryDto.status } : {},
+        where:
+          queryDto?.status !== undefined ? { status: queryDto.status } : {},
         orderBy: [{ parentId: 'asc' }, { sort: 'asc' }, { createdAt: 'asc' }],
       });
 
@@ -504,9 +505,9 @@ export class ResourcesService {
   private buildMenuTreeForResponse(resources: any[]): any[] {
     const resourceMap = new Map();
     const rootResources: any[] = [];
-    
-    console.log('buildMenuTreeForResponse called with resources:', resources); 
-    
+
+    console.log('buildMenuTreeForResponse called with resources:', resources);
+
     // 创建资源映射 - 使用 resourceId 作为 key
     resources.forEach((resource) => {
       resourceMap.set(resource.resourceId, { ...resource, children: [] });
@@ -515,7 +516,7 @@ export class ResourcesService {
     // 构建树形结构
     resources.forEach((resource) => {
       const mappedResource = resourceMap.get(resource.resourceId);
-      
+
       if (resource.parentId) {
         const parent = resourceMap.get(resource.parentId);
         if (parent) {
@@ -530,7 +531,10 @@ export class ResourcesService {
       }
     });
 
-    console.log('buildMenuTreeForResponse - rootResources count:', rootResources.length);
+    console.log(
+      'buildMenuTreeForResponse - rootResources count:',
+      rootResources.length,
+    );
     console.log('buildMenuTreeForResponse - rootResources:', rootResources);
 
     // 清理空的children数组

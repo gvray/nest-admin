@@ -110,8 +110,6 @@ export class DepartmentsService extends BaseService {
         this.prisma.department.count({ where }),
       ]);
 
-      const totalPages = Math.ceil(totalItems / take);
-
       return {
         success: true,
         code: 200,
@@ -123,9 +121,6 @@ export class DepartmentsService extends BaseService {
           total: totalItems,
           page: query.page!,
           pageSize: query.pageSize!,
-          totalPages,
-          hasNext: query.page! < totalPages,
-          hasPrev: query.page! > 1,
         },
         timestamp: new Date().toISOString(),
       };
@@ -271,13 +266,16 @@ export class DepartmentsService extends BaseService {
     });
   }
 
-  async getTree(queryDto?: QueryDepartmentDto): Promise<ApiResponse<DepartmentResponseDto[]>> {
+  async getTree(
+    queryDto?: QueryDepartmentDto,
+  ): Promise<ApiResponse<DepartmentResponseDto[]>> {
     console.log('getTree called with queryDto:', queryDto);
 
     let allDepartments: any[] = [];
 
     // 检查是否有搜索条件
-    const hasSearchConditions = queryDto?.name || queryDto?.status !== undefined || queryDto?.parentId;
+    const hasSearchConditions =
+      queryDto?.name || queryDto?.status !== undefined || queryDto?.parentId;
 
     if (hasSearchConditions) {
       // 有搜索条件时，先找到匹配的部门，然后获取对应的父级路径
@@ -331,7 +329,10 @@ export class DepartmentsService extends BaseService {
         orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
       });
 
-      console.log('getTree - Found departments count:', matchedDepartments.length);
+      console.log(
+        'getTree - Found departments count:',
+        matchedDepartments.length,
+      );
 
       if (matchedDepartments.length > 0) {
         // 收集所有需要包含的部门ID（匹配的部门 + 它们的父级路径）
@@ -340,7 +341,10 @@ export class DepartmentsService extends BaseService {
         for (const department of matchedDepartments) {
           departmentIdsToInclude.add(department.departmentId);
           // 添加父级部门
-          await this.addDepartmentAncestorIds(department.parentId, departmentIdsToInclude);
+          await this.addDepartmentAncestorIds(
+            department.parentId,
+            departmentIdsToInclude,
+          );
         }
 
         // 获取所有需要包含的部门
@@ -402,7 +406,7 @@ export class DepartmentsService extends BaseService {
         const dto = plainToInstance(DepartmentResponseDto, node, {
           excludeExtraneousValues: true,
         });
-        
+
         if (node.children && node.children.length > 0) {
           dto.children = convertToDto(node.children);
         }
@@ -439,7 +443,10 @@ export class DepartmentsService extends BaseService {
     });
 
     if (parentDepartment?.parentId) {
-      await this.addDepartmentAncestorIds(parentDepartment.parentId, departmentIds);
+      await this.addDepartmentAncestorIds(
+        parentDepartment.parentId,
+        departmentIds,
+      );
     }
   }
 

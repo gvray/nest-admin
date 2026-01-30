@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreateDictionaryTypeDto } from './dto/create-dictionary-type.dto';
 import { UpdateDictionaryTypeDto } from './dto/update-dictionary-type.dto';
@@ -67,7 +71,8 @@ export class DictionariesService {
       }
     }
 
-    const hasPaginationParams = query.page !== undefined || query.pageSize !== undefined;
+    const hasPaginationParams =
+      query.page !== undefined || query.pageSize !== undefined;
 
     if (hasPaginationParams) {
       const skip = query.page ? (query.page - 1) * query.pageSize! : 0;
@@ -111,7 +116,9 @@ export class DictionariesService {
     }
   }
 
-  async findOneDictionaryType(typeId: string): Promise<DictionaryTypeResponseDto> {
+  async findOneDictionaryType(
+    typeId: string,
+  ): Promise<DictionaryTypeResponseDto> {
     console.log('findOneDictionaryType called with typeId:', typeId);
     const dictionaryType = await this.prisma.dictionaryType.findUnique({
       where: { typeId },
@@ -207,8 +214,6 @@ export class DictionariesService {
       throw new NotFoundException('字典类型不存在');
     }
 
-
-
     const dictionaryItem = await this.prisma.dictionaryItem.create({
       data: {
         ...createDictionaryItemDto,
@@ -240,7 +245,8 @@ export class DictionariesService {
       where.status = status;
     }
 
-    const hasPaginationParams = query.page !== undefined || query.pageSize !== undefined;
+    const hasPaginationParams =
+      query.page !== undefined || query.pageSize !== undefined;
 
     if (hasPaginationParams) {
       const skip = query.page ? (query.page - 1) * query.pageSize! : 0;
@@ -301,7 +307,9 @@ export class DictionariesService {
     }
   }
 
-  async findOneDictionaryItem(itemId: string): Promise<DictionaryItemResponseDto> {
+  async findOneDictionaryItem(
+    itemId: string,
+  ): Promise<DictionaryItemResponseDto> {
     const dictionaryItem = await this.prisma.dictionaryItem.findUnique({
       where: { itemId },
       include: {
@@ -337,8 +345,6 @@ export class DictionariesService {
       throw new NotFoundException('字典项不存在');
     }
 
-
-
     const dictionaryItem = await this.prisma.dictionaryItem.update({
       where: { itemId },
       data: {
@@ -367,7 +373,9 @@ export class DictionariesService {
   }
 
   // 根据字典类型编码获取字典项列表
-  async getDictionaryItemsByTypeCode(typeCode: string): Promise<DictionaryItemResponseDto[]> {
+  async getDictionaryItemsByTypeCode(
+    typeCode: string,
+  ): Promise<DictionaryItemResponseDto[]> {
     console.log('getDictionaryItemsByTypeCode called with typeCode:', typeCode);
     const dictionaryType = await this.prisma.dictionaryType.findUnique({
       where: { code: typeCode },
@@ -389,8 +397,13 @@ export class DictionariesService {
   }
 
   // 根据多个字典类型编码获取字典项列表
-  async getDictionaryItemsByTypeCodes(typeCodes: string[]): Promise<Record<string, any[]>> {
-    console.log('getDictionaryItemsByTypeCodes called with typeCodes:', typeCodes);
+  async getDictionaryItemsByTypeCodes(
+    typeCodes: string[],
+  ): Promise<Record<string, any[]>> {
+    console.log(
+      'getDictionaryItemsByTypeCodes called with typeCodes:',
+      typeCodes,
+    );
     const result: Record<string, any[]> = {};
 
     for (const typeCode of typeCodes) {
@@ -406,14 +419,14 @@ export class DictionariesService {
         }
 
         const dictionaryItems = await this.prisma.dictionaryItem.findMany({
-          where: { 
+          where: {
             typeCode: typeCode,
-            status: 1 
+            status: 1,
           },
           orderBy: { sort: 'asc' },
         });
 
-        result[typeCode] = dictionaryItems.map(item => ({
+        result[typeCode] = dictionaryItems.map((item) => ({
           value: item.value,
           label: item.label,
         }));
@@ -425,4 +438,4 @@ export class DictionariesService {
 
     return result;
   }
-} 
+}

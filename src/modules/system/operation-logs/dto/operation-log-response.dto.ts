@@ -74,5 +74,3 @@ export class OperationLogResponseDto {
   @Expose()
   createdAt!: Date;
 }
-
-

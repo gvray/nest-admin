@@ -64,4 +64,4 @@ export class DictionaryTypeResponseDto {
   })
   @Expose()
   updatedAt: Date;
-} 
+}

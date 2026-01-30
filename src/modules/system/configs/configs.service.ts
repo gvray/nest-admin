@@ -10,7 +10,10 @@ import { plainToInstance } from 'class-transformer';
 export class ConfigsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createConfigDto: CreateConfigDto, userId: string): Promise<ConfigResponseDto> {
+  async create(
+    createConfigDto: CreateConfigDto,
+    userId: string,
+  ): Promise<ConfigResponseDto> {
     const config = await this.prisma.config.create({
       data: {
         ...createConfigDto,
@@ -18,12 +21,14 @@ export class ConfigsService {
       },
     });
 
-    return plainToInstance(ConfigResponseDto, config, { excludeExtraneousValues: true });
+    return plainToInstance(ConfigResponseDto, config, {
+      excludeExtraneousValues: true,
+    });
   }
 
   async findAll(query: QueryConfigDto): Promise<ConfigResponseDto[] | any> {
     const { page, pageSize, key, name, type, group, status, ...rest } = query;
-    
+
     const where: any = {};
     if (key) where.key = { contains: key };
     if (name) where.name = { contains: name };
@@ -33,7 +38,7 @@ export class ConfigsService {
 
     // 检查是否需要分页
     const hasPagination = page !== undefined && pageSize !== undefined;
-    
+
     if (hasPagination) {
       const skip = (page - 1) * pageSize;
       const take = pageSize;
@@ -48,8 +53,10 @@ export class ConfigsService {
         this.prisma.config.count({ where }),
       ]);
 
-      const transformedConfigs = configs.map(config => 
-        plainToInstance(ConfigResponseDto, config, { excludeExtraneousValues: true })
+      const transformedConfigs = configs.map((config) =>
+        plainToInstance(ConfigResponseDto, config, {
+          excludeExtraneousValues: true,
+        }),
       );
 
       return {
@@ -68,8 +75,10 @@ export class ConfigsService {
         orderBy: { sort: 'asc' },
       });
 
-      const transformedConfigs = configs.map(config => 
-        plainToInstance(ConfigResponseDto, config, { excludeExtraneousValues: true })
+      const transformedConfigs = configs.map((config) =>
+        plainToInstance(ConfigResponseDto, config, {
+          excludeExtraneousValues: true,
+        }),
       );
 
       return transformedConfigs;
@@ -85,7 +94,9 @@ export class ConfigsService {
       throw new NotFoundException('配置不存在');
     }
 
-    return plainToInstance(ConfigResponseDto, config, { excludeExtraneousValues: true });
+    return plainToInstance(ConfigResponseDto, config, {
+      excludeExtraneousValues: true,
+    });
   }
 
   async findByKey(key: string): Promise<ConfigResponseDto> {
@@ -97,7 +108,9 @@ export class ConfigsService {
       throw new NotFoundException('配置不存在');
     }
 
-    return plainToInstance(ConfigResponseDto, config, { excludeExtraneousValues: true });
+    return plainToInstance(ConfigResponseDto, config, {
+      excludeExtraneousValues: true,
+    });
   }
 
   async findByGroup(group: string): Promise<ConfigResponseDto[]> {
@@ -106,12 +119,18 @@ export class ConfigsService {
       orderBy: { sort: 'asc' },
     });
 
-    return configs.map(config => 
-      plainToInstance(ConfigResponseDto, config, { excludeExtraneousValues: true })
+    return configs.map((config) =>
+      plainToInstance(ConfigResponseDto, config, {
+        excludeExtraneousValues: true,
+      }),
     );
   }
 
-  async update(configId: string, updateConfigDto: UpdateConfigDto, userId: string): Promise<ConfigResponseDto> {
+  async update(
+    configId: string,
+    updateConfigDto: UpdateConfigDto,
+    userId: string,
+  ): Promise<ConfigResponseDto> {
     const config = await this.prisma.config.findUnique({
       where: { configId },
     });
@@ -128,7 +147,9 @@ export class ConfigsService {
       },
     });
 
-    return plainToInstance(ConfigResponseDto, updatedConfig, { excludeExtraneousValues: true });
+    return plainToInstance(ConfigResponseDto, updatedConfig, {
+      excludeExtraneousValues: true,
+    });
   }
 
   async remove(configId: string): Promise<void> {
@@ -154,10 +175,10 @@ export class ConfigsService {
     });
 
     const result: Record<string, any> = {};
-    
+
     for (const config of configs) {
       let value: any = config.value;
-      
+
       // 根据类型转换值
       switch (config.type) {
         case 'number':
@@ -177,10 +198,10 @@ export class ConfigsService {
           // string类型，保持原值
           break;
       }
-      
+
       result[config.key] = value;
     }
 
     return result;
   }
-} 
+}

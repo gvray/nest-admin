@@ -6,7 +6,10 @@ import { plainToInstance } from 'class-transformer';
 import { OperationLogResponseDto } from './dto/operation-log-response.dto';
 import { BaseService } from '@/shared/services/base.service';
 import { ResponseUtil } from '@/shared/utils/response.util';
-import { ApiResponse, PaginationResponse } from '@/shared/interfaces/response.interface';
+import {
+  ApiResponse,
+  PaginationResponse,
+} from '@/shared/interfaces/response.interface';
 
 @Injectable()
 export class OperationLogsService extends BaseService {
@@ -17,7 +20,8 @@ export class OperationLogsService extends BaseService {
   async findAll(
     query: QueryOperationLogDto,
   ): Promise<
-    PaginationResponse<OperationLogResponseDto> | ApiResponse<OperationLogResponseDto[]>
+    | PaginationResponse<OperationLogResponseDto>
+    | ApiResponse<OperationLogResponseDto[]>
   > {
     const where: Prisma.OperationLogWhereInput = {};
     const {
@@ -36,7 +40,7 @@ export class OperationLogsService extends BaseService {
     if (userId) where.userId = userId;
     if (module) where.module = { contains: module };
     if (action) where.action = action;
-    if (status !== undefined) where.status = status as number;
+    if (status !== undefined) where.status = status;
     if (path) where.path = { contains: path };
     if (keyword) {
       where.OR = [
@@ -64,11 +68,7 @@ export class OperationLogsService extends BaseService {
         '操作日志查询成功',
       );
 
-      if (
-        paged &&
-        paged.data &&
-        Array.isArray((paged as any).data.items)
-      ) {
+      if (paged && paged.data && Array.isArray((paged as any).data.items)) {
         const transformed = plainToInstance(
           OperationLogResponseDto,
           (paged as any).data.items,

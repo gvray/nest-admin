@@ -16,8 +16,6 @@ export class DictionaryItemResponseDto {
   @Expose()
   typeCode: string;
 
-
-
   @ApiProperty({
     description: '字典项值',
     example: '1',
@@ -73,4 +71,4 @@ export class DictionaryItemResponseDto {
   })
   @Expose()
   updatedAt: Date;
-} 
+}

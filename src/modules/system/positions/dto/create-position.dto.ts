@@ -9,7 +9,7 @@ import {
 } from 'class-validator';
 
 export class CreatePositionDto {
-    @ApiProperty({ description: '岗位名称' })
+  @ApiProperty({ description: '岗位名称' })
   @IsString()
   name: string;
 

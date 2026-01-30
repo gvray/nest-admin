@@ -54,7 +54,9 @@ export class ResourcesController {
     description: '获取资源列表成功',
     type: [ResourceResponseDto],
   })
-  findAll(@Query() queryDto: QueryResourceDto): Promise<IApiResponse<ResourceResponseDto[]>> {
+  findAll(
+    @Query() queryDto: QueryResourceDto,
+  ): Promise<IApiResponse<ResourceResponseDto[]>> {
     return this.resourcesService.findAll(queryDto);
   }
 
@@ -66,7 +68,9 @@ export class ResourcesController {
     description: '获取资源树成功',
     type: [ResourceResponseDto],
   })
-  findTree(@Query() queryDto: QueryResourceDto): Promise<IApiResponse<ResourceResponseDto[]>> {
+  findTree(
+    @Query() queryDto: QueryResourceDto,
+  ): Promise<IApiResponse<ResourceResponseDto[]>> {
     console.log('Controller findTree called with queryDto:', queryDto);
     console.log('Controller findTree - name parameter:', queryDto?.name);
     return this.resourcesService.findTree(queryDto);

@@ -34,11 +34,14 @@ export class AuditInterceptor implements NestInterceptor {
         const ip = request.ip || request.connection.remoteAddress;
 
         if (user && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
-          console.log(`🔍 审计日志: ${user.username} (${user.userId}) 执行 ${method} ${url}`, {
-            ip,
-            userAgent: userAgent?.substring(0, 100),
-            timestamp: new Date().toISOString(),
-          });
+          console.log(
+            `🔍 审计日志: ${user.username} (${user.userId}) 执行 ${method} ${url}`,
+            {
+              ip,
+              userAgent: userAgent?.substring(0, 100),
+              timestamp: new Date().toISOString(),
+            },
+          );
         }
       }),
     );

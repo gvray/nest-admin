@@ -5,7 +5,11 @@ import { PrismaService } from '@/prisma/prisma.service';
 export class DashboardService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getOverview(): Promise<{ users: number; roles: number; permissions: number }> {
+  async getOverview(): Promise<{
+    users: number;
+    roles: number;
+    permissions: number;
+  }> {
     const [users, roles, permissions] = await Promise.all([
       this.prisma.user.count(),
       this.prisma.role.count(),
@@ -27,13 +31,18 @@ export class DashboardService {
     });
 
     const countMap = new Map<string, number>(
-      counts.map((c) => [c.roleId, c._count.roleId])
+      counts.map((c) => [c.roleId, c._count.roleId]),
     );
 
-    return roles.map((r) => ({ name: r.name, value: countMap.get(r.roleId) ?? 0 }));
+    return roles.map((r) => ({
+      name: r.name,
+      value: countMap.get(r.roleId) ?? 0,
+    }));
   }
 
-  async getLoginTrendLast7Days(): Promise<Array<{ date: string; value: number }>> {
+  async getLoginTrendLast7Days(): Promise<
+    Array<{ date: string; value: number }>
+  > {
     const days = 7;
     const end = new Date();
     end.setHours(23, 59, 59, 999);
@@ -73,8 +82,9 @@ export class DashboardService {
       trendMap.set(key, prev + 1);
     }
 
-    return Array.from(trendMap.entries()).map(([date, value]) => ({ date, value }));
+    return Array.from(trendMap.entries()).map(([date, value]) => ({
+      date,
+      value,
+    }));
   }
 }
-
-

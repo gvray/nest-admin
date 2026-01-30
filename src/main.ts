@@ -32,7 +32,7 @@ async function bootstrap() {
       origin: (origin, callback) => {
         // 允许没有 origin 的请求（如 Postman、Swagger）
         if (!origin) return callback(null, true);
-        
+
         // 检查是否在允许的源列表中
         if (corsOrigins.includes(origin)) {
           callback(null, true);

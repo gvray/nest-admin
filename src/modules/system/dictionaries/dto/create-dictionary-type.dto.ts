@@ -51,4 +51,4 @@ export class CreateDictionaryTypeDto {
   @IsOptional()
   @IsString({ message: '备注信息必须是字符串' })
   remark?: string;
-} 
+}

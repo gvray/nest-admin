@@ -36,4 +36,4 @@ export class QueryDictionaryTypeDto extends PaginationDto {
   @IsOptional()
   @IsString({ message: '时间范围必须是字符串' })
   dateRange?: string;
-} 
+}

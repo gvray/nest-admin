@@ -29,8 +29,6 @@ export class ResourceResponseDto {
   @Expose()
   path?: string;
 
-
-
   @ApiProperty({ description: '图标', required: false })
   @Expose()
   icon?: string;

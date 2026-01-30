@@ -51,4 +51,4 @@ export class ConfigResponseDto {
   @ApiProperty({ description: '更新时间' })
   @Transform(({ value }) => value?.toISOString())
   updatedAt: Date;
-} 
+}

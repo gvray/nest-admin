@@ -13,6 +13,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiBody,
 } from '@nestjs/swagger';
 import { LoginLogsService } from './login-logs.service';
 import { QueryLoginLogDto } from './dto/query-login-log.dto';
@@ -21,6 +22,9 @@ import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
 import { RolesGuard } from '@/core/guards/roles.guard';
 import { PermissionsGuard } from '@/core/guards/permissions.guard';
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
+import { ResponseUtil } from '@/shared/utils/response.util';
+import { BatchDeleteLoginLogsDto } from './dto/batch-delete-login-logs.dto';
+import { CleanLoginLogsDto } from './dto/clean-login-logs.dto';
 
 @ApiTags('登录日志管理')
 @Controller('system/login-logs')
@@ -37,8 +41,9 @@ export class LoginLogsController {
     description: '获取成功',
     type: [LoginLogResponseDto],
   })
-  findAll(@Query() query: QueryLoginLogDto) {
-    return this.loginLogsService.findAll(query);
+  async findAll(@Query() query: QueryLoginLogDto) {
+    const pageData = await this.loginLogsService.findAll(query);
+    return ResponseUtil.paginated(pageData, '登录日志查询成功');
   }
 
   @Get('stats')
@@ -48,8 +53,9 @@ export class LoginLogsController {
     status: 200,
     description: '获取成功',
   })
-  getStats(@Query('days') days?: number) {
-    return this.loginLogsService.getLoginStats(days || 7);
+  async getStats(@Query('days') days?: number) {
+    const data = await this.loginLogsService.getLoginStats(days || 7);
+    return ResponseUtil.found(data, '获取成功');
   }
 
   @Get(':id')
@@ -61,8 +67,9 @@ export class LoginLogsController {
     type: LoginLogResponseDto,
   })
   @ApiResponse({ status: 404, description: '登录日志不存在' })
-  findOne(@Param('id') id: string) {
-    return this.loginLogsService.findOne(id);
+  async findOne(@Param('id') id: string) {
+    const data = await this.loginLogsService.findOne(id);
+    return ResponseUtil.found(data, '获取成功');
   }
 
   @Delete(':id')
@@ -70,23 +77,37 @@ export class LoginLogsController {
   @ApiOperation({ summary: '删除登录日志' })
   @ApiResponse({ status: 200, description: '删除成功' })
   @ApiResponse({ status: 404, description: '登录日志不存在' })
-  remove(@Param('id') id: string) {
-    return this.loginLogsService.remove(id);
+  async remove(@Param('id') id: string) {
+    await this.loginLogsService.remove(id);
+    return ResponseUtil.deleted(null, '删除成功');
   }
 
   @Post('batch-delete')
   @RequirePermissions('system:loginlog:delete')
   @ApiOperation({ summary: '批量删除登录日志' })
   @ApiResponse({ status: 200, description: '删除成功' })
-  removeMany(@Body() body: { ids: string[] }) {
-    return this.loginLogsService.removeMany(body.ids);
+  @ApiBody({ type: BatchDeleteLoginLogsDto })
+  async removeMany(@Body() dto: BatchDeleteLoginLogsDto) {
+    await this.loginLogsService.removeMany(dto.ids);
+    return ResponseUtil.deleted(null, '删除成功');
   }
 
   @Post('clean')
   @RequirePermissions('system:loginlog:delete')
   @ApiOperation({ summary: '清理指定天数之前的登录日志' })
   @ApiResponse({ status: 200, description: '清理成功' })
-  cleanOldLogs(@Body() body: { days: number }) {
-    return this.loginLogsService.cleanOldLogs(body.days);
+  @ApiBody({ type: CleanLoginLogsDto })
+  async cleanOldLogs(@Body() dto: CleanLoginLogsDto) {
+    const count = await this.loginLogsService.cleanOldLogs(dto.days);
+    return ResponseUtil.deleted(count, '清理成功');
+  }
+
+  @Delete('clear')
+  @RequirePermissions('system:loginlog:delete')
+  @ApiOperation({ summary: '清空所有登录日志' })
+  @ApiResponse({ status: 200, description: '清理成功' })
+  async clear() {
+    const count = await this.loginLogsService.cleanOldLogs();
+    return ResponseUtil.deleted(count, '清理成功');
   }
 }

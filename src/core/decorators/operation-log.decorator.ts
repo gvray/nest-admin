@@ -10,5 +10,3 @@ export interface OperationLogOptions {
 
 export const OperationLog = (options: OperationLogOptions = {}) =>
   SetMetadata(OPLOG_META, options);
-
-

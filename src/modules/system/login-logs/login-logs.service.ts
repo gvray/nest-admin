@@ -5,11 +5,8 @@ import { CreateLoginLogDto } from './dto/create-login-log.dto';
 import { QueryLoginLogDto } from './dto/query-login-log.dto';
 import { LoginLogResponseDto } from './dto/login-log-response.dto';
 import { BaseService } from '@/shared/services/base.service';
-import { ResponseUtil } from '@/shared/utils/response.util';
-import {
-  ApiResponse,
-  PaginationResponse,
-} from '@/shared/interfaces/response.interface';
+import { PaginationData } from '@/shared/interfaces/response.interface';
+import { LoginStatsResponse } from './dto/login-stats-response.dto';
 
 @Injectable()
 export class LoginLogsService extends BaseService {
@@ -31,9 +28,7 @@ export class LoginLogsService extends BaseService {
 
   async findAll(
     query: QueryLoginLogDto,
-  ): Promise<
-    PaginationResponse<LoginLogResponseDto> | ApiResponse<LoginLogResponseDto[]>
-  > {
+  ): Promise<PaginationData<LoginLogResponseDto>> {
     const {
       account,
       ipAddress,
@@ -48,98 +43,48 @@ export class LoginLogsService extends BaseService {
       loginType,
     } = query;
 
-    const where: Record<string, unknown> = {};
+    const where = this.buildWhere({
+      contains: {
+        account,
+        ipAddress,
+        location,
+        device,
+        browser,
+        os,
+        loginType,
+      },
+      equals: {
+        status,
+      },
+      date: {
+        field: 'createdAt',
+        range: dateRange,
+        start: createdAtStart,
+        end: createdAtEnd,
+        separator: '_to_',
+      },
+    });
 
-    if (account) {
-      where.account = { contains: account };
-    }
-
-    if (ipAddress) {
-      where.ipAddress = { contains: ipAddress };
-    }
-
-    if (status !== undefined) {
-      where.status = status;
-    }
-
-    if (location) {
-      where.location = { contains: location };
-    }
-
-    if (device) {
-      where.device = { contains: device };
-    }
-
-    if (browser) {
-      where.browser = { contains: browser };
-    }
-
-    if (os) {
-      where.os = { contains: os };
-    }
-
-    if (loginType) {
-      where.loginType = { contains: loginType };
-    }
-
-    // 处理日期范围查询
-    if (dateRange) {
-      const [startDate, endDate] = dateRange.split('_to_');
-      if (startDate && endDate) {
-        where.createdAt = {
-          gte: new Date(startDate + 'T00:00:00.000Z'),
-          lte: new Date(endDate + 'T23:59:59.999Z'),
-        };
-      }
-    } else if (createdAtStart || createdAtEnd) {
-      where.createdAt = {};
-      if (createdAtStart) {
-        (where.createdAt as Record<string, any>).gte = new Date(createdAtStart);
-      }
-      if (createdAtEnd) {
-        (where.createdAt as Record<string, any>).lte = new Date(createdAtEnd);
-      }
-    }
-
-    // 移除 user 关联，因为当前 schema 中没有这个关系
-
-    // 使用 PaginationDto 的方法来判断是否需要分页
-    const skip = query.getSkip();
-    const take = query.getTake();
-
-    if (skip !== undefined && take !== undefined && query) {
-      const result = (await this.paginateWithResponse(
-        this.prisma.loginLog,
-        query,
-        where,
-        undefined,
-        [{ createdAt: 'desc' }],
-        '登录日志查询成功',
-      )) as PaginationResponse<any>;
-
-      if (
-        'data' in result &&
-        result.data &&
-        'items' in result.data &&
-        Array.isArray(result.data.items)
-      ) {
-        const transformedItems = plainToInstance(
-          LoginLogResponseDto,
-          result.data.items,
-          {
-            excludeExtraneousValues: true,
-          },
-        );
-        return {
-          ...result,
-          data: {
-            ...result.data,
-            items: transformedItems,
-          },
-        };
-      }
-
-      return result;
+    const state = this.getPaginationState(query);
+    if (state) {
+      const [items, total] = await Promise.all([
+        this.prisma.loginLog.findMany({
+          where,
+          orderBy: [{ createdAt: 'desc' }],
+          skip: state.skip,
+          take: state.take,
+        }),
+        this.prisma.loginLog.count({ where }),
+      ]);
+      const transformedItems = plainToInstance(LoginLogResponseDto, items, {
+        excludeExtraneousValues: true,
+      });
+      return {
+        items: transformedItems,
+        total,
+        page: state.page,
+        pageSize: state.pageSize,
+      };
     }
 
     // 不分页查询
@@ -148,10 +93,16 @@ export class LoginLogsService extends BaseService {
       orderBy: [{ createdAt: 'desc' }],
     });
 
+    const total = await this.prisma.loginLog.count({ where });
     const loginLogResponses = plainToInstance(LoginLogResponseDto, loginLogs, {
       excludeExtraneousValues: true,
     });
-    return ResponseUtil.success(loginLogResponses, '登录日志查询成功');
+    return {
+      items: loginLogResponses,
+      total,
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? loginLogResponses.length,
+    };
   }
 
   async findOne(id: string): Promise<LoginLogResponseDto> {
@@ -183,7 +134,7 @@ export class LoginLogsService extends BaseService {
   }
 
   // 批量删除登录日志
-  async removeMany(ids: string[]): Promise<void> {
+  async removeMany(ids: number[]): Promise<void> {
     const numericIds = ids
       .filter((id) => !isNaN(Number(id)))
       .map((id) => Number(id));
@@ -199,24 +150,26 @@ export class LoginLogsService extends BaseService {
     }
   }
 
-  // 清理指定天数之前的登录日志
-  async cleanOldLogs(days: number): Promise<number> {
+  // 清理指定天数之前的登录日志；不传 days 则清空全部
+  async cleanOldLogs(days?: number): Promise<number> {
+    if (days === undefined) {
+      const res = await this.prisma.loginLog.deleteMany({});
+      return res.count;
+    }
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
-
-    const result = await this.prisma.loginLog.deleteMany({
+    const res = await this.prisma.loginLog.deleteMany({
       where: {
         createdAt: {
           lt: cutoffDate,
         },
       },
     });
-
-    return result.count;
+    return res.count;
   }
 
   // 获取登录统计信息
-  async getLoginStats(days: number = 7): Promise<any> {
+  async getLoginStats(days: number = 7): Promise<LoginStatsResponse> {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
