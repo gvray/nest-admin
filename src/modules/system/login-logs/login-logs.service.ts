@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreateLoginLogDto } from './dto/create-login-log.dto';
@@ -120,16 +124,18 @@ export class LoginLogsService extends BaseService {
   }
 
   async remove(id: string): Promise<void> {
-    const existingLoginLog = await this.prisma.loginLog.findFirst({
-      where: { id: Number(id) },
-    });
-
-    if (!existingLoginLog) {
-      throw new Error(`登录日志ID ${id} 不存在`);
+    const numericId = Number(id);
+    if (!Number.isInteger(numericId)) {
+      throw new BadRequestException('无效的登录日志ID');
     }
-
+    const existing = await this.prisma.loginLog.findUnique({
+      where: { id: numericId },
+    });
+    if (!existing) {
+      throw new NotFoundException(`登录日志ID ${id} 不存在`);
+    }
     await this.prisma.loginLog.delete({
-      where: { id: existingLoginLog.id },
+      where: { id: numericId },
     });
   }
 
@@ -150,11 +156,16 @@ export class LoginLogsService extends BaseService {
     }
   }
 
-  // 清理指定天数之前的登录日志；不传 days 则清空全部
-  async cleanOldLogs(days?: number): Promise<number> {
-    if (days === undefined) {
-      const res = await this.prisma.loginLog.deleteMany({});
-      return res.count;
+  // 清空所有登录日志
+  async clearAll(): Promise<number> {
+    const res = await this.prisma.loginLog.deleteMany({});
+    return res.count;
+  }
+
+  // 清理指定天数之前的登录日志
+  async cleanBeforeDays(days: number): Promise<number> {
+    if (!Number.isInteger(days) || days < 1) {
+      throw new BadRequestException('days 必须为正整数');
     }
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);

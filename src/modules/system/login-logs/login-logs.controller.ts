@@ -58,6 +58,15 @@ export class LoginLogsController {
     return ResponseUtil.found(data, '获取成功');
   }
 
+  @Delete('clear')
+  @RequirePermissions('system:loginlog:delete')
+  @ApiOperation({ summary: '清空所有登录日志' })
+  @ApiResponse({ status: 200, description: '清理成功' })
+  async clear() {
+    const count = await this.loginLogsService.clearAll();
+    return ResponseUtil.deleted(count, '清理成功');
+  }
+
   @Get(':id')
   @RequirePermissions('system:loginlog:view')
   @ApiOperation({ summary: '获取指定登录日志' })
@@ -98,16 +107,7 @@ export class LoginLogsController {
   @ApiResponse({ status: 200, description: '清理成功' })
   @ApiBody({ type: CleanLoginLogsDto })
   async cleanOldLogs(@Body() dto: CleanLoginLogsDto) {
-    const count = await this.loginLogsService.cleanOldLogs(dto.days);
-    return ResponseUtil.deleted(count, '清理成功');
-  }
-
-  @Delete('clear')
-  @RequirePermissions('system:loginlog:delete')
-  @ApiOperation({ summary: '清空所有登录日志' })
-  @ApiResponse({ status: 200, description: '清理成功' })
-  async clear() {
-    const count = await this.loginLogsService.cleanOldLogs();
+    const count = await this.loginLogsService.cleanBeforeDays(dto.days);
     return ResponseUtil.deleted(count, '清理成功');
   }
 }
