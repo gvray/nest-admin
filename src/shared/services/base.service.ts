@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { startOfDay, endOfDay } from '../utils/time.util';
 import { PaginationDto, PaginationSortDto } from '../dtos/pagination.dto';
 import { ResponseUtil } from '../utils/response.util';
 import { PaginationResponse } from '../interfaces/response.interface';
@@ -17,10 +18,8 @@ export abstract class BaseService {
     equals?: Record<string, unknown>;
     date?: {
       field: string;
-      range?: string;
       start?: string;
       end?: string;
-      separator?: string;
     };
   }): Record<string, unknown> {
     const where: Record<string, unknown> = {};
@@ -40,19 +39,10 @@ export abstract class BaseService {
     }
     const d = params.date;
     if (d) {
-      if (d.range) {
-        const sep = d.separator ?? '_to_';
-        const [startDate, endDate] = d.range.split(sep);
-        if (startDate && endDate) {
-          where[d.field] = {
-            gte: new Date(startDate + 'T00:00:00.000Z'),
-            lte: new Date(endDate + 'T23:59:59.999Z'),
-          };
-        }
-      } else if (d.start || d.end) {
+      if (d.start || d.end) {
         const o: Record<string, Date> = {};
-        if (d.start) o.gte = new Date(d.start);
-        if (d.end) o.lte = new Date(d.end);
+        if (d.start) o.gte = startOfDay(d.start);
+        if (d.end) o.lte = endOfDay(d.end);
         where[d.field] = o;
       }
     }

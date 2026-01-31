@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsString, IsInt, Min, Max } from 'class-validator';
-import { Transform, Type } from 'class-transformer';
+import { Type } from 'class-transformer';
 import { PaginationDto } from '@/shared/dtos/pagination.dto';
 
 export class QueryRoleDto extends PaginationDto {
@@ -39,13 +39,7 @@ export class QueryRoleDto extends PaginationDto {
   @IsString()
   roleKey?: string;
 
-  @ApiPropertyOptional({
-    description: '创建日期范围（格式：YYYY-MM-DD_to_YYYY-MM-DD）',
-    example: '2025-08-01_to_2025-08-31',
-  })
-  @IsOptional()
-  @IsString()
-  dateRange?: string;
+ 
 
   @ApiPropertyOptional({
     description: '创建开始日期',

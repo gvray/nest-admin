@@ -30,10 +30,17 @@ export class QueryDictionaryTypeDto extends PaginationDto {
   status?: number;
 
   @ApiPropertyOptional({
-    description: '时间范围，格式：YYYY-MM-DD_to_YYYY-MM-DD',
-    example: '2025-08-05_to_2025-08-21',
+    description: '创建时间开始（YYYY-MM-DD）',
+    example: '2026-01-01',
   })
   @IsOptional()
-  @IsString({ message: '时间范围必须是字符串' })
-  dateRange?: string;
+  @IsString()
+  createdAtStart?: string;
+  @ApiPropertyOptional({
+    description: '创建时间结束（YYYY-MM-DD）',
+    example: '2026-01-31',
+  })
+  @IsOptional()
+  @IsString()
+  createdAtEnd?: string;
 }

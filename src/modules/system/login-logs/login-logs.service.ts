@@ -37,7 +37,6 @@ export class LoginLogsService extends BaseService {
       account,
       ipAddress,
       status,
-      dateRange,
       createdAtStart,
       createdAtEnd,
       location,
@@ -62,10 +61,8 @@ export class LoginLogsService extends BaseService {
       },
       date: {
         field: 'createdAt',
-        range: dateRange,
         start: createdAtStart,
         end: createdAtEnd,
-        separator: '_to_',
       },
     });
 

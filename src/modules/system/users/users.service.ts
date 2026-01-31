@@ -24,6 +24,7 @@ import {
   SUPER_USER_KEY,
 } from '@/shared/constants/role.constant';
 import { plainToInstance } from 'class-transformer';
+import { startOfDay, endOfDay } from '@/shared/utils/time.util';
 
 @Injectable()
 export class UsersService extends BaseService {
@@ -205,22 +206,13 @@ export class UsersService extends BaseService {
       where.status = query.status;
     }
 
-    // 处理日期范围查询
-    if (query?.dateRange) {
-      const [startDate, endDate] = query.dateRange.split('_to_');
-      if (startDate && endDate) {
-        where.createdAt = {
-          gte: new Date(startDate + 'T00:00:00.000Z'),
-          lte: new Date(endDate + 'T23:59:59.999Z'),
-        };
-      }
-    } else if (query?.createdAtStart || query?.createdAtEnd) {
+    if (query?.createdAtStart || query?.createdAtEnd) {
       where.createdAt = {};
       if (query.createdAtStart) {
-        where.createdAt.gte = new Date(query.createdAtStart);
+        where.createdAt.gte = startOfDay(query.createdAtStart);
       }
       if (query.createdAtEnd) {
-        where.createdAt.lte = new Date(query.createdAtEnd);
+        where.createdAt.lte = endOfDay(query.createdAtEnd);
       }
     }
 

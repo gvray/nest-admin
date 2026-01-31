@@ -48,10 +48,10 @@ export class QueryOperationLogDto extends PaginationDto {
   @ApiPropertyOptional({ description: '开始时间(ISO字符串)' })
   @IsOptional()
   @IsString()
-  startTime?: string;
+  createdAtStart?: string;
 
   @ApiPropertyOptional({ description: '结束时间(ISO字符串)' })
   @IsOptional()
   @IsString()
-  endTime?: string;
+  createdAtEnd?: string;
 }

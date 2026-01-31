@@ -13,6 +13,7 @@ import { UpdateDictionaryItemDto } from './dto/update-dictionary-item.dto';
 import { QueryDictionaryItemDto } from './dto/query-dictionary-item.dto';
 import { DictionaryItemResponseDto } from './dto/dictionary-item-response.dto';
 import { plainToInstance } from 'class-transformer';
+import { startOfDay, endOfDay } from '@/shared/utils/time.util';
 
 @Injectable()
 export class DictionariesService {
@@ -47,7 +48,16 @@ export class DictionariesService {
   async findAllDictionaryTypes(
     query: QueryDictionaryTypeDto,
   ): Promise<DictionaryTypeResponseDto[] | any> {
-    const { page, pageSize, code, name, status, dateRange, ...rest } = query;
+    const {
+      page,
+      pageSize,
+      code,
+      name,
+      status,
+      createdAtStart,
+      createdAtEnd,
+      ...rest
+    } = query;
 
     const where: any = {};
     if (code) {
@@ -60,15 +70,11 @@ export class DictionariesService {
       where.status = status;
     }
 
-    // 处理时间范围查询
-    if (dateRange) {
-      const [startDate, endDate] = dateRange.split('_to_');
-      if (startDate && endDate) {
-        where.createdAt = {
-          gte: new Date(startDate + 'T00:00:00.000Z'),
-          lte: new Date(endDate + 'T23:59:59.999Z'),
-        };
-      }
+    if (createdAtStart || createdAtEnd) {
+      const o: Record<string, Date> = {};
+      if (createdAtStart) o.gte = startOfDay(createdAtStart);
+      if (createdAtEnd) o.lte = endOfDay(createdAtEnd);
+      where.createdAt = o;
     }
 
     const hasPaginationParams =

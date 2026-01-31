@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsInt, IsDateString } from 'class-validator';
+import { IsOptional, IsString, IsInt } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { PaginationDto } from '@/shared/dtos/pagination.dto';
@@ -21,27 +21,19 @@ export class QueryLoginLogDto extends PaginationDto {
   status?: number;
 
   @ApiPropertyOptional({
-    description: '日期范围（格式：YYYY-MM-DD_to_YYYY-MM-DD）',
-    example: '2025-01-20_to_2025-01-25',
+    description: '创建时间开始（YYYY-MM-DD）',
+    example: '2026-01-01',
   })
   @IsOptional()
   @IsString()
-  dateRange?: string;
-
-  @ApiPropertyOptional({
-    description: '创建时间开始（ISO 8601格式）',
-    example: '2024-01-01T00:00:00.000Z',
-  })
-  @IsOptional()
-  @IsDateString()
   createdAtStart?: string;
 
   @ApiPropertyOptional({
-    description: '创建时间结束（ISO 8601格式）',
-    example: '2024-12-31T23:59:59.999Z',
+    description: '创建时间结束（YYYY-MM-DD）',
+    example: '2026-01-31',
   })
   @IsOptional()
-  @IsDateString()
+  @IsString()
   createdAtEnd?: string;
 
   @ApiPropertyOptional({ description: '登录地点' })
