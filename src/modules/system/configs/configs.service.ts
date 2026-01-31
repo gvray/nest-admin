@@ -1,14 +1,22 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreateConfigDto } from './dto/create-config.dto';
 import { UpdateConfigDto } from './dto/update-config.dto';
 import { QueryConfigDto } from './dto/query-config.dto';
 import { ConfigResponseDto } from './dto/config-response.dto';
 import { plainToInstance } from 'class-transformer';
+import { BaseService } from '@/shared/services/base.service';
+import { PaginationData } from '@/shared/interfaces/response.interface';
 
 @Injectable()
-export class ConfigsService {
-  constructor(private readonly prisma: PrismaService) {}
+export class ConfigsService extends BaseService {
+  constructor(protected readonly prisma: PrismaService) {
+    super(prisma);
+  }
 
   async create(
     createConfigDto: CreateConfigDto,
@@ -26,63 +34,57 @@ export class ConfigsService {
     });
   }
 
-  async findAll(query: QueryConfigDto): Promise<ConfigResponseDto[] | any> {
-    const { page, pageSize, key, name, type, group, status, ...rest } = query;
+  async findAll(
+    query: QueryConfigDto,
+  ): Promise<PaginationData<ConfigResponseDto>> {
+    const { key, name, type, group, status, createdAtStart, createdAtEnd } =
+      query;
+    const where = this.buildWhere({
+      contains: { key, name },
+      equals: { type, group, status },
+      date: { field: 'createdAt', start: createdAtStart, end: createdAtEnd },
+    });
 
-    const where: any = {};
-    if (key) where.key = { contains: key };
-    if (name) where.name = { contains: name };
-    if (type) where.type = type;
-    if (group) where.group = group;
-    if (status !== undefined) where.status = status;
-
-    // 检查是否需要分页
-    const hasPagination = page !== undefined && pageSize !== undefined;
-
-    if (hasPagination) {
-      const skip = (page - 1) * pageSize;
-      const take = pageSize;
-
+    const state = this.getPaginationState(query);
+    if (state) {
       const [configs, total] = await Promise.all([
         this.prisma.config.findMany({
           where,
           orderBy: { sort: 'asc' },
-          skip,
-          take,
+          skip: state.skip,
+          take: state.take,
         }),
         this.prisma.config.count({ where }),
       ]);
-
-      const transformedConfigs = configs.map((config) =>
+      const transformed = configs.map((config) =>
         plainToInstance(ConfigResponseDto, config, {
           excludeExtraneousValues: true,
         }),
       );
-
       return {
-        items: transformedConfigs,
-        pagination: {
-          page,
-          pageSize,
-          total,
-          pages: Math.ceil(total / pageSize),
-        },
+        items: transformed,
+        total,
+        page: state.page,
+        pageSize: state.pageSize,
       };
-    } else {
-      // 不分页，返回所有数据
-      const configs = await this.prisma.config.findMany({
-        where,
-        orderBy: { sort: 'asc' },
-      });
-
-      const transformedConfigs = configs.map((config) =>
-        plainToInstance(ConfigResponseDto, config, {
-          excludeExtraneousValues: true,
-        }),
-      );
-
-      return transformedConfigs;
     }
+
+    const configs = await this.prisma.config.findMany({
+      where,
+      orderBy: { sort: 'asc' },
+    });
+    const transformed = configs.map((config) =>
+      plainToInstance(ConfigResponseDto, config, {
+        excludeExtraneousValues: true,
+      }),
+    );
+    const total = await this.prisma.config.count({ where });
+    return {
+      items: transformed,
+      total,
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? transformed.length,
+    };
   }
 
   async findOne(configId: string): Promise<ConfigResponseDto> {
@@ -166,7 +168,19 @@ export class ConfigsService {
     });
   }
 
-  async getConfigsByKeys(keys: string[]): Promise<Record<string, any>> {
+  async removeMany(ids: string[]): Promise<void> {
+    const validIds = ids.filter(
+      (id) => typeof id === 'string' && id.length > 0,
+    );
+    if (validIds.length === 0) {
+      throw new BadRequestException('缺少有效的配置ID列表');
+    }
+    await this.prisma.config.deleteMany({
+      where: { configId: { in: validIds } },
+    });
+  }
+
+  async getConfigsByKeys(keys: string[]): Promise<Record<string, unknown>> {
     const configs = await this.prisma.config.findMany({
       where: {
         key: { in: keys },
@@ -174,28 +188,31 @@ export class ConfigsService {
       },
     });
 
-    const result: Record<string, any> = {};
+    const result: Record<string, unknown> = {};
 
     for (const config of configs) {
-      let value: any = config.value;
+      const raw = config.value;
+      let value: unknown;
 
       // 根据类型转换值
       switch (config.type) {
         case 'number':
-          value = Number(value);
+          value = Number(raw);
           break;
         case 'boolean':
-          value = value === 'true' || value === '1';
+          value = raw === 'true' || raw === '1';
           break;
         case 'json':
           try {
-            value = JSON.parse(value);
+            value = JSON.parse(raw);
           } catch {
             // 如果解析失败，保持原值
+            value = raw;
           }
           break;
         default:
           // string类型，保持原值
+          value = raw;
           break;
       }
 

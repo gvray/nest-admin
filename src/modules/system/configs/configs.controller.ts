@@ -14,6 +14,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiBody,
 } from '@nestjs/swagger';
 import { ConfigsService } from './configs.service';
 import { CreateConfigDto } from './dto/create-config.dto';
@@ -27,6 +28,8 @@ import { PermissionsGuard } from '@/core/guards/permissions.guard';
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
 import { CurrentUser } from '@/core/decorators/current-user.decorator';
 import { IUser } from '@/core/interfaces/user.interface';
+import { ResponseUtil } from '@/shared/utils/response.util';
+import { BatchDeleteConfigsDto } from './dto/batch-delete-configs.dto';
 
 @ApiTags('配置管理')
 @Controller('system/configs')
@@ -55,8 +58,9 @@ export class ConfigsController {
     description: '获取成功',
     type: [ConfigResponseDto],
   })
-  findAll(@Query() query: QueryConfigDto = new QueryConfigDto()) {
-    return this.configsService.findAll(query);
+  async findAll(@Query() query: QueryConfigDto = new QueryConfigDto()) {
+    const pageData = await this.configsService.findAll(query);
+    return ResponseUtil.paginated(pageData, '配置列表获取成功');
   }
 
   @Get('key/:key')
@@ -67,8 +71,9 @@ export class ConfigsController {
     description: '获取成功',
     type: ConfigResponseDto,
   })
-  findByKey(@Param('key') key: string) {
-    return this.configsService.findByKey(key);
+  async findByKey(@Param('key') key: string) {
+    const data = await this.configsService.findByKey(key);
+    return ResponseUtil.found(data, '获取成功');
   }
 
   @Get('group/:group')
@@ -79,8 +84,9 @@ export class ConfigsController {
     description: '获取成功',
     type: [ConfigResponseDto],
   })
-  findByGroup(@Param('group') group: string) {
-    return this.configsService.findByGroup(group);
+  async findByGroup(@Param('group') group: string) {
+    const data = await this.configsService.findByGroup(group);
+    return ResponseUtil.found(data, '获取成功');
   }
 
   @Get('batch')
@@ -94,9 +100,10 @@ export class ConfigsController {
       additionalProperties: true,
     },
   })
-  getConfigsByKeys(@Query('keys') keys: string) {
+  async getConfigsByKeys(@Query('keys') keys: string) {
     const keyArray = keys.split(',').map((key) => key.trim());
-    return this.configsService.getConfigsByKeys(keyArray);
+    const data = await this.configsService.getConfigsByKeys(keyArray);
+    return ResponseUtil.found(data, '获取成功');
   }
 
   @Get(':configId')
@@ -107,8 +114,9 @@ export class ConfigsController {
     description: '获取成功',
     type: ConfigResponseDto,
   })
-  findOne(@Param('configId') configId: string) {
-    return this.configsService.findOne(configId);
+  async findOne(@Param('configId') configId: string) {
+    const data = await this.configsService.findOne(configId);
+    return ResponseUtil.found(data, '获取成功');
   }
 
   @Patch(':configId')
@@ -119,12 +127,17 @@ export class ConfigsController {
     description: '更新成功',
     type: ConfigResponseDto,
   })
-  update(
+  async update(
     @Param('configId') configId: string,
     @Body() updateConfigDto: UpdateConfigDto,
     @CurrentUser() user: IUser,
   ) {
-    return this.configsService.update(configId, updateConfigDto, user.userId);
+    const data = await this.configsService.update(
+      configId,
+      updateConfigDto,
+      user.userId,
+    );
+    return ResponseUtil.updated(data, '更新成功');
   }
 
   @Delete(':configId')
@@ -134,7 +147,17 @@ export class ConfigsController {
     status: 200,
     description: '删除成功',
   })
-  remove(@Param('configId') configId: string) {
-    return this.configsService.remove(configId);
+  async remove(@Param('configId') configId: string) {
+    await this.configsService.remove(configId);
+    return ResponseUtil.deleted(null, '删除成功');
+  }
+
+  @Post('batch-delete')
+  @RequirePermissions('system:config:delete')
+  @ApiOperation({ summary: '批量删除配置' })
+  @ApiBody({ type: BatchDeleteConfigsDto })
+  async batchDelete(@Body() dto: BatchDeleteConfigsDto) {
+    await this.configsService.removeMany(dto.ids);
+    return ResponseUtil.deleted(null, '删除成功');
   }
 }

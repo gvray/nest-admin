@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsString, IsInt } from 'class-validator';
 import { PaginationDto } from '@/shared/dtos/pagination.dto';
 import { Type } from 'class-transformer';
@@ -29,4 +29,20 @@ export class QueryConfigDto extends PaginationDto {
   @Type(() => Number)
   @IsInt()
   status?: number;
+
+  @ApiPropertyOptional({
+    description: '创建时间开始（YYYY-MM-DD）',
+    example: '2026-01-01',
+  })
+  @IsOptional()
+  @IsString()
+  createdAtStart?: string;
+
+  @ApiPropertyOptional({
+    description: '创建时间结束（YYYY-MM-DD）',
+    example: '2026-01-31',
+  })
+  @IsOptional()
+  @IsString()
+  createdAtEnd?: string;
 }

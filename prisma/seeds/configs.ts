@@ -78,7 +78,7 @@ export async function seedConfigs() {
       name: '文件上传最大大小',
       description: '文件上传的最大大小限制（字节）',
       type: 'number',
-      group: 'file',
+      group: 'storage',
       status: 1,
       sort: 0,
       remark: '文件管理配置',
@@ -89,7 +89,7 @@ export async function seedConfigs() {
       name: '允许上传的文件类型',
       description: '允许上传的文件类型列表',
       type: 'string',
-      group: 'file',
+      group: 'storage',
       status: 1,
       sort: 1,
       remark: '文件类型限制',
@@ -100,7 +100,7 @@ export async function seedConfigs() {
       name: '邮件功能启用',
       description: '是否启用邮件功能',
       type: 'boolean',
-      group: 'email',
+      group: 'notify',
       status: 1,
       sort: 0,
       remark: '邮件功能配置',
@@ -111,7 +111,7 @@ export async function seedConfigs() {
       name: 'SMTP服务器地址',
       description: 'SMTP服务器主机地址',
       type: 'string',
-      group: 'email',
+      group: 'notify',
       status: 1,
       sort: 1,
       remark: 'SMTP配置',
@@ -122,7 +122,7 @@ export async function seedConfigs() {
       name: 'SMTP端口',
       description: 'SMTP服务器端口',
       type: 'number',
-      group: 'email',
+      group: 'notify',
       status: 1,
       sort: 2,
       remark: 'SMTP端口配置',
@@ -133,7 +133,7 @@ export async function seedConfigs() {
       name: '通知设置',
       description: '系统通知设置',
       type: 'json',
-      group: 'notification',
+      group: 'notify',
       status: 1,
       sort: 0,
       remark: '通知功能配置',
@@ -149,4 +149,4 @@ export async function seedConfigs() {
   }
 
   console.log('✅ 配置数据创建完成');
-} 
+}
