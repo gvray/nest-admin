@@ -19,4 +19,14 @@ export class QueryPositionDto extends PaginationDto {
   @Type(() => Number)
   @IsInt()
   status?: number;
+
+  @ApiPropertyOptional({ description: '创建时间开始（YYYY-MM-DD）' })
+  @IsOptional()
+  @IsString()
+  createdAtStart?: string;
+
+  @ApiPropertyOptional({ description: '创建时间结束（YYYY-MM-DD）' })
+  @IsOptional()
+  @IsString()
+  createdAtEnd?: string;
 }

@@ -10,11 +10,7 @@ import { UpdatePositionDto } from './dto/update-position.dto';
 import { QueryPositionDto } from './dto/query-position.dto';
 import { PositionResponseDto } from './dto/position-response.dto';
 import { BaseService } from '@/shared/services/base.service';
-import { ResponseUtil } from '@/shared/utils/response.util';
-import {
-  ApiResponse,
-  PaginationResponse,
-} from '@/shared/interfaces/response.interface';
+import { PaginationData } from '@/shared/interfaces/response.interface';
 
 @Injectable()
 export class PositionsService extends BaseService {
@@ -59,25 +55,13 @@ export class PositionsService extends BaseService {
 
   async findAll(
     query: QueryPositionDto,
-  ): Promise<
-    PaginationResponse<PositionResponseDto> | ApiResponse<PositionResponseDto[]>
-  > {
-    const { name, code, status } = query;
-
-    const where: Record<string, unknown> = {};
-
-    if (name) {
-      where.name = { contains: name };
-    }
-
-    if (code) {
-      where.code = { contains: code };
-    }
-
-    if (status !== undefined) {
-      where.status = status;
-    }
-
+  ): Promise<PaginationData<PositionResponseDto>> {
+    const { name, code, status, createdAtStart, createdAtEnd } = query;
+    const where = this.buildWhere({
+      contains: { name, code },
+      equals: { status },
+      date: { field: 'createdAt', start: createdAtStart, end: createdAtEnd },
+    });
     const include = {
       userPositions: {
         select: {
@@ -92,57 +76,43 @@ export class PositionsService extends BaseService {
         },
       },
     };
-
-    // 使用 PaginationDto 的方法来判断是否需要分页
-    const skip = query.getSkip();
-    const take = query.getTake();
-
-    if (skip !== undefined && take !== undefined && query) {
-      const result = (await this.paginateWithResponse(
-        this.prisma.position,
-        query,
-        where,
-        include,
-        [{ sort: 'asc' }, { createdAt: 'desc' }],
-        '岗位列表查询成功',
-      )) as PaginationResponse<any>;
-
-      if (
-        'data' in result &&
-        result.data &&
-        'items' in result.data &&
-        Array.isArray(result.data.items)
-      ) {
-        const transformedItems = plainToInstance(
-          PositionResponseDto,
-          result.data.items,
-          {
-            excludeExtraneousValues: true,
-          },
-        );
-        return {
-          ...result,
-          data: {
-            ...result.data,
-            items: transformedItems,
-          },
-        };
-      }
-
-      return result;
+    const state = this.getPaginationState(query);
+    if (state) {
+      const [items, total] = await Promise.all([
+        this.prisma.position.findMany({
+          where,
+          include,
+          orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
+          skip: state.skip,
+          take: state.take,
+        }),
+        this.prisma.position.count({ where }),
+      ]);
+      const transformedItems = plainToInstance(PositionResponseDto, items, {
+        excludeExtraneousValues: true,
+      });
+      return {
+        items: transformedItems,
+        total,
+        page: state.page,
+        pageSize: state.pageSize,
+      };
     }
-
-    // 不分页查询
-    const positions = await this.prisma.position.findMany({
+    const items = await this.prisma.position.findMany({
       where,
       include,
       orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
     });
-
-    const positionResponses = plainToInstance(PositionResponseDto, positions, {
+    const total = await this.prisma.position.count({ where });
+    const transformedItems = plainToInstance(PositionResponseDto, items, {
       excludeExtraneousValues: true,
     });
-    return ResponseUtil.found(positionResponses, '岗位列表查询成功');
+    return {
+      items: transformedItems,
+      total,
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? transformedItems.length,
+    };
   }
 
   async findOne(id: string): Promise<PositionResponseDto> {
@@ -235,5 +205,22 @@ export class PositionsService extends BaseService {
     await this.prisma.position.delete({
       where: { id: existingPosition.id },
     });
+  }
+
+  async removeMany(ids: string[]): Promise<void> {
+    const numericIds = ids
+      .map((x) => Number(x))
+      .filter((n) => Number.isInteger(n));
+    const stringIds = ids.filter((x) => isNaN(Number(x)) && x.length > 0);
+    if (numericIds.length > 0) {
+      await this.prisma.position.deleteMany({
+        where: { id: { in: numericIds } },
+      });
+    }
+    if (stringIds.length > 0) {
+      await this.prisma.position.deleteMany({
+        where: { positionId: { in: stringIds } },
+      });
+    }
   }
 }
