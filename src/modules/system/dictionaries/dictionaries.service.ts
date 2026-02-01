@@ -13,11 +13,14 @@ import { UpdateDictionaryItemDto } from './dto/update-dictionary-item.dto';
 import { QueryDictionaryItemDto } from './dto/query-dictionary-item.dto';
 import { DictionaryItemResponseDto } from './dto/dictionary-item-response.dto';
 import { plainToInstance } from 'class-transformer';
-import { startOfDay, endOfDay } from '@/shared/utils/time.util';
+import { BaseService } from '@/shared/services/base.service';
+import { PaginationData } from '@/shared/interfaces/response.interface';
 
 @Injectable()
-export class DictionariesService {
-  constructor(private readonly prisma: PrismaService) {}
+export class DictionariesService extends BaseService {
+  constructor(protected readonly prisma: PrismaService) {
+    super(prisma);
+  }
 
   // 字典类型相关方法
   async createDictionaryType(
@@ -47,79 +50,48 @@ export class DictionariesService {
 
   async findAllDictionaryTypes(
     query: QueryDictionaryTypeDto,
-  ): Promise<DictionaryTypeResponseDto[] | any> {
-    const {
-      page,
-      pageSize,
-      code,
-      name,
-      status,
-      createdAtStart,
-      createdAtEnd,
-      ...rest
-    } = query;
-
-    const where: any = {};
-    if (code) {
-      where.code = { contains: code };
-    }
-    if (name) {
-      where.name = { contains: name };
-    }
-    if (status !== undefined) {
-      where.status = status;
-    }
-
-    if (createdAtStart || createdAtEnd) {
-      const o: Record<string, Date> = {};
-      if (createdAtStart) o.gte = startOfDay(createdAtStart);
-      if (createdAtEnd) o.lte = endOfDay(createdAtEnd);
-      where.createdAt = o;
-    }
-
-    const hasPaginationParams =
-      query.page !== undefined || query.pageSize !== undefined;
-
-    if (hasPaginationParams) {
-      const skip = query.page ? (query.page - 1) * query.pageSize! : 0;
-      const take = query.pageSize || 10;
-      const [data, total] = await Promise.all([
+  ): Promise<PaginationData<DictionaryTypeResponseDto>> {
+    const { code, name, status, createdAtStart, createdAtEnd } = query;
+    const where: Record<string, unknown> = this.buildWhere({
+      contains: { code, name },
+      equals: { status },
+      date: { field: 'createdAt', start: createdAtStart, end: createdAtEnd },
+    });
+    const state = this.getPaginationState(query);
+    if (state) {
+      const [items, total] = await Promise.all([
         this.prisma.dictionaryType.findMany({
           where,
-          skip,
-          take,
           orderBy: { sort: 'asc' },
+          skip: state.skip,
+          take: state.take,
         }),
         this.prisma.dictionaryType.count({ where }),
       ]);
-
-      const totalPages = Math.ceil(total / take);
-      const hasNext = query.page! < totalPages;
-      const hasPrev = query.page! > 1;
-
-      const paginationData = {
-        items: plainToInstance(DictionaryTypeResponseDto, data, {
-          excludeExtraneousValues: true,
-        }),
-        total,
-        page: query.page!,
-        pageSize: query.pageSize!,
-        totalPages,
-        hasNext,
-        hasPrev,
-      };
-
-      return paginationData;
-    } else {
-      const data = await this.prisma.dictionaryType.findMany({
-        where,
-        orderBy: { sort: 'asc' },
-      });
-
-      return plainToInstance(DictionaryTypeResponseDto, data, {
+      const transformed = plainToInstance(DictionaryTypeResponseDto, items, {
         excludeExtraneousValues: true,
       });
+      return {
+        items: transformed,
+        total,
+        page: state.page,
+        pageSize: state.pageSize,
+      };
     }
+    const items = await this.prisma.dictionaryType.findMany({
+      where,
+      orderBy: { sort: 'asc' },
+    });
+    const total = await this.prisma.dictionaryType.count({ where });
+    const transformed = plainToInstance(DictionaryTypeResponseDto, items, {
+      excludeExtraneousValues: true,
+    });
+    return {
+      items: transformed,
+      total,
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? transformed.length,
+    };
   }
 
   async findOneDictionaryType(
@@ -234,83 +206,55 @@ export class DictionariesService {
 
   async findAllDictionaryItems(
     query: QueryDictionaryItemDto,
-  ): Promise<DictionaryItemResponseDto[] | any> {
-    const { page, pageSize, typeCode, label, value, status, ...rest } = query;
-
-    const where: any = {};
-    if (typeCode) {
-      where.typeCode = typeCode;
-    }
-    if (label) {
-      where.label = { contains: label };
-    }
-    if (value) {
-      where.value = { contains: value };
-    }
-    if (status !== undefined) {
-      where.status = status;
-    }
-
-    const hasPaginationParams =
-      query.page !== undefined || query.pageSize !== undefined;
-
-    if (hasPaginationParams) {
-      const skip = query.page ? (query.page - 1) * query.pageSize! : 0;
-      const take = query.pageSize || 10;
-      const [data, total] = await Promise.all([
+  ): Promise<PaginationData<DictionaryItemResponseDto>> {
+    const { typeCode, label, value, status } = query;
+    const where: Record<string, unknown> = this.buildWhere({
+      contains: { label, value },
+      equals: { typeCode, status },
+    });
+    const state = this.getPaginationState(query);
+    if (state) {
+      const [items, total] = await Promise.all([
         this.prisma.dictionaryItem.findMany({
           where,
-          skip,
-          take,
           orderBy: { sort: 'asc' },
+          skip: state.skip,
+          take: state.take,
           include: {
             type: {
-              select: {
-                typeId: true,
-                code: true,
-                name: true,
-              },
+              select: { typeId: true, code: true, name: true },
             },
           },
         }),
         this.prisma.dictionaryItem.count({ where }),
       ]);
-
-      const totalPages = Math.ceil(total / take);
-      const hasNext = query.page! < totalPages;
-      const hasPrev = query.page! > 1;
-
-      const paginationData = {
-        items: plainToInstance(DictionaryItemResponseDto, data, {
-          excludeExtraneousValues: true,
-        }),
-        total,
-        page: query.page!,
-        pageSize: query.pageSize!,
-        totalPages,
-        hasNext,
-        hasPrev,
-      };
-
-      return paginationData;
-    } else {
-      const data = await this.prisma.dictionaryItem.findMany({
-        where,
-        orderBy: { sort: 'asc' },
-        include: {
-          type: {
-            select: {
-              typeId: true,
-              name: true,
-            },
-          },
-        },
-      });
-
-      return plainToInstance(DictionaryItemResponseDto, data, {
+      const transformed = plainToInstance(DictionaryItemResponseDto, items, {
         excludeExtraneousValues: true,
       });
+      return {
+        items: transformed,
+        total,
+        page: state.page,
+        pageSize: state.pageSize,
+      };
     }
+    const items = await this.prisma.dictionaryItem.findMany({
+      where,
+      orderBy: { sort: 'asc' },
+      include: {
+        type: { select: { typeId: true, name: true } },
+      },
+    });
+    const total = await this.prisma.dictionaryItem.count({ where });
+    const transformed = plainToInstance(DictionaryItemResponseDto, items, {
+      excludeExtraneousValues: true,
+    });
+    return {
+      items: transformed,
+      total,
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? transformed.length,
+    };
   }
 
   async findOneDictionaryItem(
@@ -405,12 +349,8 @@ export class DictionariesService {
   // 根据多个字典类型编码获取字典项列表
   async getDictionaryItemsByTypeCodes(
     typeCodes: string[],
-  ): Promise<Record<string, any[]>> {
-    console.log(
-      'getDictionaryItemsByTypeCodes called with typeCodes:',
-      typeCodes,
-    );
-    const result: Record<string, any[]> = {};
+  ): Promise<Record<string, Array<{ value: string; label: string }>>> {
+    const result: Record<string, Array<{ value: string; label: string }>> = {};
 
     for (const typeCode of typeCodes) {
       try {
@@ -436,12 +376,33 @@ export class DictionariesService {
           value: item.value,
           label: item.label,
         }));
-      } catch (error) {
-        // 如果某个字典类型不存在，返回空数组
+      } catch {
         result[typeCode] = [];
       }
     }
 
     return result;
+  }
+
+  async removeManyDictionaryTypes(ids: string[]): Promise<void> {
+    const types = await this.prisma.dictionaryType.findMany({
+      where: { typeId: { in: ids } },
+      include: { items: true },
+    });
+    const blocked = types
+      .filter((t) => t.items.length > 0)
+      .map((t) => t.typeId);
+    if (blocked.length > 0) {
+      throw new ConflictException('存在关联字典项，无法批量删除');
+    }
+    await this.prisma.dictionaryType.deleteMany({
+      where: { typeId: { in: ids } },
+    });
+  }
+
+  async removeManyDictionaryItems(ids: string[]): Promise<void> {
+    await this.prisma.dictionaryItem.deleteMany({
+      where: { itemId: { in: ids } },
+    });
   }
 }

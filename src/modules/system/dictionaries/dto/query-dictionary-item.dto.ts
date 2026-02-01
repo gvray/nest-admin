@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsString, IsInt, Min, Max } from 'class-validator';
 import { PaginationDto } from '@/shared/dtos/pagination.dto';
+import { Type } from 'class-transformer';
 
 export class QueryDictionaryItemDto extends PaginationDto {
   @ApiPropertyOptional({
@@ -32,6 +33,7 @@ export class QueryDictionaryItemDto extends PaginationDto {
     example: 1,
   })
   @IsOptional()
+  @Type(() => Number)
   @IsInt({ message: '状态必须是整数' })
   @Min(0, { message: '状态不能小于0' })
   @Max(1, { message: '状态不能大于1' })

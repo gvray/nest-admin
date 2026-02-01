@@ -14,6 +14,7 @@ import {
   ApiOperation,
   ApiTags,
   ApiResponse,
+  ApiBody,
 } from '@nestjs/swagger';
 import { DictionariesService } from './dictionaries.service';
 import { CreateDictionaryTypeDto } from './dto/create-dictionary-type.dto';
@@ -31,6 +32,9 @@ import { PermissionsGuard } from '@/core/guards/permissions.guard';
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
 import { CurrentUser } from '@/core/decorators/current-user.decorator';
 import { IUser } from '@/core/interfaces/user.interface';
+import { ResponseUtil } from '@/shared/utils/response.util';
+import { BatchDeleteDictionaryTypesDto } from './dto/batch-delete-dictionary-types.dto';
+import { BatchDeleteDictionaryItemsDto } from './dto/batch-delete-dictionary-items.dto';
 
 @ApiTags('字典管理')
 @Controller('system/dictionaries')
@@ -53,9 +57,12 @@ export class DictionariesController {
     @Body() createDictionaryTypeDto: CreateDictionaryTypeDto,
     @CurrentUser() user: IUser,
   ) {
-    return this.dictionariesService.createDictionaryType(
-      createDictionaryTypeDto,
-      user.userId,
+    return ResponseUtil.created(
+      this.dictionariesService.createDictionaryType(
+        createDictionaryTypeDto,
+        user.userId,
+      ),
+      '创建成功',
     );
   }
 
@@ -68,13 +75,13 @@ export class DictionariesController {
     description: '字典类型列表',
     type: [DictionaryTypeResponseDto],
   })
-  findAllDictionaryTypes(
+  async findAllDictionaryTypes(
     @Query() query: QueryDictionaryTypeDto = new QueryDictionaryTypeDto(),
   ) {
-    return this.dictionariesService.findAllDictionaryTypes(query);
+    const pageData =
+      await this.dictionariesService.findAllDictionaryTypes(query);
+    return ResponseUtil.paginated(pageData, '字典类型列表');
   }
-
-  // 根据多个字典类型编码获取字典项列表
   @Get('types/batch')
   @RequirePermissions('system:dictionary:view')
   @ApiBearerAuth('JWT-auth')
@@ -96,15 +103,13 @@ export class DictionariesController {
       },
     },
   })
-  getDictionaryItemsByTypeCodes(@Query('typeCodes') typeCodes: string) {
-    console.log(
-      'Controller getDictionaryItemsByTypeCodes called with typeCodes:',
-      typeCodes,
-    );
+  async getDictionaryItemsByTypeCodes(@Query('typeCodes') typeCodes: string) {
     const typeCodeArray = typeCodes.split(',').map((code) => code.trim());
-    return this.dictionariesService.getDictionaryItemsByTypeCodes(
-      typeCodeArray,
-    );
+    const data =
+      await this.dictionariesService.getDictionaryItemsByTypeCodes(
+        typeCodeArray,
+      );
+    return ResponseUtil.found(data, '获取成功');
   }
 
   @Get('types/:typeId')
@@ -117,9 +122,9 @@ export class DictionariesController {
     type: DictionaryTypeResponseDto,
   })
   @ApiResponse({ status: 404, description: '字典类型不存在' })
-  findOneDictionaryType(@Param('typeId') typeId: string) {
-    console.log('Controller findOneDictionaryType called with typeId:', typeId);
-    return this.dictionariesService.findOneDictionaryType(typeId);
+  async findOneDictionaryType(@Param('typeId') typeId: string) {
+    const data = await this.dictionariesService.findOneDictionaryType(typeId);
+    return ResponseUtil.found(data, '获取成功');
   }
 
   @Patch('types/:typeId')
@@ -132,16 +137,17 @@ export class DictionariesController {
     type: DictionaryTypeResponseDto,
   })
   @ApiResponse({ status: 404, description: '字典类型不存在' })
-  updateDictionaryType(
+  async updateDictionaryType(
     @Param('typeId') typeId: string,
     @Body() updateDictionaryTypeDto: UpdateDictionaryTypeDto,
     @CurrentUser() user: IUser,
   ) {
-    return this.dictionariesService.updateDictionaryType(
+    const data = await this.dictionariesService.updateDictionaryType(
       typeId,
       updateDictionaryTypeDto,
       user.userId,
     );
+    return ResponseUtil.updated(data, '更新成功');
   }
 
   @Delete('types/:typeId')
@@ -150,8 +156,19 @@ export class DictionariesController {
   @ApiOperation({ summary: '删除字典类型（通过TypeId）' })
   @ApiResponse({ status: 200, description: '删除成功' })
   @ApiResponse({ status: 404, description: '字典类型不存在' })
-  removeDictionaryType(@Param('typeId') typeId: string) {
-    return this.dictionariesService.removeDictionaryType(typeId);
+  async removeDictionaryType(@Param('typeId') typeId: string) {
+    await this.dictionariesService.removeDictionaryType(typeId);
+    return ResponseUtil.deleted(null, '删除成功');
+  }
+
+  @Post('types/batch-delete')
+  @RequirePermissions('system:dictionary:delete')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '批量删除字典类型' })
+  @ApiBody({ type: BatchDeleteDictionaryTypesDto })
+  async batchDeleteTypes(@Body() dto: BatchDeleteDictionaryTypesDto) {
+    await this.dictionariesService.removeManyDictionaryTypes(dto.ids);
+    return ResponseUtil.deleted(null, '删除成功');
   }
 
   // 字典项相关接口
@@ -168,9 +185,13 @@ export class DictionariesController {
     @Body() createDictionaryItemDto: CreateDictionaryItemDto,
     @CurrentUser() user: IUser,
   ) {
-    return this.dictionariesService.createDictionaryItem(
-      createDictionaryItemDto,
-      user.userId,
+    return ResponseUtil.created(
+      // eslint-disable-next-line @typescript-eslint/return-await
+      this.dictionariesService.createDictionaryItem(
+        createDictionaryItemDto,
+        user.userId,
+      ),
+      '创建成功',
     );
   }
 
@@ -183,8 +204,10 @@ export class DictionariesController {
     description: '字典项列表',
     type: [DictionaryItemResponseDto],
   })
-  findAllDictionaryItems(@Query() query: QueryDictionaryItemDto) {
-    return this.dictionariesService.findAllDictionaryItems(query);
+  async findAllDictionaryItems(@Query() query: QueryDictionaryItemDto) {
+    const pageData =
+      await this.dictionariesService.findAllDictionaryItems(query);
+    return ResponseUtil.paginated(pageData, '字典项列表');
   }
 
   @Get('items/:itemId')
@@ -197,8 +220,9 @@ export class DictionariesController {
     type: DictionaryItemResponseDto,
   })
   @ApiResponse({ status: 404, description: '字典项不存在' })
-  findOneDictionaryItem(@Param('itemId') itemId: string) {
-    return this.dictionariesService.findOneDictionaryItem(itemId);
+  async findOneDictionaryItem(@Param('itemId') itemId: string) {
+    const data = await this.dictionariesService.findOneDictionaryItem(itemId);
+    return ResponseUtil.found(data, '获取成功');
   }
 
   @Patch('items/:itemId')
@@ -211,16 +235,17 @@ export class DictionariesController {
     type: DictionaryItemResponseDto,
   })
   @ApiResponse({ status: 404, description: '字典项不存在' })
-  updateDictionaryItem(
+  async updateDictionaryItem(
     @Param('itemId') itemId: string,
     @Body() updateDictionaryItemDto: UpdateDictionaryItemDto,
     @CurrentUser() user: IUser,
   ) {
-    return this.dictionariesService.updateDictionaryItem(
+    const data = await this.dictionariesService.updateDictionaryItem(
       itemId,
       updateDictionaryItemDto,
       user.userId,
     );
+    return ResponseUtil.updated(data, '更新成功');
   }
 
   @Delete('items/:itemId')
@@ -229,8 +254,9 @@ export class DictionariesController {
   @ApiOperation({ summary: '删除字典项（通过ItemId）' })
   @ApiResponse({ status: 200, description: '删除成功' })
   @ApiResponse({ status: 404, description: '字典项不存在' })
-  removeDictionaryItem(@Param('itemId') itemId: string) {
-    return this.dictionariesService.removeDictionaryItem(itemId);
+  async removeDictionaryItem(@Param('itemId') itemId: string) {
+    await this.dictionariesService.removeDictionaryItem(itemId);
+    return ResponseUtil.deleted(null, '删除成功');
   }
 
   // 根据字典类型编码获取字典项列表
@@ -244,11 +270,19 @@ export class DictionariesController {
     type: [DictionaryItemResponseDto],
   })
   @ApiResponse({ status: 404, description: '字典类型不存在' })
-  getDictionaryItemsByTypeCode(@Param('typeCode') typeCode: string) {
-    console.log(
-      'Controller getDictionaryItemsByTypeCode called with typeCode:',
-      typeCode,
-    );
-    return this.dictionariesService.getDictionaryItemsByTypeCode(typeCode);
+  async getDictionaryItemsByTypeCode(@Param('typeCode') typeCode: string) {
+    const data =
+      await this.dictionariesService.getDictionaryItemsByTypeCode(typeCode);
+    return ResponseUtil.found(data, '获取成功');
+  }
+
+  @Post('items/batch-delete')
+  @RequirePermissions('system:dictionary:delete')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '批量删除字典项' })
+  @ApiBody({ type: BatchDeleteDictionaryItemsDto })
+  async batchDeleteItems(@Body() dto: BatchDeleteDictionaryItemsDto) {
+    await this.dictionariesService.removeManyDictionaryItems(dto.ids);
+    return ResponseUtil.deleted(null, '删除成功');
   }
 }
