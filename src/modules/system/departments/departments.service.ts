@@ -5,15 +5,15 @@ import {
 } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '@/prisma/prisma.service';
+import type { Department } from '@prisma/client';
+import { startOfDay, endOfDay } from '@/shared/utils/time.util';
+import { Prisma } from '@prisma/client';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
 import { QueryDepartmentDto } from './dto/query-department.dto';
 import { DepartmentResponseDto } from './dto/department-response.dto';
 import { BaseService } from '@/shared/services/base.service';
-import {
-  ApiResponse,
-  PaginationResponse,
-} from '@/shared/interfaces/response.interface';
+import { PaginationData } from '@/shared/interfaces/response.interface';
 
 @Injectable()
 export class DepartmentsService extends BaseService {
@@ -48,10 +48,7 @@ export class DepartmentsService extends BaseService {
 
     const { parentId, ...departmentData } = createDepartmentDto;
     const department = await this.prisma.department.create({
-      data: {
-        ...departmentData,
-        ...(parentId && { parentId }),
-      } as any,
+      data: parentId ? { ...departmentData, parentId } : { ...departmentData },
       include: {
         parent: true,
         children: true,
@@ -65,82 +62,52 @@ export class DepartmentsService extends BaseService {
 
   async findAll(
     query: QueryDepartmentDto,
-  ): Promise<
-    | PaginationResponse<DepartmentResponseDto>
-    | ApiResponse<DepartmentResponseDto[]>
-  > {
-    const { name, status, parentId } = query;
-
-    const where: Record<string, unknown> = {};
-
-    if (name) {
-      where.name = { contains: name };
-    }
-
-    if (status !== undefined) {
-      where.status = status;
-    }
-
-    if (parentId !== undefined) {
-      where.parentId = parentId;
-    }
-
+  ): Promise<PaginationData<DepartmentResponseDto>> {
+    const { name, status, parentId, createdAtStart, createdAtEnd } = query;
+    const where = this.buildWhere({
+      contains: { name },
+      equals: { status, parentId },
+      date: { field: 'createdAt', start: createdAtStart, end: createdAtEnd },
+    });
     const include = {
-      _count: {
-        select: {
-          users: true,
-        },
-      },
+      _count: { select: { users: true } },
     };
-
-    // 使用 PaginationDto 的方法来判断是否需要分页
-    const skip = query.getSkip();
-    const take = query.getTake();
-
-    if (skip !== undefined && take !== undefined) {
-      // 分页查询
-      const [departments, totalItems] = await Promise.all([
+    const state = this.getPaginationState(query);
+    if (state) {
+      const [items, total] = await Promise.all([
         this.prisma.department.findMany({
           where,
           include,
-          skip,
-          take,
+          skip: state.skip,
+          take: state.take,
           orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
         }),
         this.prisma.department.count({ where }),
       ]);
-
+      const transformed = plainToInstance(DepartmentResponseDto, items, {
+        excludeExtraneousValues: true,
+      });
       return {
-        success: true,
-        code: 200,
-        message: '部门列表查询成功',
-        data: {
-          items: plainToInstance(DepartmentResponseDto, departments, {
-            excludeExtraneousValues: true,
-          }),
-          total: totalItems,
-          page: query.page!,
-          pageSize: query.pageSize!,
-        },
-        timestamp: new Date().toISOString(),
+        items: transformed,
+        total,
+        page: state.page,
+        pageSize: state.pageSize,
       };
     }
-
-    // 返回全量数据（不分页）
-    const departments = await this.prisma.department.findMany({
+    const items = await this.prisma.department.findMany({
       where,
       include,
       orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
     });
-
+    const total = await this.prisma.department.count({ where });
+    const transformed = plainToInstance(DepartmentResponseDto, items, {
+      excludeExtraneousValues: true,
+    });
     return {
-      success: true,
-      code: 200,
-      message: '部门列表查询成功',
-      data: plainToInstance(DepartmentResponseDto, departments, {
-        excludeExtraneousValues: true,
-      }),
-      timestamp: new Date().toISOString(),
+      items: transformed,
+      total,
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? transformed.length,
     };
   }
 
@@ -266,73 +233,86 @@ export class DepartmentsService extends BaseService {
     });
   }
 
+  async removeMany(ids: string[]): Promise<void> {
+    const deps = await this.prisma.department.findMany({
+      where: { departmentId: { in: ids } },
+      include: { children: true, users: true },
+    });
+    const blocked = deps.filter(
+      (d) => (d.children?.length ?? 0) > 0 || (d.users?.length ?? 0) > 0,
+    );
+    if (blocked.length > 0) {
+      throw new ConflictException('存在子部门或用户，无法批量删除');
+    }
+    await this.prisma.department.deleteMany({
+      where: { departmentId: { in: ids } },
+    });
+  }
+
   async getTree(
     queryDto?: QueryDepartmentDto,
-  ): Promise<ApiResponse<DepartmentResponseDto[]>> {
-    console.log('getTree called with queryDto:', queryDto);
-
-    let allDepartments: any[] = [];
+  ): Promise<DepartmentResponseDto[]> {
+    type DeptMinimal = { departmentId: string; parentId: string | null };
+    let allDepartments: Department[] = [];
 
     // 检查是否有搜索条件
     const hasSearchConditions =
-      queryDto?.name || queryDto?.status !== undefined || queryDto?.parentId;
+      queryDto?.name ||
+      queryDto?.status !== undefined ||
+      queryDto?.parentId ||
+      queryDto?.createdAtStart !== undefined ||
+      queryDto?.createdAtEnd !== undefined;
 
     if (hasSearchConditions) {
       // 有搜索条件时，先找到匹配的部门，然后获取对应的父级路径
-      const whereConditions: any = {};
+      const whereConditions: Prisma.DepartmentWhereInput = {};
 
       // 处理状态过滤
       if (queryDto?.status !== undefined) {
         whereConditions.status = queryDto.status;
       } else {
-        // 默认只显示启用状态的部门
         whereConditions.status = 1;
       }
 
       // 处理名称搜索
       if (queryDto?.name) {
-        // 修复字符编码问题：对名称进行 URL 解码
         let processedName = queryDto.name;
-
-        // 方法1：尝试 URL 解码
         try {
           processedName = decodeURIComponent(queryDto.name);
-        } catch (error) {
-          // 忽略错误
+        } catch {
+          processedName = queryDto.name;
         }
-
-        // 方法2：如果还是乱码，尝试 Buffer 转换
         if (processedName.includes('å') || processedName.includes('ä')) {
           try {
             const buffer = Buffer.from(queryDto.name, 'latin1');
             processedName = buffer.toString('utf8');
-          } catch (error) {
-            // 忽略错误
+          } catch {
+            processedName = queryDto.name;
           }
         }
 
         whereConditions.name = { contains: processedName };
-        console.log('getTree - Original name:', queryDto.name);
-        console.log('getTree - Processed name:', processedName);
       }
 
       // 处理父部门ID过滤
       if (queryDto?.parentId !== undefined) {
         whereConditions.parentId = queryDto.parentId;
       }
-
-      console.log('getTree - Final whereConditions:', whereConditions);
+      if (queryDto?.createdAtStart || queryDto?.createdAtEnd) {
+        const o: { gte?: Date; lte?: Date } = {};
+        if (queryDto.createdAtStart)
+          o.gte = startOfDay(queryDto.createdAtStart);
+        if (queryDto.createdAtEnd) o.lte = endOfDay(queryDto.createdAtEnd);
+        whereConditions.createdAt = o;
+      }
 
       // 找到匹配的部门
-      const matchedDepartments = await this.prisma.department.findMany({
-        where: whereConditions,
-        orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
-      });
-
-      console.log(
-        'getTree - Found departments count:',
-        matchedDepartments.length,
-      );
+      const matchedDepartments: DeptMinimal[] =
+        await this.prisma.department.findMany({
+          where: whereConditions,
+          orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
+          select: { departmentId: true, parentId: true },
+        });
 
       if (matchedDepartments.length > 0) {
         // 收集所有需要包含的部门ID（匹配的部门 + 它们的父级路径）
@@ -364,11 +344,8 @@ export class DepartmentsService extends BaseService {
       });
     }
 
-    console.log('getTree - Final departments count:', allDepartments.length);
-
     // 构建完整的树形结构
-    interface DepartmentNode {
-      [key: string]: any;
+    interface DepartmentNode extends Department {
       children: DepartmentNode[];
     }
 
@@ -399,7 +376,6 @@ export class DepartmentsService extends BaseService {
         rootDepartments.push(departmentNode);
       }
     });
-
     // 递归转换嵌套对象为 DTO 格式
     const convertToDto = (nodes: DepartmentNode[]): DepartmentResponseDto[] => {
       return nodes.map((node) => {
@@ -415,15 +391,7 @@ export class DepartmentsService extends BaseService {
       });
     };
 
-    const result = convertToDto(rootDepartments);
-
-    return {
-      success: true,
-      code: 200,
-      message: '操作成功',
-      data: result,
-      timestamp: new Date().toISOString(),
-    };
+    return convertToDto(rootDepartments);
   }
 
   /**
@@ -462,7 +430,10 @@ export class DepartmentsService extends BaseService {
         return true; // 发现循环
       }
 
-      const currentDepartment = await this.prisma.department.findUnique({
+      const currentDepartment: {
+        departmentId: string;
+        parentId: string | null;
+      } | null = await this.prisma.department.findUnique({
         where: { departmentId: currentParentDepartmentId },
         select: { departmentId: true, parentId: true },
       });

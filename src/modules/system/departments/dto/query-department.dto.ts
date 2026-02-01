@@ -19,4 +19,14 @@ export class QueryDepartmentDto extends PaginationDto {
   @IsOptional()
   @IsString()
   parentId?: string;
+
+  @ApiPropertyOptional({ description: '创建时间开始（YYYY-MM-DD）' })
+  @IsOptional()
+  @IsString()
+  createdAtStart?: string;
+
+  @ApiPropertyOptional({ description: '创建时间结束（YYYY-MM-DD）' })
+  @IsOptional()
+  @IsString()
+  createdAtEnd?: string;
 }

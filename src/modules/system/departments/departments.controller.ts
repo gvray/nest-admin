@@ -13,6 +13,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiBody,
 } from '@nestjs/swagger';
 import { DepartmentsService } from './departments.service';
 import { CreateDepartmentDto } from './dto/create-department.dto';
@@ -20,6 +21,8 @@ import { UpdateDepartmentDto } from './dto/update-department.dto';
 import { QueryDepartmentDto } from './dto/query-department.dto';
 import { DepartmentResponseDto } from './dto/department-response.dto';
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
+import { ResponseUtil } from '@/shared/utils/response.util';
+import { BatchDeleteDepartmentsDto } from './dto/batch-delete-departments.dto';
 
 @ApiTags('部门管理')
 @ApiBearerAuth()
@@ -35,8 +38,9 @@ export class DepartmentsController {
     description: '部门创建成功',
     type: DepartmentResponseDto,
   })
-  create(@Body() createDepartmentDto: CreateDepartmentDto) {
-    return this.departmentsService.create(createDepartmentDto);
+  async create(@Body() createDepartmentDto: CreateDepartmentDto) {
+    const data = await this.departmentsService.create(createDepartmentDto);
+    return ResponseUtil.created(data, '部门创建成功');
   }
 
   @Get()
@@ -46,8 +50,9 @@ export class DepartmentsController {
     status: 200,
     description: '获取部门列表成功',
   })
-  findAll(@Query() query: QueryDepartmentDto) {
-    return this.departmentsService.findAll(query);
+  async findAll(@Query() query: QueryDepartmentDto) {
+    const pageData = await this.departmentsService.findAll(query);
+    return ResponseUtil.paginated(pageData, '获取部门列表成功');
   }
 
   @Get('tree')
@@ -58,8 +63,9 @@ export class DepartmentsController {
     description: '获取部门树形结构成功',
     type: [DepartmentResponseDto],
   })
-  getTree(@Query() queryDto: QueryDepartmentDto) {
-    return this.departmentsService.getTree(queryDto);
+  async getTree(@Query() queryDto: QueryDepartmentDto) {
+    const data = await this.departmentsService.getTree(queryDto);
+    return ResponseUtil.found(data, '获取部门树形结构成功');
   }
 
   @Get(':departmentId')
@@ -70,8 +76,9 @@ export class DepartmentsController {
     description: '获取部门详情成功',
     type: DepartmentResponseDto,
   })
-  findOne(@Param('departmentId') departmentId: string) {
-    return this.departmentsService.findOne(departmentId);
+  async findOne(@Param('departmentId') departmentId: string) {
+    const data = await this.departmentsService.findOne(departmentId);
+    return ResponseUtil.found(data, '获取部门详情成功');
   }
 
   @Patch(':departmentId')
@@ -82,11 +89,15 @@ export class DepartmentsController {
     description: '部门更新成功',
     type: DepartmentResponseDto,
   })
-  update(
+  async update(
     @Param('departmentId') departmentId: string,
     @Body() updateDepartmentDto: UpdateDepartmentDto,
   ) {
-    return this.departmentsService.update(departmentId, updateDepartmentDto);
+    const data = await this.departmentsService.update(
+      departmentId,
+      updateDepartmentDto,
+    );
+    return ResponseUtil.updated(data, '部门更新成功');
   }
 
   @Delete(':departmentId')
@@ -96,7 +107,17 @@ export class DepartmentsController {
     status: 200,
     description: '部门删除成功',
   })
-  remove(@Param('departmentId') departmentId: string) {
-    return this.departmentsService.remove(departmentId);
+  async remove(@Param('departmentId') departmentId: string) {
+    await this.departmentsService.remove(departmentId);
+    return ResponseUtil.deleted(null, '部门删除成功');
+  }
+
+  @Post('batch-delete')
+  @RequirePermissions('system:department:delete')
+  @ApiOperation({ summary: '批量删除部门' })
+  @ApiBody({ type: BatchDeleteDepartmentsDto })
+  async batchDelete(@Body() dto: BatchDeleteDepartmentsDto) {
+    await this.departmentsService.removeMany(dto.ids);
+    return ResponseUtil.deleted(null, '部门删除成功');
   }
 }
