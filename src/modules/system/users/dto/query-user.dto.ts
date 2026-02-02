@@ -17,6 +17,14 @@ export class QueryUserDto extends PaginationSortDto {
   username?: string;
 
   @ApiPropertyOptional({
+    description: '昵称（模糊查询）',
+    example: '小明',
+  })
+  @IsOptional()
+  @IsString()
+  nickname?: string;
+
+  @ApiPropertyOptional({
     description: '手机号（模糊查询）',
     example: '138',
   })

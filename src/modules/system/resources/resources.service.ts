@@ -9,17 +9,21 @@ import { CreateResourceDto } from './dto/create-resource.dto';
 import { UpdateResourceDto } from './dto/update-resource.dto';
 import { ResourceResponseDto } from './dto/resource-response.dto';
 import { QueryResourceDto } from './dto/query-resource.dto';
-import { ApiResponse } from '@/shared/interfaces/response.interface';
+import { PaginationData } from '@/shared/interfaces/response.interface';
 import { plainToInstance } from 'class-transformer';
 import { ResourceType } from '@prisma/client';
+import { BaseService } from '@/shared/services/base.service';
+import { startOfDay, endOfDay } from '@/shared/utils/time.util';
 
 @Injectable()
-export class ResourcesService {
-  constructor(private readonly prisma: PrismaService) {}
+export class ResourcesService extends BaseService {
+  constructor(protected readonly prisma: PrismaService) {
+    super(prisma);
+  }
 
   async create(
     createResourceDto: CreateResourceDto,
-  ): Promise<ApiResponse<ResourceResponseDto>> {
+  ): Promise<ResourceResponseDto> {
     // 检查代码是否已存在
     const existingCodeResource = await this.prisma.resource.findUnique({
       where: {
@@ -79,86 +83,59 @@ export class ResourcesService {
       },
     });
 
-    const responseData = plainToInstance(ResourceResponseDto, resource);
-
-    return {
-      success: true,
-      code: 200,
-      message: '创建成功',
-      data: responseData,
-      timestamp: new Date().toISOString(),
-    };
+    return plainToInstance(ResourceResponseDto, resource);
   }
 
   async findAll(
-    queryDto?: QueryResourceDto,
-  ): Promise<ApiResponse<ResourceResponseDto[]>> {
-    console.log('findAll called with queryDto:', queryDto);
-
-    const whereConditions: any = { status: queryDto?.status ?? 1 };
-
-    if (queryDto?.name) {
-      // 尝试多种字符编码处理方法
-      let processedName = queryDto.name;
-
-      // 方法1：尝试 URL 解码
-      try {
-        processedName = decodeURIComponent(queryDto.name);
-      } catch (error) {
-        // 忽略错误
-      }
-
-      // 方法2：如果还是乱码，尝试 Buffer 转换
-      if (processedName.includes('å') || processedName.includes('ä')) {
-        try {
-          const buffer = Buffer.from(queryDto.name, 'latin1');
-          processedName = buffer.toString('utf8');
-        } catch (error) {
-          // 忽略错误
-        }
-      }
-
-      whereConditions.name = { contains: processedName };
-      console.log('Original name:', queryDto.name);
-      console.log('Processed name:', processedName);
+    queryDto: QueryResourceDto = new QueryResourceDto(),
+  ): Promise<PaginationData<ResourceResponseDto>> {
+    const { name, code, path, type, status, createdAtStart, createdAtEnd } =
+      queryDto;
+    const where = this.buildWhere({
+      contains: { name, code, path },
+      equals: { type, status },
+      date: { field: 'createdAt', start: createdAtStart, end: createdAtEnd },
+    });
+    const state = this.getPaginationState(queryDto);
+    if (state) {
+      const [items, total] = await Promise.all([
+        this.prisma.resource.findMany({
+          where,
+          orderBy: [{ parentId: 'asc' }, { sort: 'asc' }, { createdAt: 'asc' }],
+          skip: state.skip,
+          take: state.take,
+        }),
+        this.prisma.resource.count({ where }),
+      ]);
+      const transformed = plainToInstance(ResourceResponseDto, items);
+      return {
+        items: transformed,
+        total,
+        page: state.page,
+        pageSize: state.pageSize,
+      };
     }
-
-    if (queryDto?.code) {
-      whereConditions.code = { contains: queryDto.code };
-    }
-
-    if (queryDto?.type) {
-      whereConditions.type = queryDto.type;
-    }
-
-    console.log('Final whereConditions:', whereConditions);
-
-    const resources = await this.prisma.resource.findMany({
-      where: whereConditions,
+    const items = await this.prisma.resource.findMany({
+      where,
       orderBy: [{ parentId: 'asc' }, { sort: 'asc' }, { createdAt: 'asc' }],
     });
-
-    console.log('Found resources count:', resources.length);
-
-    const responseData = resources.map((resource) =>
-      plainToInstance(ResourceResponseDto, resource),
-    );
-
+    const total = await this.prisma.resource.count({ where });
+    const transformed = plainToInstance(ResourceResponseDto, items);
     return {
-      success: true,
-      code: 200,
-      message: '查询成功',
-      data: responseData,
-      timestamp: new Date().toISOString(),
+      items: transformed,
+      total,
+      page: queryDto.page ?? 1,
+      pageSize: queryDto.pageSize ?? transformed.length,
     };
   }
 
-  async findTree(
-    queryDto?: QueryResourceDto,
-  ): Promise<ApiResponse<ResourceResponseDto[]>> {
-    console.log('findTree called with queryDto:', queryDto);
-
-    const hasFilters = queryDto?.name || queryDto?.code || queryDto?.type;
+  async findTree(queryDto?: QueryResourceDto): Promise<ResourceResponseDto[]> {
+    const hasFilters =
+      queryDto?.name ||
+      queryDto?.code ||
+      queryDto?.type ||
+      queryDto?.createdAtStart !== undefined ||
+      queryDto?.createdAtEnd !== undefined;
     const filterMode = queryDto?.filterMode || 'loose';
 
     if (!hasFilters) {
@@ -175,18 +152,12 @@ export class ResourcesService {
         ),
       );
 
-      return {
-        success: true,
-        code: 200,
-        message: '查询成功',
-        data: treeResources,
-        timestamp: new Date().toISOString(),
-      };
+      return treeResources;
     }
 
     if (filterMode === 'strict') {
       // 严格模式：只返回匹配条件的资源
-      const whereConditions: any = {};
+      const whereConditions: Record<string, unknown> = {};
 
       // 只有当明确指定 status 时才过滤状态
       if (queryDto?.status !== undefined) {
@@ -197,26 +168,22 @@ export class ResourcesService {
         // 修复字符编码问题：对名称进行 URL 解码
         let processedName = queryDto.name;
 
-        // 方法1：尝试 URL 解码
         try {
           processedName = decodeURIComponent(queryDto.name);
-        } catch (error) {
-          // 忽略错误
+        } catch {
+          processedName = queryDto.name;
         }
 
-        // 方法2：如果还是乱码，尝试 Buffer 转换
         if (processedName.includes('å') || processedName.includes('ä')) {
           try {
             const buffer = Buffer.from(queryDto.name, 'latin1');
             processedName = buffer.toString('utf8');
-          } catch (error) {
-            // 忽略错误
+          } catch {
+            processedName = queryDto.name;
           }
         }
 
         whereConditions.name = { contains: processedName };
-        console.log('findTree - Original name:', queryDto.name);
-        console.log('findTree - Processed name:', processedName);
       }
 
       if (queryDto?.code) {
@@ -227,17 +194,22 @@ export class ResourcesService {
         whereConditions.type = queryDto.type;
       }
 
-      console.log('findTree - Final whereConditions:', whereConditions);
+      if (queryDto?.path) {
+        whereConditions.path = { contains: queryDto.path };
+      }
+
+      if (queryDto?.createdAtStart || queryDto?.createdAtEnd) {
+        const o: { gte?: Date; lte?: Date } = {};
+        if (queryDto.createdAtStart)
+          o.gte = startOfDay(queryDto.createdAtStart);
+        if (queryDto.createdAtEnd) o.lte = endOfDay(queryDto.createdAtEnd);
+        (whereConditions as Record<string, unknown>).createdAt = o;
+      }
 
       const filteredResources = await this.prisma.resource.findMany({
         where: whereConditions,
         orderBy: [{ parentId: 'asc' }, { sort: 'asc' }, { createdAt: 'asc' }],
       });
-
-      console.log(
-        'findTree - Found resources count:',
-        filteredResources.length,
-      );
 
       const treeResources = this.buildMenuTreeForResponse(
         filteredResources.map((resource) =>
@@ -245,20 +217,15 @@ export class ResourcesService {
         ),
       );
 
-      return {
-        success: true,
-        code: 200,
-        message: '查询成功',
-        data: treeResources,
-        timestamp: new Date().toISOString(),
-      };
+      return treeResources;
     } else {
       // 宽松模式：返回匹配的资源及其完整父级路径
-      return this.findTreeWithLooseFilter(queryDto);
+      const res = await this.findTreeWithLooseFilter(queryDto!);
+      return res;
     }
   }
 
-  async findMenus(): Promise<ApiResponse<ResourceResponseDto[]>> {
+  async findMenus(): Promise<ResourceResponseDto[]> {
     const allMenuResources = await this.prisma.resource.findMany({
       where: {
         status: 1,
@@ -275,16 +242,10 @@ export class ResourcesService {
       ),
     );
 
-    return {
-      success: true,
-      code: 200,
-      message: '查询成功',
-      data: treeMenuResources,
-      timestamp: new Date().toISOString(),
-    };
+    return treeMenuResources;
   }
 
-  async findOne(resourceId: string): Promise<ApiResponse<ResourceResponseDto>> {
+  async findOne(resourceId: string): Promise<ResourceResponseDto> {
     const resource = await this.prisma.resource.findUnique({
       where: { resourceId },
     });
@@ -293,21 +254,13 @@ export class ResourcesService {
       throw new NotFoundException('资源不存在');
     }
 
-    const responseData = plainToInstance(ResourceResponseDto, resource);
-
-    return {
-      success: true,
-      code: 200,
-      message: '查询成功',
-      data: responseData,
-      timestamp: new Date().toISOString(),
-    };
+    return plainToInstance(ResourceResponseDto, resource);
   }
 
   async update(
     resourceId: string,
     updateResourceDto: UpdateResourceDto,
-  ): Promise<ApiResponse<ResourceResponseDto>> {
+  ): Promise<ResourceResponseDto> {
     // 检查资源是否存在
     const existingResource = await this.prisma.resource.findUnique({
       where: { resourceId },
@@ -417,18 +370,10 @@ export class ResourcesService {
       },
     });
 
-    const responseData = plainToInstance(ResourceResponseDto, resource);
-
-    return {
-      success: true,
-      code: 200,
-      message: '更新成功',
-      data: responseData,
-      timestamp: new Date().toISOString(),
-    };
+    return plainToInstance(ResourceResponseDto, resource);
   }
 
-  async remove(resourceId: string): Promise<ApiResponse<null>> {
+  async remove(resourceId: string): Promise<void> {
     const resource = await this.prisma.resource.findUnique({
       where: { resourceId },
       include: {
@@ -455,18 +400,19 @@ export class ResourcesService {
       where: { resourceId },
     });
 
-    return {
-      success: true,
-      code: 200,
-      message: '删除成功',
-      data: null,
-      timestamp: new Date().toISOString(),
-    };
+    return;
   }
 
-  private buildMenuTree(resources: any[]): any[] {
-    const resourceMap = new Map();
-    const rootResources: any[] = [];
+  private buildMenuTree(
+    resources: ResourceResponseDto[],
+  ): ResourceResponseDto[] {
+    const resourceMap = new Map<
+      string,
+      ResourceResponseDto & { children?: ResourceResponseDto[] }
+    >();
+    const rootResources: Array<
+      ResourceResponseDto & { children?: ResourceResponseDto[] }
+    > = [];
 
     // 创建资源映射 - 使用 resourceId 作为 key
     resources.forEach((resource) => {
@@ -475,21 +421,29 @@ export class ResourcesService {
 
     // 构建树形结构
     resources.forEach((resource) => {
-      // 使用 parentId 而不是 parentId，因为 DTO 转换后 parentId 被排除了
       if (resource.parentId) {
         const parent = resourceMap.get(resource.parentId);
         if (parent) {
-          parent.children.push(resourceMap.get(resource.resourceId));
+          const child = resourceMap.get(resource.resourceId);
+          if (child) {
+            parent.children = parent.children || [];
+            parent.children.push(child);
+          }
         }
       } else {
-        rootResources.push(resourceMap.get(resource.resourceId));
+        const node = resourceMap.get(resource.resourceId);
+        if (node) rootResources.push(node);
       }
     });
 
     // 清理空的children数组
-    const cleanupEmptyChildren = (nodes: any[]): any[] => {
+    const cleanupEmptyChildren = (
+      nodes: Array<ResourceResponseDto & { children?: ResourceResponseDto[] }>,
+    ): ResourceResponseDto[] => {
       return nodes.map((node) => {
-        const cleanNode = { ...node };
+        const cleanNode: ResourceResponseDto & {
+          children?: ResourceResponseDto[];
+        } = { ...node };
         if (cleanNode.children && cleanNode.children.length > 0) {
           cleanNode.children = cleanupEmptyChildren(cleanNode.children);
         } else {
@@ -502,13 +456,17 @@ export class ResourcesService {
     return cleanupEmptyChildren(rootResources);
   }
 
-  private buildMenuTreeForResponse(resources: any[]): any[] {
-    const resourceMap = new Map();
-    const rootResources: any[] = [];
+  private buildMenuTreeForResponse(
+    resources: ResourceResponseDto[],
+  ): ResourceResponseDto[] {
+    const resourceMap = new Map<
+      string,
+      ResourceResponseDto & { children?: ResourceResponseDto[] }
+    >();
+    const rootResources: Array<
+      ResourceResponseDto & { children?: ResourceResponseDto[] }
+    > = [];
 
-    console.log('buildMenuTreeForResponse called with resources:', resources);
-
-    // 创建资源映射 - 使用 resourceId 作为 key
     resources.forEach((resource) => {
       resourceMap.set(resource.resourceId, { ...resource, children: [] });
     });
@@ -516,31 +474,27 @@ export class ResourcesService {
     // 构建树形结构
     resources.forEach((resource) => {
       const mappedResource = resourceMap.get(resource.resourceId);
-
+      if (!mappedResource) return;
       if (resource.parentId) {
         const parent = resourceMap.get(resource.parentId);
         if (parent) {
+          parent.children = parent.children || [];
           parent.children.push(mappedResource);
         } else {
-          // 如果父级不存在，将其作为根资源
           rootResources.push(mappedResource);
         }
       } else {
-        // 没有父级的资源直接作为根资源
         rootResources.push(mappedResource);
       }
     });
 
-    console.log(
-      'buildMenuTreeForResponse - rootResources count:',
-      rootResources.length,
-    );
-    console.log('buildMenuTreeForResponse - rootResources:', rootResources);
-
-    // 清理空的children数组
-    const cleanupEmptyChildren = (nodes: any[]): any[] => {
+    const cleanupEmptyChildren = (
+      nodes: Array<ResourceResponseDto & { children?: ResourceResponseDto[] }>,
+    ): ResourceResponseDto[] => {
       return nodes.map((node) => {
-        const cleanNode = { ...node };
+        const cleanNode: ResourceResponseDto & {
+          children?: ResourceResponseDto[];
+        } = { ...node };
         if (cleanNode.children && cleanNode.children.length > 0) {
           cleanNode.children = cleanupEmptyChildren(cleanNode.children);
         } else {
@@ -639,9 +593,9 @@ export class ResourcesService {
    */
   private async findTreeWithLooseFilter(
     queryDto: QueryResourceDto,
-  ): Promise<ApiResponse<ResourceResponseDto[]>> {
+  ): Promise<ResourceResponseDto[]> {
     // 构建过滤条件
-    const whereConditions: any = {};
+    const whereConditions: Record<string, unknown> = {};
 
     // 只有当明确指定 status 时才过滤状态
     if (queryDto?.status !== undefined) {
@@ -660,6 +614,17 @@ export class ResourcesService {
       whereConditions.type = queryDto.type;
     }
 
+    if (queryDto?.path) {
+      whereConditions.path = { contains: queryDto.path };
+    }
+
+    if (queryDto?.createdAtStart || queryDto?.createdAtEnd) {
+      const o: { gte?: Date; lte?: Date } = {};
+      if (queryDto.createdAtStart) o.gte = startOfDay(queryDto.createdAtStart);
+      if (queryDto.createdAtEnd) o.lte = endOfDay(queryDto.createdAtEnd);
+      whereConditions.createdAt = o;
+    }
+
     // 找到所有匹配的资源
     const matchedResources = await this.prisma.resource.findMany({
       where: whereConditions,
@@ -667,13 +632,7 @@ export class ResourcesService {
     });
 
     if (matchedResources.length === 0) {
-      return {
-        success: true,
-        code: 200,
-        message: '查询成功',
-        data: [],
-        timestamp: new Date().toISOString(),
-      };
+      return [];
     }
 
     // 收集所有需要包含的资源ID（匹配的资源 + 它们的所有祖先）
@@ -687,7 +646,7 @@ export class ResourcesService {
     }
 
     // 获取所有需要包含的资源
-    const ancestorWhereConditions: any = {
+    const ancestorWhereConditions: Record<string, unknown> = {
       resourceId: { in: Array.from(resourceIdsToInclude) },
     };
 
@@ -707,13 +666,7 @@ export class ResourcesService {
       ),
     );
 
-    return {
-      success: true,
-      code: 200,
-      message: '查询成功',
-      data: treeResources,
-      timestamp: new Date().toISOString(),
-    };
+    return treeResources;
   }
 
   /**
@@ -735,5 +688,21 @@ export class ResourcesService {
     if (parentResource?.parentId) {
       await this.addAncestorIds(parentResource.parentId, resourceIds);
     }
+  }
+
+  async removeMany(ids: string[]): Promise<void> {
+    const resources = await this.prisma.resource.findMany({
+      where: { resourceId: { in: ids } },
+      include: { children: true, permissions: true },
+    });
+    const blocked = resources.filter(
+      (r) => (r.children?.length ?? 0) > 0 || (r.permissions?.length ?? 0) > 0,
+    );
+    if (blocked.length > 0) {
+      throw new ConflictException('存在子级资源或关联权限，无法批量删除');
+    }
+    await this.prisma.resource.deleteMany({
+      where: { resourceId: { in: ids } },
+    });
   }
 }

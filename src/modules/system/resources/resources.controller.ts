@@ -15,6 +15,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
+  ApiBody,
 } from '@nestjs/swagger';
 import { ResourcesService } from './resources.service';
 import { CreateResourceDto } from './dto/create-resource.dto';
@@ -24,6 +25,8 @@ import { QueryResourceDto } from './dto/query-resource.dto';
 import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
 import { ApiResponse as IApiResponse } from '@/shared/interfaces/response.interface';
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
+import { ResponseUtil } from '@/shared/utils/response.util';
+import { BatchDeleteResourcesDto } from './dto/batch-delete-resources.dto';
 
 @ApiTags('资源管理')
 @ApiBearerAuth()
@@ -43,7 +46,8 @@ export class ResourcesController {
   async create(
     @Body() createResourceDto: CreateResourceDto,
   ): Promise<IApiResponse<ResourceResponseDto>> {
-    return this.resourcesService.create(createResourceDto);
+    const data = await this.resourcesService.create(createResourceDto);
+    return ResponseUtil.created(data, '资源创建成功');
   }
 
   @Get()
@@ -54,10 +58,11 @@ export class ResourcesController {
     description: '获取资源列表成功',
     type: [ResourceResponseDto],
   })
-  findAll(
+  async findAll(
     @Query() queryDto: QueryResourceDto,
-  ): Promise<IApiResponse<ResourceResponseDto[]>> {
-    return this.resourcesService.findAll(queryDto);
+  ): Promise<IApiResponse<unknown>> {
+    const pageData = await this.resourcesService.findAll(queryDto);
+    return ResponseUtil.paginated(pageData, '获取资源列表成功');
   }
 
   @Get('tree')
@@ -68,12 +73,11 @@ export class ResourcesController {
     description: '获取资源树成功',
     type: [ResourceResponseDto],
   })
-  findTree(
+  async findTree(
     @Query() queryDto: QueryResourceDto,
   ): Promise<IApiResponse<ResourceResponseDto[]>> {
-    console.log('Controller findTree called with queryDto:', queryDto);
-    console.log('Controller findTree - name parameter:', queryDto?.name);
-    return this.resourcesService.findTree(queryDto);
+    const data = await this.resourcesService.findTree(queryDto);
+    return ResponseUtil.found(data, '获取资源树成功');
   }
 
   @Get('menus')
@@ -84,8 +88,9 @@ export class ResourcesController {
     description: '获取菜单资源成功',
     type: [ResourceResponseDto],
   })
-  findMenus(): Promise<IApiResponse<ResourceResponseDto[]>> {
-    return this.resourcesService.findMenus();
+  async findMenus(): Promise<IApiResponse<ResourceResponseDto[]>> {
+    const data = await this.resourcesService.findMenus();
+    return ResponseUtil.found(data, '获取菜单资源成功');
   }
 
   @Get(':resourceId')
@@ -100,7 +105,8 @@ export class ResourcesController {
   async findOne(
     @Param('resourceId') resourceId: string,
   ): Promise<IApiResponse<ResourceResponseDto>> {
-    return this.resourcesService.findOne(resourceId);
+    const data = await this.resourcesService.findOne(resourceId);
+    return ResponseUtil.found(data, '获取资源详情成功');
   }
 
   @Patch(':resourceId')
@@ -112,11 +118,15 @@ export class ResourcesController {
     description: '资源更新成功',
     type: ResourceResponseDto,
   })
-  update(
+  async update(
     @Param('resourceId') resourceId: string,
     @Body() updateResourceDto: UpdateResourceDto,
   ): Promise<IApiResponse<ResourceResponseDto>> {
-    return this.resourcesService.update(resourceId, updateResourceDto);
+    const data = await this.resourcesService.update(
+      resourceId,
+      updateResourceDto,
+    );
+    return ResponseUtil.updated(data, '资源更新成功');
   }
 
   @Delete(':resourceId')
@@ -127,7 +137,19 @@ export class ResourcesController {
     status: 200,
     description: '资源删除成功',
   })
-  remove(@Param('resourceId') resourceId: string): Promise<IApiResponse<null>> {
-    return this.resourcesService.remove(resourceId);
+  async remove(
+    @Param('resourceId') resourceId: string,
+  ): Promise<IApiResponse<null>> {
+    await this.resourcesService.remove(resourceId);
+    return ResponseUtil.deleted(null, '资源删除成功');
+  }
+
+  @Post('batch-delete')
+  @RequirePermissions('system:resource:delete')
+  @ApiOperation({ summary: '批量删除资源' })
+  @ApiBody({ type: BatchDeleteResourcesDto })
+  async batchDelete(@Body() dto: BatchDeleteResourcesDto) {
+    await this.resourcesService.removeMany(dto.ids);
+    return ResponseUtil.deleted(null, '资源删除成功');
   }
 }

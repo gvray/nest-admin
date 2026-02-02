@@ -1,6 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsInt } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsOptional, IsString } from 'class-validator';
 import { PaginationSortDto } from '@/shared/dtos/pagination.dto';
 
 export class QueryPermissionDto extends PaginationSortDto {
@@ -21,7 +20,16 @@ export class QueryPermissionDto extends PaginationSortDto {
 
   @ApiPropertyOptional({ description: '资源ID' })
   @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  resourceId?: number;
+  @IsString()
+  resourceId?: string;
+
+  @ApiPropertyOptional({ description: '创建时间开始（YYYY-MM-DD）' })
+  @IsOptional()
+  @IsString()
+  createdAtStart?: string;
+
+  @ApiPropertyOptional({ description: '创建时间结束（YYYY-MM-DD）' })
+  @IsOptional()
+  @IsString()
+  createdAtEnd?: string;
 }

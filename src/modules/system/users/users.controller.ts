@@ -30,6 +30,8 @@ import { CurrentUser } from '@/core/decorators/current-user.decorator';
 import { QueryUserDto } from './dto/query-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { IUser } from '@/core/interfaces/user.interface';
+import { ResponseUtil } from '@/shared/utils/response.util';
+import { BatchDeleteUsersDto } from './dto/batch-delete-users.dto';
 
 @ApiTags('用户管理')
 @Controller('system/users')
@@ -43,8 +45,9 @@ export class UsersController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '创建用户' })
   @ApiResponse({ status: 201, description: '创建成功', type: UserResponseDto })
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto);
+  async create(@Body() createUserDto: CreateUserDto) {
+    const data = await this.usersService.create(createUserDto);
+    return ResponseUtil.created(data, '创建成功');
   }
 
   @Get()
@@ -56,8 +59,9 @@ export class UsersController {
     description: '用户列表',
     type: [UserResponseDto],
   })
-  findAll(@Query() query?: QueryUserDto) {
-    return this.usersService.findAll(query);
+  async findAll(@Query() query?: QueryUserDto) {
+    const pageData = await this.usersService.findAll(query);
+    return ResponseUtil.paginated(pageData, '用户列表');
   }
 
   @Get(':userId')
@@ -70,8 +74,9 @@ export class UsersController {
     type: [UserResponseDto],
   })
   @ApiResponse({ status: 404, description: '用户不存在' })
-  findOne(@Param('userId') userId: string) {
-    return this.usersService.findOne(userId);
+  async findOne(@Param('userId') userId: string) {
+    const data = await this.usersService.findOne(userId);
+    return ResponseUtil.found(data, '获取成功');
   }
 
   @Patch(':userId')
@@ -80,11 +85,12 @@ export class UsersController {
   @ApiOperation({ summary: '更新用户（通过UserId）' })
   @ApiResponse({ status: 200, description: '获取成功', type: UserResponseDto })
   @ApiResponse({ status: 404, description: '用户不存在' })
-  update(
+  async update(
     @Param('userId') userId: string,
     @Body() updateUserDto: UpdateUserDto,
   ) {
-    return this.usersService.update(userId, updateUserDto);
+    const data = await this.usersService.update(userId, updateUserDto);
+    return ResponseUtil.updated(data, '更新成功');
   }
 
   @Delete(':userId')
@@ -93,8 +99,9 @@ export class UsersController {
   @ApiOperation({ summary: '删除用户（通过UserId）' })
   @ApiResponse({ status: 200, description: '删除成功' })
   @ApiResponse({ status: 404, description: '用户不存在' })
-  remove(@Param('userId') userId: string) {
-    return this.usersService.remove(userId);
+  async remove(@Param('userId') userId: string) {
+    await this.usersService.remove(userId);
+    return ResponseUtil.deleted(null, '删除成功');
   }
 
   @Put(':userId/roles')
@@ -107,16 +114,17 @@ export class UsersController {
     type: UserResponseDto,
   })
   @ApiResponse({ status: 404, description: '用户不存在' })
-  assignRoles(
+  async assignRoles(
     @Param('userId') userId: string,
     @Body() assignRolesDto: AssignRolesDto,
     @CurrentUser() currentUser: IUser,
   ) {
-    return this.usersService.assignRoles(
+    const data = await this.usersService.assignRoles(
       userId,
       assignRolesDto.roleIds,
       currentUser.userId,
     );
+    return ResponseUtil.updated(data, '角色分配成功');
   }
 
   @Delete(':userId/roles')
@@ -129,10 +137,23 @@ export class UsersController {
     type: UserResponseDto,
   })
   @ApiResponse({ status: 404, description: '用户不存在' })
-  removeRoles(
+  async removeRoles(
     @Param('userId') userId: string,
     @Body() assignRolesDto: AssignRolesDto,
   ) {
-    return this.usersService.removeRoles(userId, assignRolesDto.roleIds);
+    const data = await this.usersService.removeRoles(
+      userId,
+      assignRolesDto.roleIds,
+    );
+    return ResponseUtil.updated(data, '角色移除成功');
+  }
+
+  @Post('batch-delete')
+  @RequirePermissions('system:user:delete')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '批量删除用户' })
+  async batchDelete(@Body() { ids }: BatchDeleteUsersDto) {
+    await this.usersService.removeMany(ids);
+    return ResponseUtil.deleted(null, '删除成功');
   }
 }

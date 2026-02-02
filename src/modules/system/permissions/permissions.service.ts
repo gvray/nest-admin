@@ -10,11 +10,11 @@ import { UpdatePermissionDto } from './dto/update-permission.dto';
 import { QueryPermissionDto } from './dto/query-permission.dto';
 import { PermissionResponseDto } from './dto/permission-response.dto';
 import { BaseService } from '@/shared/services/base.service';
-import { ResponseUtil } from '@/shared/utils/response.util';
-import {
-  ApiResponse,
-  PaginationResponse,
-} from '@/shared/interfaces/response.interface';
+import { PaginationData } from '@/shared/interfaces/response.interface';
+import type {
+  Permission as PermissionModel,
+  Resource as ResourceModel,
+} from '@prisma/client';
 
 @Injectable()
 export class PermissionsService extends BaseService {
@@ -25,11 +25,11 @@ export class PermissionsService extends BaseService {
   async create(
     createPermissionDto: CreatePermissionDto,
     currentUserId?: string,
-  ): Promise<ApiResponse<unknown>> {
+  ): Promise<PermissionResponseDto> {
     const { name, description, resourceId, action } = createPermissionDto;
 
     // 查找资源（支持UUID和数字ID）
-    let resource: any = null;
+    let resource: ResourceModel | null = null;
 
     // 首先尝试按UUID查找
     resource = await this.prisma.resource.findUnique({
@@ -105,103 +105,66 @@ export class PermissionsService extends BaseService {
       },
     });
 
-    return ResponseUtil.created(permission, '权限创建成功');
+    return plainToInstance(PermissionResponseDto, permission, {
+      excludeExtraneousValues: true,
+    });
   }
 
   async findAll(
     query: QueryPermissionDto,
-  ): Promise<
-    | PaginationResponse<PermissionResponseDto>
-    | ApiResponse<PermissionResponseDto[]>
-  > {
-    const { name, code, action, resourceId } = query;
-
-    const where: Record<string, unknown> = {};
-
-    if (name) {
-      where.name = { contains: name };
+  ): Promise<PaginationData<PermissionResponseDto>> {
+    const { name, code, action, resourceId, createdAtStart, createdAtEnd } =
+      query;
+    const where = this.buildWhere({
+      contains: { name, code, action },
+      equals: { resourceId },
+      date: { field: 'createdAt', start: createdAtStart, end: createdAtEnd },
+    });
+    const state = this.getPaginationState(query);
+    if (state) {
+      const [items, total] = await Promise.all([
+        this.prisma.permission.findMany({
+          where,
+          orderBy: [{ createdAt: 'desc' }],
+          skip: state.skip,
+          take: state.take,
+        }),
+        this.prisma.permission.count({ where }),
+      ]);
+      const transformed = plainToInstance(PermissionResponseDto, items, {
+        excludeExtraneousValues: true,
+      });
+      return {
+        items: transformed,
+        total,
+        page: state.page,
+        pageSize: state.pageSize,
+      };
     }
-
-    if (code) {
-      where.code = { contains: code };
-    }
-
-    if (action) {
-      where.action = { contains: action };
-    }
-
-    if (resourceId) {
-      where.resourceId = resourceId;
-    }
-
-    const include = {
-      resource: true,
-    };
-
-    // 使用 PaginationDto 的方法来判断是否需要分页
-    const skip = query.getSkip();
-    const take = query.getTake();
-
-    if (skip !== undefined && take !== undefined && query) {
-      const result = (await this.paginateWithSortAndResponse(
-        this.prisma.permission,
-        query,
-        where,
-        include,
-        'createdAt',
-        '权限列表查询成功',
-      )) as PaginationResponse<any>;
-
-      if (
-        'data' in result &&
-        result.data &&
-        'items' in result.data &&
-        Array.isArray(result.data.items)
-      ) {
-        const transformedItems = plainToInstance(
-          PermissionResponseDto,
-          result.data.items,
-          {
-            excludeExtraneousValues: true,
-          },
-        );
-        return {
-          ...result,
-          data: {
-            ...result.data,
-            items: transformedItems,
-          },
-        } as PaginationResponse<PermissionResponseDto>;
-      }
-      return result as PaginationResponse<PermissionResponseDto>;
-    }
-
-    // 返回全量数据
-    const permissions = await this.prisma.permission.findMany({
+    const items = await this.prisma.permission.findMany({
       where,
-      include,
       orderBy: [{ createdAt: 'desc' }],
     });
-
-    const permissionResponses = plainToInstance(
-      PermissionResponseDto,
-      permissions,
-      {
-        excludeExtraneousValues: true,
-      },
-    );
-    return ResponseUtil.found(permissionResponses, '权限列表查询成功');
+    const total = await this.prisma.permission.count({ where });
+    const transformed = plainToInstance(PermissionResponseDto, items, {
+      excludeExtraneousValues: true,
+    });
+    return {
+      items: transformed,
+      total,
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? transformed.length,
+    };
   }
 
-  async findOne(id: string): Promise<ApiResponse<unknown>> {
+  async findOne(id: string): Promise<PermissionResponseDto> {
     // 支持UUID和数字ID查找
-    let permission: any = null;
+    let permission: PermissionModel | null = null;
 
     // 首先尝试用UUID查找 (permissionId)
     permission = await this.prisma.permission.findUnique({
       where: { permissionId: id },
       include: {
-        resource: true,
         rolePermissions: {
           include: {
             role: true,
@@ -215,7 +178,6 @@ export class PermissionsService extends BaseService {
       permission = await this.prisma.permission.findUnique({
         where: { id: Number(id) },
         include: {
-          resource: true,
           rolePermissions: {
             include: {
               role: true,
@@ -229,18 +191,20 @@ export class PermissionsService extends BaseService {
       throw new NotFoundException(`权限ID ${id} 不存在`);
     }
 
-    return ResponseUtil.found(permission, '权限查询成功');
+    return plainToInstance(PermissionResponseDto, permission, {
+      excludeExtraneousValues: true,
+    });
   }
 
   async update(
     id: string,
     updatePermissionDto: UpdatePermissionDto,
     currentUserId?: string,
-  ): Promise<ApiResponse<unknown>> {
+  ): Promise<PermissionResponseDto> {
     const { name, description, resourceId, action } = updatePermissionDto;
 
     // 支持UUID和数字ID查找
-    let permission: any = null;
+    let permission: PermissionModel | null = null;
 
     // 首先尝试用UUID查找 (permissionId)
     permission = await this.prisma.permission.findUnique({
@@ -259,7 +223,7 @@ export class PermissionsService extends BaseService {
     }
 
     // 如果更新资源ID，检查资源是否存在且为菜单类型
-    let targetResource: any = null;
+    let targetResource: ResourceModel | null = null;
     if (resourceId) {
       // 首先尝试按UUID查找
       targetResource = await this.prisma.resource.findUnique({
@@ -304,6 +268,9 @@ export class PermissionsService extends BaseService {
           where: { resourceId: permission.resourceId },
         }));
       const finalAction = action || permission.action;
+      if (!finalResource) {
+        throw new NotFoundException('关联的资源不存在');
+      }
       newCode = `${finalResource.code}:${finalAction}`;
 
       // 检查新代码是否已存在
@@ -361,12 +328,14 @@ export class PermissionsService extends BaseService {
       },
     });
 
-    return ResponseUtil.updated(updatedPermission, '权限更新成功');
+    return plainToInstance(PermissionResponseDto, updatedPermission, {
+      excludeExtraneousValues: true,
+    });
   }
 
-  async remove(id: string): Promise<ApiResponse<unknown>> {
-    // 支持UUID和数字ID查找
-    let permission: any = null;
+  async remove(id: string): Promise<void> {
+    let permission: (PermissionModel & { rolePermissions: unknown[] }) | null =
+      null;
 
     // 首先尝试用UUID查找 (permissionId)
     permission = await this.prisma.permission.findUnique({
@@ -399,19 +368,27 @@ export class PermissionsService extends BaseService {
       where: { id: permission.id },
     });
 
-    return ResponseUtil.deleted(null, '权限删除成功');
+    return;
   }
 
   /**
    * 获取权限树结构
    * @returns 按照资源层级组织的权限树
    */
-  async getPermissionTree(
-    queryDto?: QueryPermissionDto,
-  ): Promise<ApiResponse<unknown>> {
-    console.log('getPermissionTree called with queryDto:', queryDto);
-
-    let allResources: any[] = [];
+  async getPermissionTree(queryDto?: QueryPermissionDto): Promise<unknown> {
+    let allResources: Array<
+      ResourceModel & {
+        permissions: Array<{
+          permissionId: string;
+          name: string;
+          code: string;
+          action: string;
+          description: string | null;
+          createdAt: Date;
+          updatedAt: Date;
+        }>;
+      }
+    > = [];
 
     // 检查是否有搜索条件
     const hasSearchConditions =
@@ -422,7 +399,7 @@ export class PermissionsService extends BaseService {
 
     if (hasSearchConditions) {
       // 有搜索条件时，先找到匹配的权限，然后获取对应的资源
-      const permissionWhereConditions: any = {};
+      const permissionWhereConditions: Record<string, unknown> = {};
 
       if (queryDto?.name) {
         permissionWhereConditions.name = { contains: queryDto.name };
@@ -437,17 +414,14 @@ export class PermissionsService extends BaseService {
       }
 
       // 找到匹配的权限
-      const matchedPermissions = await this.prisma.permission.findMany({
+      const matchedPermissions: Array<
+        PermissionModel & { resource: ResourceModel }
+      > = await this.prisma.permission.findMany({
         where: permissionWhereConditions,
         include: {
           resource: true,
         },
       });
-
-      console.log(
-        'getPermissionTree - Found permissions count:',
-        matchedPermissions.length,
-      );
 
       if (matchedPermissions.length > 0) {
         // 收集所有需要包含的资源ID（匹配权限的资源 + 它们的父级路径）
@@ -505,18 +479,28 @@ export class PermissionsService extends BaseService {
       });
     }
 
-    console.log(
-      'getPermissionTree - Found resources count:',
-      allResources.length,
-    );
-
     // 构建树结构
-    const treeMap = new Map();
-    const rootNodes: any[] = [];
+    type TreeNode = {
+      resourceId?: string;
+      permissionId?: string;
+      name: string;
+      code: string;
+      type: string;
+      action?: string;
+      description?: string | null;
+      path?: string | null;
+      parentId?: string | null;
+      sort: number;
+      createdAt: Date;
+      updatedAt?: Date;
+      children?: TreeNode[];
+    };
+    const treeMap = new Map<string, TreeNode>();
+    const rootNodes: TreeNode[] = [];
 
     // 先创建所有资源节点
     allResources.forEach((resource) => {
-      const node: any = {
+      const node: TreeNode = {
         resourceId: resource.resourceId,
         name: resource.name,
         code: resource.code,
@@ -529,9 +513,8 @@ export class PermissionsService extends BaseService {
       };
       treeMap.set(resource.resourceId, node);
 
-      // 将权限作为子节点添加到资源节点
       resource.permissions.forEach((permission) => {
-        const permissionNode = {
+        const permissionNode: TreeNode = {
           permissionId: permission.permissionId,
           name: permission.name,
           code: permission.code,
@@ -541,9 +524,9 @@ export class PermissionsService extends BaseService {
           createdAt: permission.createdAt,
           updatedAt: permission.updatedAt,
           parentId: resource.resourceId,
-          sort: 0, // 权限排序可以根据action设置
+          sort: 0,
         };
-        node.children.push(permissionNode);
+        node.children?.push(permissionNode);
       });
     });
 
@@ -552,9 +535,9 @@ export class PermissionsService extends BaseService {
       if (node.parentId) {
         const parent = treeMap.get(node.parentId);
         if (parent) {
+          parent.children = parent.children || [];
           parent.children.push(node);
         } else {
-          // 如果父节点不存在（可能是目录类型），则作为根节点
           rootNodes.push(node);
         }
       } else {
@@ -563,9 +546,8 @@ export class PermissionsService extends BaseService {
     });
 
     // 递归排序子节点并清理空children
-    const sortAndCleanChildren = (nodes: any[]) => {
+    const sortAndCleanChildren = (nodes: TreeNode[]) => {
       nodes.sort((a, b) => {
-        // 如果是权限节点，按操作类型排序
         if (a.type === 'permission' && b.type === 'permission') {
           const actionOrder = [
             'view',
@@ -575,11 +557,10 @@ export class PermissionsService extends BaseService {
             'export',
             'import',
           ];
-          const aIndex = actionOrder.indexOf(a.action);
-          const bIndex = actionOrder.indexOf(b.action);
+          const aIndex = actionOrder.indexOf(a.action || '');
+          const bIndex = actionOrder.indexOf(b.action || '');
           return aIndex - bIndex;
         }
-        // 资源节点按sort和名称排序
         if (a.sort !== b.sort) {
           return a.sort - b.sort;
         }
@@ -590,7 +571,6 @@ export class PermissionsService extends BaseService {
         if (node.children && node.children.length > 0) {
           sortAndCleanChildren(node.children);
         } else {
-          // 移除空的children数组
           delete node.children;
         }
       });
@@ -598,29 +578,7 @@ export class PermissionsService extends BaseService {
 
     sortAndCleanChildren(rootNodes);
 
-    // 统计信息
-    const totalResources = allResources.length;
-    const menuResources = allResources.filter((r) => r.type === 'MENU').length;
-    const directoryResources = allResources.filter(
-      (r) => r.type === 'DIRECTORY',
-    ).length;
-    const totalPermissions = allResources.reduce(
-      (sum, resource) => sum + resource.permissions.length,
-      0,
-    );
-
-    const result = {
-      summary: {
-        totalResources,
-        menuResources,
-        directoryResources,
-        totalPermissions,
-        message: `共 ${totalResources} 个资源（${directoryResources}个目录，${menuResources}个菜单），${totalPermissions} 个权限点`,
-      },
-      tree: rootNodes,
-    };
-
-    return ResponseUtil.success(result, '权限树获取成功');
+    return rootNodes;
   }
 
   /**
@@ -648,7 +606,7 @@ export class PermissionsService extends BaseService {
    * 获取简化权限树结构（仅包含必要信息）
    * @returns 简化的权限树，主要用于前端权限选择器
    */
-  async getSimplePermissionTree(): Promise<ApiResponse<unknown>> {
+  async getSimplePermissionTree(): Promise<unknown> {
     // 获取所有资源和权限（包括目录和菜单）
     const allResources = await this.prisma.resource.findMany({
       include: {
@@ -667,11 +625,26 @@ export class PermissionsService extends BaseService {
     });
 
     // 构建简化的树结构
-    const treeMap = new Map();
-    const rootNodes: any[] = [];
+    type SimplifiedNode = {
+      key: string;
+      title: string;
+      code: string;
+      type: string;
+      parentId?: string | null;
+      sort: number;
+      createdAt: Date;
+      children?: SimplifiedNode[];
+      action?: string;
+      actionInfo?: { label: string; icon: string; color: string };
+    };
+    const treeMap = new Map<string, SimplifiedNode>();
+    const rootNodes: SimplifiedNode[] = [];
 
     // 按操作类型分组权限
-    const actionGroups = {
+    const actionGroups: Record<
+      string,
+      { label: string; icon: string; color: string }
+    > = {
       view: { label: '查看', icon: '👀', color: '#52c41a' },
       create: { label: '创建', icon: '➕', color: '#1890ff' },
       update: { label: '更新', icon: '✏️', color: '#faad14' },
@@ -681,7 +654,7 @@ export class PermissionsService extends BaseService {
     };
 
     allResources.forEach((resource) => {
-      const node: any = {
+      const node: SimplifiedNode = {
         key: resource.resourceId,
         title: resource.name,
         code: resource.code,
@@ -695,7 +668,7 @@ export class PermissionsService extends BaseService {
 
       // 将权限作为子节点添加到资源节点
       resource.permissions.forEach((permission) => {
-        const permissionNode = {
+        const permissionNode: SimplifiedNode = {
           key: permission.permissionId,
           title: permission.name,
           code: permission.code,
@@ -710,7 +683,7 @@ export class PermissionsService extends BaseService {
             color: '#666666',
           },
         };
-        node.children.push(permissionNode);
+        node.children?.push(permissionNode);
       });
     });
 
@@ -719,6 +692,7 @@ export class PermissionsService extends BaseService {
       if (node.parentId) {
         const parent = treeMap.get(node.parentId);
         if (parent) {
+          parent.children = parent.children || [];
           parent.children.push(node);
         } else {
           rootNodes.push(node);
@@ -729,7 +703,7 @@ export class PermissionsService extends BaseService {
     });
 
     // 递归排序并清理空children
-    const sortAndCleanNodes = (nodes: any[]) => {
+    const sortAndCleanNodes = (nodes: SimplifiedNode[]) => {
       nodes.sort((a, b) => {
         // 如果是权限节点，按操作类型排序
         if (a.type === 'permission' && b.type === 'permission') {
@@ -741,15 +715,15 @@ export class PermissionsService extends BaseService {
             'export',
             'import',
           ];
-          const aIndex = actionOrder.indexOf(a.action);
-          const bIndex = actionOrder.indexOf(b.action);
+          const aIndex = actionOrder.indexOf(a.action || '');
+          const bIndex = actionOrder.indexOf(b.action || '');
           return aIndex - bIndex;
         }
         // 资源节点按sort和名称排序
         if (a.sort !== b.sort) {
           return a.sort - b.sort;
         }
-        return a.title.localeCompare(b.title);
+        return (a.title || '').localeCompare(b.title || '');
       });
 
       nodes.forEach((node) => {
@@ -776,7 +750,7 @@ export class PermissionsService extends BaseService {
     );
 
     // 按操作类型统计权限数量
-    const actionStats = {};
+    const actionStats: Record<string, number> = {};
     allResources.forEach((resource) => {
       resource.permissions.forEach((permission) => {
         if (!actionStats[permission.action]) {
@@ -799,6 +773,20 @@ export class PermissionsService extends BaseService {
       tree: rootNodes,
     };
 
-    return ResponseUtil.success(result, '简化权限树获取成功');
+    return result;
+  }
+
+  async removeMany(ids: string[]): Promise<void> {
+    const perms = await this.prisma.permission.findMany({
+      where: { permissionId: { in: ids } },
+      include: { rolePermissions: true },
+    });
+    const blocked = perms.filter((p) => (p.rolePermissions?.length ?? 0) > 0);
+    if (blocked.length > 0) {
+      throw new ConflictException('存在关联角色，无法批量删除');
+    }
+    await this.prisma.permission.deleteMany({
+      where: { permissionId: { in: ids } },
+    });
   }
 }

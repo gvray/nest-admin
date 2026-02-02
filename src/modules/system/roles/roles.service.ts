@@ -12,10 +12,7 @@ import { RoleResponseDto } from './dto/role-response.dto';
 import { BaseService } from '@/shared/services/base.service';
 import { Prisma } from '@prisma/client';
 import { startOfDay, endOfDay } from '@/shared/utils/time.util';
-import {
-  ApiResponse,
-  PaginationResponse,
-} from '@/shared/interfaces/response.interface';
+import { PaginationData } from '@/shared/interfaces/response.interface';
 import { DataScopeService } from './services/data-scope.service';
 import { SUPER_ROLE_KEY } from '@/shared/constants/role.constant';
 import { SUPER_USER_KEY } from '@/shared/constants/user.constant';
@@ -106,10 +103,8 @@ export class RolesService extends BaseService {
   }
 
   async findAll(
-    query?: QueryRoleDto,
-  ): Promise<
-    PaginationResponse<RoleResponseDto> | ApiResponse<RoleResponseDto[]>
-  > {
+    query: QueryRoleDto = new QueryRoleDto(),
+  ): Promise<PaginationData<RoleResponseDto>> {
     // 构建查询条件
     const where: Prisma.RoleWhereInput = {};
 
@@ -159,54 +154,42 @@ export class RolesService extends BaseService {
       updatedAt: true,
     };
 
-    // 使用 PaginationDto 的方法来判断是否需要分页
-    const skip = query?.getSkip();
-    const take = query?.getTake();
-
-    if (skip !== undefined && take !== undefined && query) {
-      // 分页查询
-      const [roles, totalItems] = await Promise.all([
+    const state = this.getPaginationState(query);
+    if (state) {
+      const [items, total] = await Promise.all([
         this.prisma.role.findMany({
           where,
           select,
-          skip,
-          take,
+          skip: state.skip,
+          take: state.take,
           orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
         }),
         this.prisma.role.count({ where }),
       ]);
-
+      const transformed = plainToInstance(RoleResponseDto, items, {
+        excludeExtraneousValues: true,
+      });
       return {
-        success: true,
-        code: 200,
-        message: '角色列表查询成功',
-        data: {
-          items: plainToInstance(RoleResponseDto, roles, {
-            excludeExtraneousValues: true,
-          }),
-          total: totalItems,
-          page: query.page!,
-          pageSize: query.pageSize!,
-        },
-        timestamp: new Date().toISOString(),
+        items: transformed,
+        total,
+        page: state.page,
+        pageSize: state.pageSize,
       };
     }
-
-    // 返回所有结果（不分页）
-    const roles = await this.prisma.role.findMany({
+    const items = await this.prisma.role.findMany({
       where,
       select,
       orderBy: [{ sort: 'asc' }, { createdAt: 'desc' }],
     });
-
+    const total = await this.prisma.role.count({ where });
+    const transformed = plainToInstance(RoleResponseDto, items, {
+      excludeExtraneousValues: true,
+    });
     return {
-      success: true,
-      code: 200,
-      message: '角色列表查询成功',
-      data: plainToInstance(RoleResponseDto, roles, {
-        excludeExtraneousValues: true,
-      }),
-      timestamp: new Date().toISOString(),
+      items: transformed,
+      total,
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? transformed.length,
     };
   }
 
@@ -337,6 +320,22 @@ export class RolesService extends BaseService {
 
     await this.prisma.role.delete({
       where: { roleId },
+    });
+  }
+
+  async removeMany(ids: string[]): Promise<void> {
+    const roles = await this.prisma.role.findMany({
+      where: { roleId: { in: ids } },
+      include: { userRoles: true },
+    });
+    const blocked = roles.filter(
+      (r) => r.roleKey === SUPER_ROLE_KEY || (r.userRoles?.length ?? 0) > 0,
+    );
+    if (blocked.length > 0) {
+      throw new ForbiddenException('存在超级角色或绑定用户，无法批量删除');
+    }
+    await this.prisma.role.deleteMany({
+      where: { roleId: { in: ids } },
     });
   }
 

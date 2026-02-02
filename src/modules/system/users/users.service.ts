@@ -10,13 +10,9 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import * as bcrypt from 'bcrypt';
 import { BaseService } from '@/shared/services/base.service';
-import { ResponseUtil } from '@/shared/utils/response.util';
 import { QueryUserDto } from './dto/query-user.dto';
 import { Prisma } from '@prisma/client';
-import {
-  ApiResponse,
-  PaginationResponse,
-} from '@/shared/interfaces/response.interface';
+import { PaginationData } from '@/shared/interfaces/response.interface';
 import { UserStatus } from '@/shared/constants/user-status.constant';
 
 import {
@@ -87,9 +83,7 @@ export class UsersService extends BaseService {
     return roles.some((role) => role.roleKey === SUPER_ROLE_KEY);
   }
 
-  async create(
-    createUserDto: CreateUserDto,
-  ): Promise<ApiResponse<UserResponseDto>> {
+  async create(createUserDto: CreateUserDto): Promise<UserResponseDto> {
     const { password, departmentId, positionIds, ...rest } = createUserDto;
 
     // 检查邮箱是否已存在（如果提供了邮箱）
@@ -179,20 +173,24 @@ export class UsersService extends BaseService {
     const userResponse = plainToInstance(UserResponseDto, userWithoutPassword, {
       excludeExtraneousValues: true,
     });
-    return ResponseUtil.created(userResponse, '用户创建成功');
+    return userResponse;
   }
 
   async findAll(
-    query?: QueryUserDto,
-  ): Promise<
-    PaginationResponse<UserResponseDto> | ApiResponse<UserResponseDto[]>
-  > {
+    query: QueryUserDto = new QueryUserDto(),
+  ): Promise<PaginationData<UserResponseDto>> {
     // 构建查询条件
     const where: Prisma.UserWhereInput = {};
 
     if (query?.username) {
       where.username = {
         contains: query.username,
+      };
+    }
+
+    if (query?.nickname) {
+      where.nickname = {
+        contains: query.nickname,
       };
     }
 
@@ -216,74 +214,66 @@ export class UsersService extends BaseService {
       }
     }
 
-    const include = {
-      userRoles: {
-        select: {
-          role: {
-            select: {
-              roleId: true,
-              name: true,
+    const state = this.getPaginationState(query);
+    if (state) {
+      const [items, total] = await Promise.all([
+        this.prisma.user.findMany({
+          where,
+          select: {
+            userId: true,
+            email: true,
+            username: true,
+            nickname: true,
+            phone: true,
+            avatar: true,
+            gender: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
+            userRoles: {
+              select: {
+                role: {
+                  select: {
+                    roleId: true,
+                    name: true,
+                  },
+                },
+              },
+            },
+            department: {
+              select: {
+                departmentId: true,
+                name: true,
+              },
+            },
+            userPositions: {
+              select: {
+                position: {
+                  select: {
+                    positionId: true,
+                    name: true,
+                  },
+                },
+              },
             },
           },
-        },
-      },
-      department: {
-        select: {
-          departmentId: true,
-          name: true,
-        },
-      },
-      userPositions: {
-        select: {
-          position: {
-            select: {
-              positionId: true,
-              name: true,
-            },
-          },
-        },
-      },
-    };
-
-    // 使用 PaginationDto 的方法来判断是否需要分页
-    const skip = query?.getSkip();
-    const take = query?.getTake();
-
-    if (skip !== undefined && take !== undefined && query) {
-      const result = (await this.paginateWithSortAndResponse(
-        this.prisma.user,
-        query,
-        where,
-        include,
-        'createdAt',
-        '用户列表查询成功',
-      )) as PaginationResponse<any>;
-
-      if (
-        'data' in result &&
-        result.data &&
-        'items' in result.data &&
-        Array.isArray(result.data.items)
-      ) {
-        const transformedItems = plainToInstance(
-          UserResponseDto,
-          result.data.items,
-          {
-            excludeExtraneousValues: true,
-          },
-        );
-        return {
-          ...result,
-          data: {
-            ...result.data,
-            items: transformedItems,
-          },
-        } as PaginationResponse<UserResponseDto>;
-      }
-      return result as PaginationResponse<UserResponseDto>;
+          orderBy: [{ createdAt: 'desc' }],
+          skip: state.skip,
+          take: state.take,
+        }),
+        this.prisma.user.count({ where }),
+      ]);
+      const transformed = plainToInstance(UserResponseDto, items, {
+        excludeExtraneousValues: true,
+      });
+      return {
+        items: transformed,
+        total,
+        page: state.page,
+        pageSize: state.pageSize,
+      };
     }
-
-    const users = await this.prisma.user.findMany({
+    const items = await this.prisma.user.findMany({
       where,
       select: {
         userId: true,
@@ -323,18 +313,21 @@ export class UsersService extends BaseService {
           },
         },
       },
-      orderBy: query?.getOrderBy
-        ? query.getOrderBy('createdAt')
-        : { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }],
     });
-
-    const userResponses = plainToInstance(UserResponseDto, users, {
+    const total = await this.prisma.user.count({ where });
+    const transformed = plainToInstance(UserResponseDto, items, {
       excludeExtraneousValues: true,
     });
-    return ResponseUtil.found(userResponses, '用户列表查询成功');
+    return {
+      items: transformed,
+      total,
+      page: query.page ?? 1,
+      pageSize: query.pageSize ?? transformed.length,
+    };
   }
 
-  async findOne(userId: string): Promise<ApiResponse<UserResponseDto>> {
+  async findOne(userId: string): Promise<UserResponseDto> {
     const user = await this.prisma.user.findUnique({
       where: { userId: userId },
       select: {
@@ -384,7 +377,7 @@ export class UsersService extends BaseService {
     const userResponse = plainToInstance(UserResponseDto, user, {
       excludeExtraneousValues: true,
     });
-    return ResponseUtil.found(userResponse, '用户查询成功');
+    return userResponse;
   }
 
   async update(
@@ -499,7 +492,7 @@ export class UsersService extends BaseService {
     });
   }
 
-  async remove(userId: string) {
+  async remove(userId: string): Promise<void> {
     const user = await this.prisma.user.findUnique({
       where: { userId },
     });
@@ -513,9 +506,10 @@ export class UsersService extends BaseService {
       throw new ForbiddenException('不允许删除超级管理员账号');
     }
 
-    return this.prisma.user.delete({
+    await this.prisma.user.delete({
       where: { userId: user.userId },
     });
+    return;
   }
 
   // 为用户分配角色
@@ -686,6 +680,28 @@ export class UsersService extends BaseService {
 
     return plainToInstance(UserResponseDto, userWithRelations, {
       excludeExtraneousValues: true,
+    });
+  }
+
+  async removeMany(ids: string[]): Promise<void> {
+    const users = await this.prisma.user.findMany({
+      where: { userId: { in: ids } },
+      select: { userId: true, username: true },
+    });
+    const blocked: string[] = [];
+    for (const u of users) {
+      if (await this.isSuperAdmin(u.userId)) {
+        blocked.push(u.userId);
+      }
+      if (this.isSuperAdminUsername(u.username)) {
+        blocked.push(u.userId);
+      }
+    }
+    if (blocked.length > 0) {
+      throw new ForbiddenException('包含超级管理员用户，无法批量删除');
+    }
+    await this.prisma.user.deleteMany({
+      where: { userId: { in: ids } },
     });
   }
 }
