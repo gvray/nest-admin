@@ -9,7 +9,7 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { CurrentUserResponseDto } from './dto/current-user-response.dto';
-import { ApiResponse as IApiResponse } from '../../shared/interfaces/response.interface';
+import { ResponseUtil } from '../../shared/utils/response.util';
 import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
 import { CurrentUser } from '../../core/decorators/current-user.decorator';
 
@@ -63,8 +63,9 @@ export class AuthController {
   })
   @ApiResponse({ status: 400, description: '请求参数错误' })
   @ApiResponse({ status: 401, description: '邮箱已被注册' })
-  async register(@Body() registerDto: RegisterDto): Promise<any> {
-    return this.authService.register(registerDto);
+  async register(@Body() registerDto: RegisterDto) {
+    const data = await this.authService.register(registerDto);
+    return ResponseUtil.created(data, '注册成功');
   }
 
   @Post('login')
@@ -87,8 +88,9 @@ export class AuthController {
     },
   })
   @ApiResponse({ status: 401, description: '用户名/邮箱或密码错误' })
-  async login(@Body() loginDto: LoginDto, @Req() req: any): Promise<any> {
-    return this.authService.login(loginDto, req);
+  async login(@Body() loginDto: LoginDto, @Req() req: any) {
+    const data = await this.authService.login(loginDto, req);
+    return ResponseUtil.success(data, '登录成功');
   }
 
   @Get('profile')
@@ -156,10 +158,9 @@ export class AuthController {
       },
     },
   })
-  profile(
-    @CurrentUser() user: { userId: string },
-  ): Promise<IApiResponse<CurrentUserResponseDto>> {
-    return this.authService.getCurrentUser(user.userId);
+  async profile(@CurrentUser() user: { userId: string }) {
+    const data = await this.authService.getCurrentUser(user.userId);
+    return ResponseUtil.found(data, '获取当前用户信息');
   }
 
   @Post('logout')
@@ -198,6 +199,7 @@ export class AuthController {
     },
   })
   logout() {
-    return this.authService.logout();
+    this.authService.logout();
+    return ResponseUtil.success(null, '退出登录成功');
   }
 }

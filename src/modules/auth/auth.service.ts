@@ -5,8 +5,7 @@ import { LoginLogsService } from '@/modules/system/login-logs/login-logs.service
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { CurrentUserResponseDto } from './dto/current-user-response.dto';
-import { ResponseUtil } from '../../shared/utils/response.util';
-import { ApiResponse } from '../../shared/interfaces/response.interface';
+// no unified response types needed in service
 import { plainToInstance } from 'class-transformer';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -30,27 +29,30 @@ export class AuthService {
     private readonly loginLogsService: LoginLogsService,
   ) {}
 
-  async register(registerDto: RegisterDto): Promise<ApiResponse<unknown>> {
+  async register(
+    registerDto: RegisterDto,
+  ): Promise<{ access_token: string; user: unknown }> {
     const { email, username, nickname, password } = registerDto;
 
-    // 检查邮箱是否已存在（如果提供了邮箱）
     if (email) {
-      try {
-        await this.usersService.findOne(email);
+      const existingByEmail = await this.prisma.user.findUnique({
+        where: { email },
+      });
+      if (existingByEmail) {
         throw new UnauthorizedException('邮箱已被注册');
-      } catch (error) {
-        // 用户不存在是正常情况，可以继续注册
-        if (error instanceof UnauthorizedException) {
-          throw error;
-        }
       }
+    }
+    const existingByUsername = await this.prisma.user.findUnique({
+      where: { username },
+    });
+    if (existingByUsername) {
+      throw new UnauthorizedException('用户名已被注册');
     }
 
     // 加密密码
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 创建用户 - 直接调用 Prisma，因为 usersService.create 现在返回 ApiResponse
-    const user = await this.usersService['prisma'].user.create({
+    const user = await this.prisma.user.create({
       data: {
         email,
         username,
@@ -89,7 +91,7 @@ export class AuthService {
       user: userWithoutPassword,
     };
 
-    return ResponseUtil.created(result, '注册成功');
+    return result;
   }
 
   async validateUser(account: string, password: string) {
@@ -145,7 +147,7 @@ export class AuthService {
   async login(
     loginDto: LoginDto,
     req?: RequestWithHeaders,
-  ): Promise<ApiResponse<unknown>> {
+  ): Promise<{ access_token: string }> {
     const ipAddress = this.getClientIp(req);
     const userAgent: string = (req?.headers?.['user-agent'] as string) || '';
 
@@ -180,7 +182,7 @@ export class AuthService {
         loginType: 'username',
       });
 
-      return ResponseUtil.success(result, '登录成功');
+      return result;
     } catch (error: unknown) {
       // 记录失败的登录日志
       await this.recordLoginLog({
@@ -197,9 +199,7 @@ export class AuthService {
     }
   }
 
-  async getCurrentUser(
-    userId: string,
-  ): Promise<ApiResponse<CurrentUserResponseDto>> {
+  async getCurrentUser(userId: string): Promise<CurrentUserResponseDto> {
     const user = await this.usersService['prisma'].user.findUnique({
       where: { userId: userId },
       select: {
@@ -293,13 +293,13 @@ export class AuthService {
 
     Object.assign(userResponse, { permissionCodes });
 
-    return ResponseUtil.success(userResponse, '获取用户信息成功');
+    return userResponse;
   }
 
-  logout(): ApiResponse<unknown> {
+  logout(): void {
     // 在无状态JWT系统中，logout主要是客户端删除token
     // 这里返回成功响应，实际的token失效由客户端处理
-    return ResponseUtil.success(null, '退出登录成功');
+    return;
   }
 
   private getClientIp(req?: RequestWithHeaders): string {
