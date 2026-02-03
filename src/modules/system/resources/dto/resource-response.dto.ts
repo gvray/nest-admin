@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Exclude, Expose, Transform, Type } from 'class-transformer';
+import { Exclude, Expose, Type } from 'class-transformer';
 
 export class ResourceResponseDto {
   @Exclude()
@@ -33,9 +33,9 @@ export class ResourceResponseDto {
   @Expose()
   icon?: string;
 
-  @ApiProperty({ description: '父级资源ID', required: false })
+  @ApiProperty({ description: '父级资源ID' })
   @Expose()
-  parentId: string | null;
+  parentId: string;
 
   @ApiProperty({
     description: '子资源列表',

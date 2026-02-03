@@ -1,8 +1,8 @@
+import { ROOT_PARENT_ID } from '@/shared/constants/root.constant';
 import { PrismaClient } from '@prisma/client';
 
 export async function seedDepartments(prisma: PrismaClient) {
   console.log('开始创建部门');
-  
   // 创建技术部（用于管理员用户）
   const itDepartment = await prisma.department.upsert({
     where: { name: '技术部' },
@@ -12,6 +12,7 @@ export async function seedDepartments(prisma: PrismaClient) {
       description: '负责技术开发和维护',
       status: 1,
       sort: 1,
+      parentId: ROOT_PARENT_ID,
     },
   });
 
@@ -24,6 +25,7 @@ export async function seedDepartments(prisma: PrismaClient) {
       description: '负责人力资源管理',
       status: 1,
       sort: 2,
+      parentId: ROOT_PARENT_ID,
     },
   });
 
@@ -34,6 +36,7 @@ export async function seedDepartments(prisma: PrismaClient) {
       description: '顶级组织结构',
       sort: 0, // 设置为0，确保排在最前面
       status: 1,
+      parentId: ROOT_PARENT_ID,
     },
   });
 
@@ -109,9 +112,9 @@ export async function seedDepartments(prisma: PrismaClient) {
       },
     ],
   });
-  
+
   console.log('部门创建完成');
-  
+
   // 返回用于用户分配的部门
   return { itDepartment, hrDepartment };
 }

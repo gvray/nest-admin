@@ -15,6 +15,7 @@ import type {
   Permission as PermissionModel,
   Resource as ResourceModel,
 } from '@prisma/client';
+import { ROOT_PARENT_ID } from '@/shared/constants/root.constant';
 
 @Injectable()
 export class PermissionsService extends BaseService {
@@ -431,7 +432,7 @@ export class PermissionsService extends BaseService {
           resourceIdsToInclude.add(permission.resourceId);
           // 添加父级资源
           await this.addResourceAncestorIds(
-            permission.resource.parentId,
+            permission.resource.parentId ?? ROOT_PARENT_ID,
             resourceIdsToInclude,
           );
         }
@@ -585,10 +586,10 @@ export class PermissionsService extends BaseService {
    * 递归添加资源祖先ID
    */
   private async addResourceAncestorIds(
-    parentId: string | null,
+    parentId: string,
     resourceIds: Set<string>,
   ): Promise<void> {
-    if (!parentId) return;
+    if (parentId === ROOT_PARENT_ID) return;
 
     resourceIds.add(parentId);
 
@@ -597,7 +598,10 @@ export class PermissionsService extends BaseService {
       select: { parentId: true },
     });
 
-    if (parentResource?.parentId) {
+    if (
+      parentResource?.parentId &&
+      parentResource.parentId !== ROOT_PARENT_ID
+    ) {
       await this.addResourceAncestorIds(parentResource.parentId, resourceIds);
     }
   }
@@ -630,7 +634,7 @@ export class PermissionsService extends BaseService {
       title: string;
       code: string;
       type: string;
-      parentId?: string | null;
+      parentId?: string;
       sort: number;
       createdAt: Date;
       children?: SimplifiedNode[];
@@ -659,7 +663,7 @@ export class PermissionsService extends BaseService {
         title: resource.name,
         code: resource.code,
         type: resource.type,
-        parentId: resource.parentId,
+        parentId: resource.parentId ?? ROOT_PARENT_ID,
         sort: resource.sort,
         createdAt: resource.createdAt,
         children: [],
@@ -689,7 +693,7 @@ export class PermissionsService extends BaseService {
 
     // 构建父子关系
     treeMap.forEach((node) => {
-      if (node.parentId) {
+      if (node.parentId && node.parentId !== ROOT_PARENT_ID) {
         const parent = treeMap.get(node.parentId);
         if (parent) {
           parent.children = parent.children || [];

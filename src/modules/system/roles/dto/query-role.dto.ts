@@ -39,8 +39,6 @@ export class QueryRoleDto extends PaginationDto {
   @IsString()
   roleKey?: string;
 
- 
-
   @ApiPropertyOptional({
     description: '创建开始日期',
     example: '2025-08-01',

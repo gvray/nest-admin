@@ -41,9 +41,9 @@ export class DepartmentResponseDto {
   @Transform(({ value }): string => value ?? '')
   email?: string;
 
-  @ApiPropertyOptional({ description: '父部门ID' })
+  @ApiProperty({ description: '父部门ID' })
   @Expose()
-  parentId: string | null;
+  parentId: string;
 
   @ApiProperty({ description: '状态' })
   @Expose()

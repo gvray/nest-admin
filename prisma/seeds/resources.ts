@@ -1,3 +1,4 @@
+import { ROOT_PARENT_ID } from '@/shared/constants/root.constant';
 import { PrismaClient, ResourceType } from '@prisma/client';
 
 export async function seedResources(prisma: PrismaClient) {
@@ -154,7 +155,7 @@ export async function seedResources(prisma: PrismaClient) {
   for (const resourceData of resources) {
     const { parentCode, ...data } = resourceData;
 
-    let parentId: string | null = null;
+    let parentId: string = ROOT_PARENT_ID;
     if (parentCode) {
       const parentResource = createdResources[parentCode];
       if (parentResource) {

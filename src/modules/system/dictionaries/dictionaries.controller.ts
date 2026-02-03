@@ -186,7 +186,6 @@ export class DictionariesController {
     @CurrentUser() user: IUser,
   ) {
     return ResponseUtil.created(
-      // eslint-disable-next-line @typescript-eslint/return-await
       this.dictionariesService.createDictionaryItem(
         createDictionaryItemDto,
         user.userId,

@@ -11,6 +11,7 @@ generator client {
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
+  relationMode = "prisma"
 }
 
 model User {
@@ -32,9 +33,9 @@ model User {
 
   // 审计字段
   createdById String? // 创建者ID
-  createdBy   User?   @relation("UserCreatedBy", fields: [createdById], references: [userId])
+  createdBy   User?   @relation("UserCreatedBy", fields: [createdById], references: [userId], onDelete: NoAction, onUpdate: NoAction)
   updatedById String? // 更新者ID  
-  updatedBy   User?   @relation("UserUpdatedBy", fields: [updatedById], references: [userId])
+  updatedBy   User?   @relation("UserUpdatedBy", fields: [updatedById], references: [userId], onDelete: NoAction, onUpdate: NoAction)
 
   // 反向关联 - 作为创建者/更新者的记录
   createdUsers     User[]           @relation("UserCreatedBy")
@@ -83,9 +84,9 @@ model Role {
 
   // 审计字段
   createdById String? // 创建者ID
-  createdBy   User?   @relation("RoleCreatedBy", fields: [createdById], references: [userId])
+  createdBy   User?   @relation("RoleCreatedBy", fields: [createdById], references: [userId], onDelete: NoAction, onUpdate: NoAction)
   updatedById String? // 更新者ID
-  updatedBy   User?   @relation("RoleUpdatedBy", fields: [updatedById], references: [userId])
+  updatedBy   User?   @relation("RoleUpdatedBy", fields: [updatedById], references: [userId], onDelete: NoAction, onUpdate: NoAction)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -102,7 +103,7 @@ model RolePermission {
 
   // 审计字段
   createdById String? // 创建者ID
-  createdBy   User?   @relation("RolePermissionCreatedBy", fields: [createdById], references: [userId])
+  createdBy   User?   @relation("RolePermissionCreatedBy", fields: [createdById], references: [userId], onDelete: NoAction, onUpdate: NoAction)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -121,9 +122,9 @@ model RoleDepartment {
 
   // 审计字段
   createdById String? // 创建者ID
-  createdBy   User?   @relation("RoleDepartmentCreatedBy", fields: [createdById], references: [userId])
+  createdBy   User?   @relation("RoleDepartmentCreatedBy", fields: [createdById], references: [userId], onDelete: NoAction, onUpdate: NoAction)
   updatedById String? // 更新者ID
-  updatedBy   User?   @relation("RoleDepartmentUpdatedBy", fields: [updatedById], references: [userId])
+  updatedBy   User?   @relation("RoleDepartmentUpdatedBy", fields: [updatedById], references: [userId], onDelete: NoAction, onUpdate: NoAction)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -140,8 +141,8 @@ model Resource {
   type        ResourceType @default(MENU) // 资源类型：directory(目录)用于分组, menu(菜单)挂载权限点
   path        String? // 资源路径，如：/users, /api/users
   icon        String? // 图标
-  parentId    String?
-  parent      Resource?    @relation("ResourceHierarchy", fields: [parentId], references: [resourceId])
+  parentId    String
+  parent      Resource?    @relation("ResourceHierarchy", fields: [parentId], references: [resourceId], onDelete: NoAction, onUpdate: NoAction)
   children    Resource[]   @relation("ResourceHierarchy")
   permissions Permission[]
   status      Int          @default(1) // 0: 禁用, 1: 启用
@@ -150,9 +151,9 @@ model Resource {
 
   // 审计字段
   createdById String? // 创建者ID
-  createdBy   User?   @relation("ResourceCreatedBy", fields: [createdById], references: [userId])
+  createdBy   User?   @relation("ResourceCreatedBy", fields: [createdById], references: [userId], onDelete: NoAction, onUpdate: NoAction)
   updatedById String? // 更新者ID
-  updatedBy   User?   @relation("ResourceUpdatedBy", fields: [updatedById], references: [userId])
+  updatedBy   User?   @relation("ResourceUpdatedBy", fields: [updatedById], references: [userId], onDelete: NoAction, onUpdate: NoAction)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -178,9 +179,9 @@ model Permission {
 
   // 审计字段
   createdById String? // 创建者ID
-  createdBy   User?   @relation("PermissionCreatedBy", fields: [createdById], references: [userId])
+  createdBy   User?   @relation("PermissionCreatedBy", fields: [createdById], references: [userId], onDelete: NoAction, onUpdate: NoAction)
   updatedById String? // 更新者ID
-  updatedBy   User?   @relation("PermissionUpdatedBy", fields: [updatedById], references: [userId])
+  updatedBy   User?   @relation("PermissionUpdatedBy", fields: [updatedById], references: [userId], onDelete: NoAction, onUpdate: NoAction)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -194,11 +195,11 @@ model Department {
   name               String       @unique
   description        String?
   remark             String? // 备注信息
-  parentId           String?
+  parentId           String
   manager            String?
   phone              String?
   email              String?
-  parent   Department?  @relation("DepartmentHierarchy", fields: [parentId], references: [departmentId])
+  parent   Department?  @relation("DepartmentHierarchy", fields: [parentId], references: [departmentId], onDelete: NoAction, onUpdate: NoAction)
   children           Department[] @relation("DepartmentHierarchy")
   users              User[] // 部门下的用户
   roleDepartments    RoleDepartment[] // 角色-部门关联
@@ -207,9 +208,9 @@ model Department {
 
   // 审计字段
   createdById String? // 创建者ID
-  createdBy   User?   @relation("DepartmentCreatedBy", fields: [createdById], references: [userId])
+  createdBy   User?   @relation("DepartmentCreatedBy", fields: [createdById], references: [userId], onDelete: NoAction, onUpdate: NoAction)
   updatedById String? // 更新者ID
-  updatedBy   User?   @relation("DepartmentUpdatedBy", fields: [updatedById], references: [userId])
+  updatedBy   User?   @relation("DepartmentUpdatedBy", fields: [updatedById], references: [userId], onDelete: NoAction, onUpdate: NoAction)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -230,9 +231,9 @@ model Position {
 
   // 审计字段
   createdById String? // 创建者ID
-  createdBy   User?   @relation("PositionCreatedBy", fields: [createdById], references: [userId])
+  createdBy   User?   @relation("PositionCreatedBy", fields: [createdById], references: [userId], onDelete: NoAction, onUpdate: NoAction)
   updatedById String? // 更新者ID
-  updatedBy   User?   @relation("PositionUpdatedBy", fields: [updatedById], references: [userId])
+  updatedBy   User?   @relation("PositionUpdatedBy", fields: [updatedById], references: [userId], onDelete: NoAction, onUpdate: NoAction)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -249,7 +250,7 @@ model UserPosition {
 
   // 审计字段
   createdById String? // 创建者ID
-  createdBy   User?   @relation("UserPositionCreatedBy", fields: [createdById], references: [userId])
+  createdBy   User?   @relation("UserPositionCreatedBy", fields: [createdById], references: [userId], onDelete: NoAction, onUpdate: NoAction)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -267,7 +268,7 @@ model UserRole {
 
   // 审计字段
   createdById String? // 创建者ID
-  createdBy   User?   @relation("UserRoleCreatedBy", fields: [createdById], references: [userId])
+  createdBy   User?   @relation("UserRoleCreatedBy", fields: [createdById], references: [userId], onDelete: NoAction, onUpdate: NoAction)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -289,9 +290,9 @@ model DictionaryType {
 
   // 审计字段
   createdById String? // 创建者ID
-  createdBy   User?   @relation("DictionaryTypeCreatedBy", fields: [createdById], references: [userId])
+  createdBy   User?   @relation("DictionaryTypeCreatedBy", fields: [createdById], references: [userId], onDelete: NoAction, onUpdate: NoAction)
   updatedById String? // 更新者ID
-  updatedBy   User?   @relation("DictionaryTypeUpdatedBy", fields: [updatedById], references: [userId])
+  updatedBy   User?   @relation("DictionaryTypeUpdatedBy", fields: [updatedById], references: [userId], onDelete: NoAction, onUpdate: NoAction)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -313,9 +314,9 @@ model DictionaryItem {
 
   // 审计字段
   createdById String? // 创建者ID
-  createdBy   User?   @relation("DictionaryItemCreatedBy", fields: [createdById], references: [userId])
+  createdBy   User?   @relation("DictionaryItemCreatedBy", fields: [createdById], references: [userId], onDelete: NoAction, onUpdate: NoAction)
   updatedById String? // 更新者ID
-  updatedBy   User?   @relation("DictionaryItemUpdatedBy", fields: [updatedById], references: [userId])
+  updatedBy   User?   @relation("DictionaryItemUpdatedBy", fields: [updatedById], references: [userId], onDelete: NoAction, onUpdate: NoAction)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -337,9 +338,9 @@ model Config {
 
   // 审计字段
   createdById String? // 创建者ID
-  createdBy   User?   @relation("ConfigCreatedBy", fields: [createdById], references: [userId])
+  createdBy   User?   @relation("ConfigCreatedBy", fields: [createdById], references: [userId], onDelete: NoAction, onUpdate: NoAction)
   updatedById String? // 更新者ID
-  updatedBy   User?   @relation("ConfigUpdatedBy", fields: [updatedById], references: [userId])
+  updatedBy   User?   @relation("ConfigUpdatedBy", fields: [updatedById], references: [userId], onDelete: NoAction, onUpdate: NoAction)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -401,4 +402,3 @@ model OperationLog {
   @@index([status])
   @@map("operation_logs")
 }
-

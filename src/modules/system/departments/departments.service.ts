@@ -14,6 +14,7 @@ import { QueryDepartmentDto } from './dto/query-department.dto';
 import { DepartmentResponseDto } from './dto/department-response.dto';
 import { BaseService } from '@/shared/services/base.service';
 import { PaginationData } from '@/shared/interfaces/response.interface';
+import { ROOT_PARENT_ID } from '@/shared/constants/root.constant';
 
 @Injectable()
 export class DepartmentsService extends BaseService {
@@ -40,15 +41,29 @@ export class DepartmentsService extends BaseService {
       const parentDepartment = await this.prisma.department.findUnique({
         where: { departmentId: createDepartmentDto.parentId },
       });
-
       if (!parentDepartment) {
         throw new NotFoundException('父部门不存在');
       }
     }
 
     const { parentId, ...departmentData } = createDepartmentDto;
+    let parentIdFinal: string | null = null;
+    if (parentId && parentId !== ROOT_PARENT_ID) {
+      const parent = await this.prisma.department.findUnique({
+        where: { departmentId: parentId },
+      });
+      if (!parent) {
+        throw new NotFoundException('父部门不存在');
+      }
+      parentIdFinal = parent.departmentId;
+    } else {
+      parentIdFinal = ROOT_PARENT_ID;
+    }
     const department = await this.prisma.department.create({
-      data: parentId ? { ...departmentData, parentId } : { ...departmentData },
+      data: {
+        ...departmentData,
+        parentId: parentIdFinal,
+      },
       include: {
         parent: true,
         children: true,
@@ -252,7 +267,7 @@ export class DepartmentsService extends BaseService {
   async getTree(
     queryDto?: QueryDepartmentDto,
   ): Promise<DepartmentResponseDto[]> {
-    type DeptMinimal = { departmentId: string; parentId: string | null };
+    type DeptMinimal = { departmentId: string; parentId: string };
     let allDepartments: Department[] = [];
 
     // 检查是否有搜索条件
@@ -307,12 +322,17 @@ export class DepartmentsService extends BaseService {
       }
 
       // 找到匹配的部门
-      const matchedDepartments: DeptMinimal[] =
-        await this.prisma.department.findMany({
-          where: whereConditions,
-          orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
-          select: { departmentId: true, parentId: true },
-        });
+      const matchedDepartmentsRaw = await this.prisma.department.findMany({
+        where: whereConditions,
+        orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
+        select: { departmentId: true, parentId: true },
+      });
+      const matchedDepartments: DeptMinimal[] = matchedDepartmentsRaw.map(
+        (d) => ({
+          departmentId: d.departmentId,
+          parentId: d.parentId ?? ROOT_PARENT_ID,
+        }),
+      );
 
       if (matchedDepartments.length > 0) {
         // 收集所有需要包含的部门ID（匹配的部门 + 它们的父级路径）
@@ -364,7 +384,7 @@ export class DepartmentsService extends BaseService {
     allDepartments.forEach((dept) => {
       const departmentNode = departmentMap.get(dept.departmentId);
 
-      if (dept.parentId) {
+      if (dept.parentId && dept.parentId !== ROOT_PARENT_ID) {
         const parentNode = departmentMap.get(dept.parentId);
         if (parentNode && departmentNode) {
           parentNode.children.push(departmentNode);
@@ -398,10 +418,10 @@ export class DepartmentsService extends BaseService {
    * 递归添加部门祖先ID
    */
   private async addDepartmentAncestorIds(
-    parentId: string | null,
+    parentId: string,
     departmentIds: Set<string>,
   ): Promise<void> {
-    if (!parentId) return;
+    if (parentId === ROOT_PARENT_ID) return;
 
     departmentIds.add(parentId);
 
@@ -410,11 +430,8 @@ export class DepartmentsService extends BaseService {
       select: { parentId: true },
     });
 
-    if (parentDepartment?.parentId) {
-      await this.addDepartmentAncestorIds(
-        parentDepartment.parentId,
-        departmentIds,
-      );
+    if (parentDepartment?.parentId && parentDepartment.parentId !== ROOT_PARENT_ID) {
+      await this.addDepartmentAncestorIds(parentDepartment.parentId, departmentIds);
     }
   }
 
@@ -430,24 +447,23 @@ export class DepartmentsService extends BaseService {
         return true; // 发现循环
       }
 
-      const currentDepartment: {
-        departmentId: string;
-        parentId: string | null;
-      } | null = await this.prisma.department.findUnique({
+      const currentDepartmentRaw = await this.prisma.department.findUnique({
         where: { departmentId: currentParentDepartmentId },
         select: { departmentId: true, parentId: true },
       });
 
-      if (!currentDepartment) {
+      if (!currentDepartmentRaw) {
         break;
       }
 
-      if (currentDepartment.departmentId === departmentId) {
+      if (currentDepartmentRaw.departmentId === departmentId) {
         return true; // 发现循环
       }
 
       visited.add(currentParentDepartmentId);
-      currentParentDepartmentId = currentDepartment.parentId;
+      const parentIdNext = currentDepartmentRaw.parentId ?? ROOT_PARENT_ID;
+      currentParentDepartmentId =
+        parentIdNext === ROOT_PARENT_ID ? null : parentIdNext;
     }
 
     return false;

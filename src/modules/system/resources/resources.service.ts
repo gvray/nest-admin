@@ -14,6 +14,7 @@ import { plainToInstance } from 'class-transformer';
 import { ResourceType } from '@prisma/client';
 import { BaseService } from '@/shared/services/base.service';
 import { startOfDay, endOfDay } from '@/shared/utils/time.util';
+import { ROOT_PARENT_ID } from '@/shared/constants/root.constant';
 
 @Injectable()
 export class ResourcesService extends BaseService {
@@ -52,14 +53,13 @@ export class ResourcesService extends BaseService {
       createResourceDto.parentId,
     );
 
-    // 如果有父级资源，检查父级资源是否存在
-    let parentId: string | null = null;
-
-    if (createResourceDto.parentId) {
+    // 如果有父级资源，检查父级资源是否存在；未提供或为 ROOT 视为顶级
+    const parentIdInput = createResourceDto.parentId ?? ROOT_PARENT_ID;
+    let parentId: string = parentIdInput;
+    if (parentId !== ROOT_PARENT_ID) {
       const parentResource = await this.prisma.resource.findUnique({
-        where: { resourceId: createResourceDto.parentId },
+        where: { resourceId: parentId },
       });
-
       if (!parentResource) {
         throw new NotFoundException('父级资源不存在');
       }
@@ -72,7 +72,6 @@ export class ResourcesService extends BaseService {
         code: createResourceDto.code,
         type: createResourceDto.type as ResourceType,
         path: createResourceDto.path,
-
         icon: createResourceDto.icon,
         parentId: parentId,
         sort: createResourceDto.sort,
@@ -141,8 +140,7 @@ export class ResourcesService extends BaseService {
     if (!hasFilters) {
       // 没有过滤条件，返回所有资源（管理接口应该显示所有状态）
       const allResources = await this.prisma.resource.findMany({
-        where:
-          queryDto?.status !== undefined ? { status: queryDto.status } : {},
+        where: queryDto?.status !== undefined ? { status: queryDto.status } : {},
         orderBy: [{ parentId: 'asc' }, { sort: 'asc' }, { createdAt: 'asc' }],
       });
 
@@ -203,7 +201,7 @@ export class ResourcesService extends BaseService {
         if (queryDto.createdAtStart)
           o.gte = startOfDay(queryDto.createdAtStart);
         if (queryDto.createdAtEnd) o.lte = endOfDay(queryDto.createdAtEnd);
-        (whereConditions as Record<string, unknown>).createdAt = o;
+        whereConditions.createdAt = o;
       }
 
       const filteredResources = await this.prisma.resource.findMany({
@@ -220,7 +218,9 @@ export class ResourcesService extends BaseService {
       return treeResources;
     } else {
       // 宽松模式：返回匹配的资源及其完整父级路径
-      const res = await this.findTreeWithLooseFilter(queryDto!);
+      const res = await this.findTreeWithLooseFilter(
+        queryDto || new QueryResourceDto(),
+      );
       return res;
     }
   }
@@ -320,7 +320,7 @@ export class ResourcesService extends BaseService {
     }
 
     // 处理父级资源
-    let parentId: string | null = existingResource.parentId;
+    let parentId: string = existingResource.parentId ?? ROOT_PARENT_ID;
     if (updateResourceDto.parentId !== undefined) {
       if (updateResourceDto.parentId) {
         // 检查循环引用
@@ -347,7 +347,7 @@ export class ResourcesService extends BaseService {
 
         parentId = parentResource.resourceId;
       } else {
-        parentId = null;
+        parentId = ROOT_PARENT_ID;
       }
     }
 
@@ -421,7 +421,7 @@ export class ResourcesService extends BaseService {
 
     // 构建树形结构
     resources.forEach((resource) => {
-      if (resource.parentId) {
+      if (resource.parentId && resource.parentId !== ROOT_PARENT_ID) {
         const parent = resourceMap.get(resource.parentId);
         if (parent) {
           const child = resourceMap.get(resource.resourceId);
@@ -429,6 +429,9 @@ export class ResourcesService extends BaseService {
             parent.children = parent.children || [];
             parent.children.push(child);
           }
+        } else {
+          const node = resourceMap.get(resource.resourceId);
+          if (node) rootResources.push(node);
         }
       } else {
         const node = resourceMap.get(resource.resourceId);
@@ -475,7 +478,7 @@ export class ResourcesService extends BaseService {
     resources.forEach((resource) => {
       const mappedResource = resourceMap.get(resource.resourceId);
       if (!mappedResource) return;
-      if (resource.parentId) {
+      if (resource.parentId && resource.parentId !== ROOT_PARENT_ID) {
         const parent = resourceMap.get(resource.parentId);
         if (parent) {
           parent.children = parent.children || [];
@@ -517,8 +520,8 @@ export class ResourcesService extends BaseService {
     resourceType: string,
     parentId?: string | null,
   ): Promise<void> {
-    // 如果没有父级资源，目录和菜单都可以创建在顶级
-    if (!parentId) {
+    // 顶级（空或 ROOT）允许目录或菜单
+    if (!parentId || parentId === ROOT_PARENT_ID) {
       if (resourceType !== 'DIRECTORY' && resourceType !== 'MENU') {
         throw new BadRequestException('只有目录和菜单可以创建在顶级');
       }
@@ -562,8 +565,9 @@ export class ResourcesService extends BaseService {
     const typeNames = {
       DIRECTORY: '目录',
       MENU: '菜单',
-    };
-    return typeNames[type] || type;
+    } as const;
+    const v = typeNames[type as keyof typeof typeNames];
+    return v ?? type;
   }
 
   private async isDescendant(
@@ -642,7 +646,10 @@ export class ResourcesService extends BaseService {
       resourceIdsToInclude.add(resource.resourceId);
 
       // 添加所有祖先资源
-      await this.addAncestorIds(resource.parentId, resourceIdsToInclude);
+      await this.addAncestorIds(
+        resource.parentId ?? ROOT_PARENT_ID,
+        resourceIdsToInclude,
+      );
     }
 
     // 获取所有需要包含的资源
@@ -673,10 +680,10 @@ export class ResourcesService extends BaseService {
    * 递归添加祖先资源ID
    */
   private async addAncestorIds(
-    parentId: string | null,
+    parentId: string,
     resourceIds: Set<string>,
   ): Promise<void> {
-    if (!parentId) return;
+    if (parentId === ROOT_PARENT_ID) return;
 
     resourceIds.add(parentId);
 
@@ -685,7 +692,10 @@ export class ResourcesService extends BaseService {
       select: { parentId: true },
     });
 
-    if (parentResource?.parentId) {
+    if (
+      parentResource?.parentId &&
+      parentResource.parentId !== ROOT_PARENT_ID
+    ) {
       await this.addAncestorIds(parentResource.parentId, resourceIds);
     }
   }
