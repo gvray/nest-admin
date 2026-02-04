@@ -5,9 +5,11 @@ import { LoginLogsService } from '@/modules/system/login-logs/login-logs.service
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { CurrentUserResponseDto } from './dto/current-user-response.dto';
+import { MenuResponseDto } from './dto/menu-response.dto';
 // no unified response types needed in service
 import { plainToInstance } from 'class-transformer';
 import * as bcrypt from 'bcrypt';
+import { PermissionType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UserStatus } from '../../shared/constants/user-status.constant';
 import { SUPER_ROLE_KEY } from '../../shared/constants/role.constant';
@@ -228,7 +230,6 @@ export class AuthService {
                         name: true,
                         code: true,
                         action: true,
-                        resourceId: true,
                         description: true,
                       },
                     },
@@ -268,9 +269,12 @@ export class AuthService {
     });
 
     // 计算是否为超级管理员（约定：仅当存在 roleKey === 'super_admin' 的角色时为超管）
-    const isSuperAdmin =
-      Array.isArray(user.userRoles) &&
-      user.userRoles.some((ur) => ur.role?.roleKey === SUPER_ROLE_KEY);
+    const rolesArr: any[] = Array.isArray((user as any).userRoles)
+      ? (user as any).userRoles
+      : [];
+    const isSuperAdmin = rolesArr.some(
+      (ur: any) => ur.role?.roleKey === SUPER_ROLE_KEY,
+    );
 
     // 将 isSuperAdmin 合并到响应对象
     Object.assign(userResponse, { isSuperAdmin });
@@ -278,18 +282,16 @@ export class AuthService {
     // 计算前端使用的权限代码聚合：超管 -> ['*:*:*']；非超管 -> 角色权限并集
     const permissionCodes: string[] = isSuperAdmin
       ? ['*:*:*']
-      : Array.isArray(user.userRoles)
-        ? Array.from(
-            new Set(
-              user.userRoles
-                .flatMap((ur) => ur.role?.rolePermissions || [])
-                .map((rp) => rp?.permission?.code)
-                .filter(
-                  (c): c is string => typeof c === 'string' && c.length > 0,
-                ),
-            ),
-          )
-        : [];
+      : Array.from(
+          new Set(
+            rolesArr
+              .flatMap((ur: any) => ur.role?.rolePermissions || [])
+              .map((rp: any) => rp?.permission?.code)
+              .filter(
+                (c: any): c is string => typeof c === 'string' && c.length > 0,
+              ),
+          ),
+        );
 
     Object.assign(userResponse, { permissionCodes });
 
@@ -300,6 +302,203 @@ export class AuthService {
     // 在无状态JWT系统中，logout主要是客户端删除token
     // 这里返回成功响应，实际的token失效由客户端处理
     return;
+  }
+
+  async getMenus(userId: string): Promise<MenuResponseDto[]> {
+    const user = await this.prisma.user.findUnique({
+      where: { userId },
+      include: {
+        userRoles: {
+          include: {
+            role: {
+              include: { rolePermissions: true },
+            },
+          },
+        },
+      },
+    });
+    if (!user) {
+      throw new UnauthorizedException('用户不存在');
+    }
+    const isSuperAdmin =
+      Array.isArray(user.userRoles) &&
+      user.userRoles.some((ur) => ur.role?.roleKey === SUPER_ROLE_KEY);
+    let menus:
+      | Array<{
+          permissionId: string;
+          parentPermissionId: string | null;
+          name: string;
+          code: string;
+          type: string;
+          action: string;
+          meta: {
+            path: string | null;
+            icon: string | null;
+            hidden: boolean;
+            component: string | null;
+          } | null;
+        }>
+      | [] = [];
+    if (isSuperAdmin) {
+      const perms = await this.prisma.permission.findMany({
+        where: { type: PermissionType.MENU },
+        select: {
+          permissionId: true,
+          parentPermissionId: true,
+          name: true,
+          code: true,
+          type: true,
+          action: true,
+          menuMeta: {
+            select: {
+              path: true,
+              icon: true,
+              hidden: true,
+              component: true,
+              sort: true,
+            },
+          },
+        },
+        orderBy: [{ code: 'asc' }],
+      });
+      menus = perms.map((p) => ({
+        permissionId: p.permissionId,
+        parentPermissionId: p.parentPermissionId ?? null,
+        name: p.name,
+        code: p.code,
+        type: p.type,
+        action: p.action,
+        meta: p.menuMeta
+          ? {
+              path: p.menuMeta.path ?? null,
+              icon: p.menuMeta.icon ?? null,
+              hidden: p.menuMeta.hidden,
+              component: p.menuMeta.component ?? null,
+            }
+          : null,
+      }));
+    } else {
+      const assignedPermissionIds = Array.from(
+        new Set(
+          (user.userRoles || [])
+            .flatMap((ur) => ur.role?.rolePermissions || [])
+            .map((rp) => rp.permissionId)
+            .filter(
+              (id): id is string => typeof id === 'string' && id.length > 0,
+            ),
+        ),
+      );
+      if (assignedPermissionIds.length === 0) return [];
+      const perms = await this.prisma.permission.findMany({
+        where: {
+          permissionId: { in: assignedPermissionIds },
+          type: PermissionType.MENU,
+        },
+        select: {
+          permissionId: true,
+          parentPermissionId: true,
+          name: true,
+          code: true,
+          type: true,
+          action: true,
+          menuMeta: {
+            select: {
+              path: true,
+              icon: true,
+              hidden: true,
+              component: true,
+              sort: true,
+            },
+          },
+        },
+        orderBy: [{ code: 'asc' }],
+      });
+      menus = perms.map((p) => ({
+        permissionId: p.permissionId,
+        parentPermissionId: p.parentPermissionId ?? null,
+        name: p.name,
+        code: p.code,
+        type: p.type,
+        action: p.action,
+        meta: p.menuMeta
+          ? {
+              path: p.menuMeta.path ?? null,
+              icon: p.menuMeta.icon ?? null,
+              hidden: p.menuMeta.hidden,
+              component: p.menuMeta.component ?? null,
+            }
+          : null,
+      }));
+    }
+    type Node = {
+      permissionId: string;
+      parentPermissionId: string | null;
+      name: string;
+      code: string;
+      type: string;
+      action: string;
+      meta?: {
+        path: string | null;
+        icon: string | null;
+        hidden: boolean;
+        component: string | null;
+        sort: number;
+      } | null;
+      children?: Node[];
+    };
+    const map = new Map<string, Node>();
+    const roots: Node[] = [];
+    menus.forEach((m) => {
+      map.set(m.permissionId, {
+        permissionId: m.permissionId,
+        parentPermissionId: m.parentPermissionId ?? null,
+        name: m.name,
+        code: m.code,
+        type: m.type,
+        action: m.action,
+        meta: m.meta
+          ? {
+              path: m.meta.path ?? null,
+              icon: m.meta.icon ?? null,
+              hidden: m.meta.hidden ?? false,
+              component: m.meta.component ?? null,
+              sort: (m as any).meta?.sort ?? 0,
+            }
+          : null,
+        children: [],
+      });
+    });
+    menus.forEach((m) => {
+      const node = map.get(m.permissionId);
+      if (!node) return;
+      const pid = m.parentPermissionId;
+      if (pid) {
+        const parent = map.get(pid);
+        if (parent) {
+          parent.children = parent.children || [];
+          parent.children.push(node);
+        } else {
+          roots.push(node);
+        }
+      } else {
+        roots.push(node);
+      }
+    });
+    roots.forEach(function sortChildren(n) {
+      if (n.children && n.children.length > 0) {
+        n.children.sort((a, b) => {
+          const as = a.meta?.sort ?? 0;
+          const bs = b.meta?.sort ?? 0;
+          if (as !== bs) return as - bs;
+          return a.name.localeCompare(b.name);
+        });
+        n.children.forEach(sortChildren);
+      }
+    });
+    const result = plainToInstance(MenuResponseDto, roots, {
+      excludeExtraneousValues: true,
+    });
+    return result;
   }
 
   private getClientIp(req?: RequestWithHeaders): string {

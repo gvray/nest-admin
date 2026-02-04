@@ -430,8 +430,14 @@ export class DepartmentsService extends BaseService {
       select: { parentId: true },
     });
 
-    if (parentDepartment?.parentId && parentDepartment.parentId !== ROOT_PARENT_ID) {
-      await this.addDepartmentAncestorIds(parentDepartment.parentId, departmentIds);
+    if (
+      parentDepartment?.parentId &&
+      parentDepartment.parentId !== ROOT_PARENT_ID
+    ) {
+      await this.addDepartmentAncestorIds(
+        parentDepartment.parentId,
+        departmentIds,
+      );
     }
   }
 

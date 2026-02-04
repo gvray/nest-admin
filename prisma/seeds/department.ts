@@ -1,4 +1,3 @@
-import { ROOT_PARENT_ID } from '@/shared/constants/root.constant';
 import { PrismaClient } from '@prisma/client';
 
 export async function seedDepartments(prisma: PrismaClient) {
@@ -12,7 +11,7 @@ export async function seedDepartments(prisma: PrismaClient) {
       description: '负责技术开发和维护',
       status: 1,
       sort: 1,
-      parentId: ROOT_PARENT_ID,
+      parentId: '00000000-0000-0000-0000-000000000000',
     },
   });
 
@@ -25,7 +24,7 @@ export async function seedDepartments(prisma: PrismaClient) {
       description: '负责人力资源管理',
       status: 1,
       sort: 2,
-      parentId: ROOT_PARENT_ID,
+      parentId: '00000000-0000-0000-0000-000000000000',
     },
   });
 
@@ -36,7 +35,7 @@ export async function seedDepartments(prisma: PrismaClient) {
       description: '顶级组织结构',
       sort: 0, // 设置为0，确保排在最前面
       status: 1,
-      parentId: ROOT_PARENT_ID,
+      parentId: '00000000-0000-0000-0000-000000000000',
     },
   });
 

@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsString } from 'class-validator';
 import { PaginationSortDto } from '@/shared/dtos/pagination.dto';
+import { PermissionType } from './create-permission.dto';
 
 export class QueryPermissionDto extends PaginationSortDto {
   @ApiPropertyOptional({ description: '权限名称' })
@@ -18,10 +19,14 @@ export class QueryPermissionDto extends PaginationSortDto {
   @IsString()
   action?: string;
 
-  @ApiPropertyOptional({ description: '资源ID' })
+  @ApiPropertyOptional({ description: '权限类型' })
+  @IsOptional()
+  type?: PermissionType;
+
+  @ApiPropertyOptional({ description: '父权限ID' })
   @IsOptional()
   @IsString()
-  resourceId?: string;
+  parentPermissionId?: string;
 
   @ApiPropertyOptional({ description: '创建时间开始（YYYY-MM-DD）' })
   @IsOptional()

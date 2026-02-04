@@ -9,6 +9,7 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { CurrentUserResponseDto } from './dto/current-user-response.dto';
+import { MenuResponseDto } from './dto/menu-response.dto';
 import { ResponseUtil } from '../../shared/utils/response.util';
 import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
 import { CurrentUser } from '../../core/decorators/current-user.decorator';
@@ -201,5 +202,15 @@ export class AuthController {
   logout() {
     this.authService.logout();
     return ResponseUtil.success(null, '退出登录成功');
+  }
+
+  @Get('menus')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '获取当前用户可见菜单' })
+  @ApiResponse({ status: 200, description: '菜单树', type: [MenuResponseDto] })
+  async menus(@CurrentUser() user: { userId: string }) {
+    const data = await this.authService.getMenus(user.userId);
+    return ResponseUtil.found(data, '获取菜单成功');
   }
 }

@@ -11,11 +11,7 @@ import { QueryPermissionDto } from './dto/query-permission.dto';
 import { PermissionResponseDto } from './dto/permission-response.dto';
 import { BaseService } from '@/shared/services/base.service';
 import { PaginationData } from '@/shared/interfaces/response.interface';
-import type {
-  Permission as PermissionModel,
-  Resource as ResourceModel,
-} from '@prisma/client';
-import { ROOT_PARENT_ID } from '@/shared/constants/root.constant';
+import type { Permission as PermissionModel } from '@prisma/client';
 
 @Injectable()
 export class PermissionsService extends BaseService {
@@ -27,35 +23,8 @@ export class PermissionsService extends BaseService {
     createPermissionDto: CreatePermissionDto,
     currentUserId?: string,
   ): Promise<PermissionResponseDto> {
-    const { name, description, resourceId, action } = createPermissionDto;
-
-    // 查找资源（支持UUID和数字ID）
-    let resource: ResourceModel | null = null;
-
-    // 首先尝试按UUID查找
-    resource = await this.prisma.resource.findUnique({
-      where: { resourceId: resourceId },
-    });
-
-    // 如果UUID查找失败，尝试按数字ID查找
-    if (!resource && !isNaN(Number(resourceId))) {
-      resource = await this.prisma.resource.findUnique({
-        where: { id: Number(resourceId) },
-      });
-    }
-
-    if (!resource) {
-      throw new NotFoundException('关联的资源不存在');
-    }
-
-    if (resource.type !== 'MENU') {
-      throw new ConflictException(
-        '权限只能挂载到菜单类型的资源上，不能挂载到目录类型',
-      );
-    }
-
-    // 自动生成权限代码：资源code + action
-    const code = `${resource.code}:${action}`;
+    const { name, code, type, parentPermissionId, action, description, menuMeta } =
+      createPermissionDto;
 
     // 检查权限名称是否已存在
     const existingPermissionByName = await this.prisma.permission.findUnique({
@@ -75,36 +44,58 @@ export class PermissionsService extends BaseService {
       throw new ConflictException('权限代码已存在');
     }
 
-    // 检查同一资源下是否已存在相同操作的权限
-    const existingActionPermission = await this.prisma.permission.findFirst({
-      where: {
-        resourceId: resource.resourceId,
-        action,
-      },
-      include: {
-        resource: true,
-      },
-    });
-
-    if (existingActionPermission) {
-      throw new ConflictException(
-        `资源"${existingActionPermission.resource.name}"已存在"${action}"操作权限`,
-      );
+    // 业务校验：菜单则父为空，非菜单必须有父且父必须是菜单
+    if (type === 'MENU') {
+      if (parentPermissionId) {
+        throw new ConflictException('菜单权限不能指定父权限');
+      }
+    } else {
+      if (!parentPermissionId) {
+        throw new ConflictException('非菜单权限必须指定父菜单权限');
+      }
+      const parent = await (this.prisma as any).permission.findUnique({
+        where: { permissionId: parentPermissionId },
+        select: { type: true } as any,
+      });
+      if (!parent || parent.type !== 'MENU') {
+        throw new ConflictException('父权限必须是菜单类型');
+      }
     }
 
-    const permission = await this.prisma.permission.create({
+    const finalAction = type === 'MENU' ? 'access' : action || 'view';
+
+    const permission = await (this.prisma as any).permission.create({
       data: {
         name,
         code,
+        type,
+        parentPermissionId: parentPermissionId ?? null,
         description,
-        resourceId: resource.resourceId,
-        action,
+        action: finalAction,
         createdById: currentUserId,
       },
-      include: {
-        resource: true,
-      },
     });
+
+    if (type === 'MENU') {
+      await (this.prisma as any).menuMeta.upsert({
+        where: { permissionId: permission.permissionId },
+        update: {
+          path: menuMeta?.path ?? undefined,
+          icon: menuMeta?.icon ?? undefined,
+          hidden: menuMeta?.hidden ?? false,
+          component: menuMeta?.component ?? undefined,
+          sort: menuMeta?.sort ?? 0,
+        },
+        create: {
+          permissionId: permission.permissionId,
+          path: menuMeta?.path ?? undefined,
+          icon: menuMeta?.icon ?? undefined,
+          hidden: menuMeta?.hidden ?? false,
+          component: menuMeta?.component ?? undefined,
+          sort: menuMeta?.sort ?? 0,
+        },
+      });
+    }
 
     return plainToInstance(PermissionResponseDto, permission, {
       excludeExtraneousValues: true,
@@ -114,11 +105,18 @@ export class PermissionsService extends BaseService {
   async findAll(
     query: QueryPermissionDto,
   ): Promise<PaginationData<PermissionResponseDto>> {
-    const { name, code, action, resourceId, createdAtStart, createdAtEnd } =
-      query;
+    const {
+      name,
+      code,
+      action,
+      type,
+      parentPermissionId,
+      createdAtStart,
+      createdAtEnd,
+    } = query;
     const where = this.buildWhere({
       contains: { name, code, action },
-      equals: { resourceId },
+      equals: { type, parentPermissionId },
       date: { field: 'createdAt', start: createdAtStart, end: createdAtEnd },
     });
     const state = this.getPaginationState(query);
@@ -202,7 +200,8 @@ export class PermissionsService extends BaseService {
     updatePermissionDto: UpdatePermissionDto,
     currentUserId?: string,
   ): Promise<PermissionResponseDto> {
-    const { name, description, resourceId, action } = updatePermissionDto;
+    const { name, description, code, type, parentPermissionId, action, menuMeta } =
+      updatePermissionDto;
 
     // 支持UUID和数字ID查找
     let permission: PermissionModel | null = null;
@@ -223,29 +222,24 @@ export class PermissionsService extends BaseService {
       throw new NotFoundException(`权限ID ${id} 不存在`);
     }
 
-    // 如果更新资源ID，检查资源是否存在且为菜单类型
-    let targetResource: ResourceModel | null = null;
-    if (resourceId) {
-      // 首先尝试按UUID查找
-      targetResource = await this.prisma.resource.findUnique({
-        where: { resourceId: resourceId },
-      });
-
-      // 如果UUID查找失败，尝试按数字ID查找
-      if (!targetResource && !isNaN(Number(resourceId))) {
-        targetResource = await this.prisma.resource.findUnique({
-          where: { id: Number(resourceId) },
+    // 校验类型变更与父关系
+    if (type && type !== permission.type) {
+      if (type === 'MENU') {
+        if (parentPermissionId) {
+          throw new ConflictException('菜单权限不能指定父权限');
+        }
+      } else {
+        const parentId = parentPermissionId ?? permission.parentPermissionId;
+        if (!parentId) {
+          throw new ConflictException('非菜单权限必须指定父菜单权限');
+        }
+        const parent = await (this.prisma as any).permission.findUnique({
+          where: { permissionId: parentId },
+          select: { type: true } as any,
         });
-      }
-
-      if (!targetResource) {
-        throw new NotFoundException('关联的资源不存在');
-      }
-
-      if (targetResource.type !== 'MENU') {
-        throw new ConflictException(
-          '权限只能挂载到菜单类型的资源上，不能挂载到目录类型',
-        );
+        if (!parent || parent.type !== 'MENU') {
+          throw new ConflictException('父权限必须是菜单类型');
+        }
       }
     }
 
@@ -260,74 +254,66 @@ export class PermissionsService extends BaseService {
       }
     }
 
-    // 自动生成新的权限代码（如果资源或操作发生变化）
-    let newCode = permission.code;
-    if (targetResource || action) {
-      const finalResource =
-        targetResource ||
-        (await this.prisma.resource.findUnique({
-          where: { resourceId: permission.resourceId },
-        }));
-      const finalAction = action || permission.action;
-      if (!finalResource) {
-        throw new NotFoundException('关联的资源不存在');
-      }
-      newCode = `${finalResource.code}:${finalAction}`;
-
-      // 检查新代码是否已存在
-      if (newCode !== permission.code) {
-        const existingPermissionByCode =
-          await this.prisma.permission.findUnique({
-            where: { code: newCode },
-          });
-
-        if (existingPermissionByCode) {
-          throw new ConflictException('自动生成的权限代码已存在');
-        }
-      }
-    }
-
-    // 如果更新资源或操作，检查同一资源下是否已存在相同操作的权限
-    if (targetResource || action) {
-      const finalResourceId = targetResource
-        ? targetResource.resourceId
-        : permission.resourceId;
-      const finalAction = action || permission.action;
-
-      const existingActionPermission = await this.prisma.permission.findFirst({
-        where: {
-          resourceId: finalResourceId,
-          action: finalAction,
-          id: { not: permission.id }, // 排除当前权限
-        },
-        include: {
-          resource: true,
-        },
+    // 校验名称与代码唯一
+    if (name && name !== permission.name) {
+      const existingPermissionByName = await this.prisma.permission.findUnique({
+        where: { name },
       });
-
-      if (existingActionPermission) {
-        throw new ConflictException(
-          `资源"${existingActionPermission.resource.name}"已存在"${finalAction}"操作权限`,
-        );
+      if (existingPermissionByName) {
+        throw new ConflictException('权限名称已存在');
       }
     }
+    let newCode = permission.code;
+    if (code && code !== permission.code) {
+      const existingPermissionByCode = await this.prisma.permission.findUnique({
+        where: { code },
+      });
+      if (existingPermissionByCode) {
+        throw new ConflictException('权限代码已存在');
+      }
+      newCode = code;
+    }
 
-    const updatedPermission = await this.prisma.permission.update({
+    const finalType = type ?? (permission as any).type;
+    const finalParentId =
+      finalType === 'MENU'
+        ? null
+        : (parentPermissionId ?? (permission as any).parentPermissionId);
+    const finalAction =
+      finalType === 'MENU' ? 'access' : (action ?? permission.action);
+    const updatedPermission = await (this.prisma as any).permission.update({
       where: { id: permission.id },
       data: {
         name,
         code: newCode,
         description,
-        resourceId: targetResource
-          ? targetResource.resourceId
-          : permission.resourceId,
-        action,
+        type: finalType,
+        parentPermissionId: finalParentId ?? null,
+        action: finalAction,
         updatedById: currentUserId,
       },
-      include: {
-        resource: true,
-      },
     });
+
+    if (finalType === 'MENU') {
+      await (this.prisma as any).menuMeta.upsert({
+        where: { permissionId: updatedPermission.permissionId },
+        update: {
+          path: menuMeta?.path ?? undefined,
+          icon: menuMeta?.icon ?? undefined,
+          hidden: menuMeta?.hidden ?? false,
+          component: menuMeta?.component ?? undefined,
+          sort: menuMeta?.sort ?? 0,
+        },
+        create: {
+          permissionId: updatedPermission.permissionId,
+          path: menuMeta?.path ?? undefined,
+          icon: menuMeta?.icon ?? undefined,
+          hidden: menuMeta?.hidden ?? false,
+          component: menuMeta?.component ?? undefined,
+          sort: menuMeta?.sort ?? 0,
+        },
+      });
+    }
 
     return plainToInstance(PermissionResponseDto, updatedPermission, {
       excludeExtraneousValues: true,
@@ -377,407 +363,181 @@ export class PermissionsService extends BaseService {
    * @returns 按照资源层级组织的权限树
    */
   async getPermissionTree(queryDto?: QueryPermissionDto): Promise<unknown> {
-    let allResources: Array<
-      ResourceModel & {
-        permissions: Array<{
-          permissionId: string;
-          name: string;
-          code: string;
-          action: string;
-          description: string | null;
-          createdAt: Date;
-          updatedAt: Date;
-        }>;
-      }
-    > = [];
+    const where: Record<string, unknown> = {};
+    if (queryDto?.name) where['name'] = { contains: queryDto.name };
+    if (queryDto?.code) where['code'] = { contains: queryDto.code };
+    if (queryDto?.action) where['action'] = { contains: queryDto.action };
+    if (queryDto?.type) where['type'] = queryDto.type as unknown;
+    if (queryDto?.parentPermissionId)
+      where['parentPermissionId'] = queryDto.parentPermissionId;
 
-    // 检查是否有搜索条件
-    const hasSearchConditions =
-      queryDto?.name ||
-      queryDto?.code ||
-      queryDto?.action ||
-      queryDto?.resourceId;
-
-    if (hasSearchConditions) {
-      // 有搜索条件时，先找到匹配的权限，然后获取对应的资源
-      const permissionWhereConditions: Record<string, unknown> = {};
-
-      if (queryDto?.name) {
-        permissionWhereConditions.name = { contains: queryDto.name };
-      }
-
-      if (queryDto?.code) {
-        permissionWhereConditions.code = { contains: queryDto.code };
-      }
-
-      if (queryDto?.action) {
-        permissionWhereConditions.action = { contains: queryDto.action };
-      }
-
-      // 找到匹配的权限
-      const matchedPermissions: Array<
-        PermissionModel & { resource: ResourceModel }
-      > = await this.prisma.permission.findMany({
-        where: permissionWhereConditions,
-        include: {
-          resource: true,
+    const permissions = await (this.prisma as any).permission.findMany({
+      where,
+      include: {
+        menuMeta: {
+          select: { path: true, icon: true, hidden: true, component: true },
         },
-      });
+      },
+      orderBy: [{ createdAt: 'asc' }],
+    });
 
-      if (matchedPermissions.length > 0) {
-        // 收集所有需要包含的资源ID（匹配权限的资源 + 它们的父级路径）
-        const resourceIdsToInclude = new Set<string>();
-
-        for (const permission of matchedPermissions) {
-          resourceIdsToInclude.add(permission.resourceId);
-          // 添加父级资源
-          await this.addResourceAncestorIds(
-            permission.resource.parentId ?? ROOT_PARENT_ID,
-            resourceIdsToInclude,
-          );
-        }
-
-        // 获取所有需要包含的资源
-        allResources = await this.prisma.resource.findMany({
-          where: {
-            resourceId: { in: Array.from(resourceIdsToInclude) },
-          },
-          include: {
-            permissions: {
-              select: {
-                permissionId: true,
-                name: true,
-                code: true,
-                action: true,
-                description: true,
-                createdAt: true,
-                updatedAt: true,
-              },
-              orderBy: [{ action: 'asc' }],
-            },
-          },
-          orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
-        });
-      }
-    } else {
-      // 没有搜索条件时，获取所有资源
-      allResources = await this.prisma.resource.findMany({
-        include: {
-          permissions: {
-            select: {
-              permissionId: true,
-              name: true,
-              code: true,
-              action: true,
-              description: true,
-              createdAt: true,
-              updatedAt: true,
-            },
-            orderBy: [{ action: 'asc' }],
-          },
-        },
-        orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
-      });
-    }
-
-    // 构建树结构
     type TreeNode = {
-      resourceId?: string;
-      permissionId?: string;
+      permissionId: string;
       name: string;
       code: string;
       type: string;
       action?: string;
       description?: string | null;
-      path?: string | null;
-      parentId?: string | null;
-      sort: number;
       createdAt: Date;
       updatedAt?: Date;
+      menuMeta?: {
+        path?: string | null;
+        icon?: string | null;
+        hidden?: boolean;
+        component?: string | null;
+      };
       children?: TreeNode[];
     };
-    const treeMap = new Map<string, TreeNode>();
-    const rootNodes: TreeNode[] = [];
-
-    // 先创建所有资源节点
-    allResources.forEach((resource) => {
-      const node: TreeNode = {
-        resourceId: resource.resourceId,
-        name: resource.name,
-        code: resource.code,
-        type: resource.type,
-        path: resource.path,
-        parentId: resource.parentId,
-        sort: resource.sort,
-        createdAt: resource.createdAt,
+    const map = new Map<string, TreeNode>();
+    const roots: TreeNode[] = [];
+    permissions.forEach((p) => {
+      map.set(p.permissionId, {
+        permissionId: p.permissionId,
+        name: p.name,
+        code: p.code,
+        type: p.type,
+        action: p.action,
+        description: p.description,
+        createdAt: p.createdAt,
+        updatedAt: p.updatedAt,
+        menuMeta: p.menuMeta
+          ? {
+              path: p.menuMeta.path ?? null,
+              icon: p.menuMeta.icon ?? null,
+              hidden: p.menuMeta.hidden ?? false,
+              component: p.menuMeta.component ?? null,
+            }
+          : undefined,
         children: [],
-      };
-      treeMap.set(resource.resourceId, node);
-
-      resource.permissions.forEach((permission) => {
-        const permissionNode: TreeNode = {
-          permissionId: permission.permissionId,
-          name: permission.name,
-          code: permission.code,
-          type: 'permission',
-          action: permission.action,
-          description: permission.description,
-          createdAt: permission.createdAt,
-          updatedAt: permission.updatedAt,
-          parentId: resource.resourceId,
-          sort: 0,
-        };
-        node.children?.push(permissionNode);
       });
     });
-
-    // 构建父子关系
-    treeMap.forEach((node) => {
-      if (node.parentId) {
-        const parent = treeMap.get(node.parentId);
+    permissions.forEach((p) => {
+      const node = map.get(p.permissionId);
+      if (!node) return;
+      const parentId = p.parentPermissionId;
+      if (parentId) {
+        const parent = map.get(parentId);
         if (parent) {
           parent.children = parent.children || [];
           parent.children.push(node);
         } else {
-          rootNodes.push(node);
+          roots.push(node);
         }
       } else {
-        rootNodes.push(node);
+        roots.push(node);
       }
     });
-
-    // 递归排序子节点并清理空children
-    const sortAndCleanChildren = (nodes: TreeNode[]) => {
+    const actionOrder = [
+      'view',
+      'create',
+      'update',
+      'delete',
+      'export',
+      'import',
+      'access',
+    ];
+    const sortChildren = (nodes: TreeNode[]) => {
       nodes.sort((a, b) => {
-        if (a.type === 'permission' && b.type === 'permission') {
-          const actionOrder = [
-            'view',
-            'create',
-            'update',
-            'delete',
-            'export',
-            'import',
-          ];
-          const aIndex = actionOrder.indexOf(a.action || '');
-          const bIndex = actionOrder.indexOf(b.action || '');
-          return aIndex - bIndex;
-        }
-        if (a.sort !== b.sort) {
-          return a.sort - b.sort;
-        }
+        const ai = actionOrder.indexOf(a.action || '');
+        const bi = actionOrder.indexOf(b.action || '');
+        if (ai !== -1 && bi !== -1 && ai !== bi) return ai - bi;
         return a.name.localeCompare(b.name);
       });
-
-      nodes.forEach((node) => {
-        if (node.children && node.children.length > 0) {
-          sortAndCleanChildren(node.children);
-        } else {
-          delete node.children;
-        }
+      nodes.forEach((n) => {
+        if (n.children && n.children.length > 0) sortChildren(n.children);
+        else delete n.children;
       });
     };
-
-    sortAndCleanChildren(rootNodes);
-
-    return rootNodes;
+    sortChildren(roots);
+    return roots;
   }
 
   /**
    * 递归添加资源祖先ID
    */
-  private async addResourceAncestorIds(
-    parentId: string,
-    resourceIds: Set<string>,
-  ): Promise<void> {
-    if (parentId === ROOT_PARENT_ID) return;
-
-    resourceIds.add(parentId);
-
-    const parentResource = await this.prisma.resource.findUnique({
-      where: { resourceId: parentId },
-      select: { parentId: true },
-    });
-
-    if (
-      parentResource?.parentId &&
-      parentResource.parentId !== ROOT_PARENT_ID
-    ) {
-      await this.addResourceAncestorIds(parentResource.parentId, resourceIds);
-    }
-  }
 
   /**
    * 获取简化权限树结构（仅包含必要信息）
    * @returns 简化的权限树，主要用于前端权限选择器
    */
   async getSimplePermissionTree(): Promise<unknown> {
-    // 获取所有资源和权限（包括目录和菜单）
-    const allResources = await this.prisma.resource.findMany({
-      include: {
-        permissions: {
-          select: {
-            permissionId: true,
-            code: true,
-            name: true,
-            action: true,
-            createdAt: true,
-          },
-          orderBy: [{ action: 'asc' }],
-        },
-      },
-      orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
+    const permissions = await (this.prisma as any).permission.findMany({
+      include: { menuMeta: { select: { path: true } } },
+      orderBy: [{ createdAt: 'asc' }],
     });
-
-    // 构建简化的树结构
-    type SimplifiedNode = {
+    type Node = {
       key: string;
       title: string;
       code: string;
       type: string;
-      parentId?: string;
-      sort: number;
-      createdAt: Date;
-      children?: SimplifiedNode[];
+      parentId?: string | null;
+      children?: Node[];
       action?: string;
-      actionInfo?: { label: string; icon: string; color: string };
     };
-    const treeMap = new Map<string, SimplifiedNode>();
-    const rootNodes: SimplifiedNode[] = [];
-
-    // 按操作类型分组权限
-    const actionGroups: Record<
-      string,
-      { label: string; icon: string; color: string }
-    > = {
-      view: { label: '查看', icon: '👀', color: '#52c41a' },
-      create: { label: '创建', icon: '➕', color: '#1890ff' },
-      update: { label: '更新', icon: '✏️', color: '#faad14' },
-      delete: { label: '删除', icon: '❌', color: '#ff4d4f' },
-      export: { label: '导出', icon: '📤', color: '#722ed1' },
-      import: { label: '导入', icon: '📥', color: '#13c2c2' },
-    };
-
-    allResources.forEach((resource) => {
-      const node: SimplifiedNode = {
-        key: resource.resourceId,
-        title: resource.name,
-        code: resource.code,
-        type: resource.type,
-        parentId: resource.parentId ?? ROOT_PARENT_ID,
-        sort: resource.sort,
-        createdAt: resource.createdAt,
+    const map = new Map<string, Node>();
+    const roots: Node[] = [];
+    permissions.forEach((p) => {
+      map.set(p.permissionId, {
+        key: p.permissionId,
+        title: p.name,
+        code: p.code,
+        type: p.type,
+        parentId: p.parentPermissionId ?? null,
+        action: p.action,
         children: [],
-      };
-      treeMap.set(resource.resourceId, node);
-
-      // 将权限作为子节点添加到资源节点
-      resource.permissions.forEach((permission) => {
-        const permissionNode: SimplifiedNode = {
-          key: permission.permissionId,
-          title: permission.name,
-          code: permission.code,
-          type: 'permission',
-          action: permission.action,
-          createdAt: permission.createdAt,
-          parentId: resource.resourceId,
-          sort: 0,
-          actionInfo: actionGroups[permission.action] || {
-            label: permission.action,
-            icon: '🔧',
-            color: '#666666',
-          },
-        };
-        node.children?.push(permissionNode);
       });
     });
-
-    // 构建父子关系
-    treeMap.forEach((node) => {
-      if (node.parentId && node.parentId !== ROOT_PARENT_ID) {
-        const parent = treeMap.get(node.parentId);
+    permissions.forEach((p) => {
+      const node = map.get(p.permissionId);
+      if (!node) return;
+      const parentId = p.parentPermissionId;
+      if (parentId) {
+        const parent = map.get(parentId);
         if (parent) {
           parent.children = parent.children || [];
           parent.children.push(node);
         } else {
-          rootNodes.push(node);
+          roots.push(node);
         }
       } else {
-        rootNodes.push(node);
+        roots.push(node);
       }
     });
-
-    // 递归排序并清理空children
-    const sortAndCleanNodes = (nodes: SimplifiedNode[]) => {
+    const actionOrder = [
+      'view',
+      'create',
+      'update',
+      'delete',
+      'export',
+      'import',
+      'access',
+    ];
+    const sortNodes = (nodes: Node[]) => {
       nodes.sort((a, b) => {
-        // 如果是权限节点，按操作类型排序
-        if (a.type === 'permission' && b.type === 'permission') {
-          const actionOrder = [
-            'view',
-            'create',
-            'update',
-            'delete',
-            'export',
-            'import',
-          ];
-          const aIndex = actionOrder.indexOf(a.action || '');
-          const bIndex = actionOrder.indexOf(b.action || '');
-          return aIndex - bIndex;
+        if (a.action && b.action) {
+          const ai = actionOrder.indexOf(a.action);
+          const bi = actionOrder.indexOf(b.action);
+          if (ai !== -1 && bi !== -1 && ai !== bi) return ai - bi;
         }
-        // 资源节点按sort和名称排序
-        if (a.sort !== b.sort) {
-          return a.sort - b.sort;
-        }
-        return (a.title || '').localeCompare(b.title || '');
+        return a.title.localeCompare(b.title);
       });
-
-      nodes.forEach((node) => {
-        if (node.children && node.children.length > 0) {
-          sortAndCleanNodes(node.children);
-        } else {
-          // 移除空的children数组
-          delete node.children;
-        }
+      nodes.forEach((n) => {
+        if (n.children && n.children.length > 0) sortNodes(n.children);
+        else delete n.children;
       });
     };
-
-    sortAndCleanNodes(rootNodes);
-
-    // 统计信息
-    const totalResources = allResources.length;
-    const menuResources = allResources.filter((r) => r.type === 'MENU').length;
-    const directoryResources = allResources.filter(
-      (r) => r.type === 'DIRECTORY',
-    ).length;
-    const totalPermissions = allResources.reduce(
-      (sum, resource) => sum + resource.permissions.length,
-      0,
-    );
-
-    // 按操作类型统计权限数量
-    const actionStats: Record<string, number> = {};
-    allResources.forEach((resource) => {
-      resource.permissions.forEach((permission) => {
-        if (!actionStats[permission.action]) {
-          actionStats[permission.action] = 0;
-        }
-        actionStats[permission.action]++;
-      });
-    });
-
-    const result = {
-      summary: {
-        totalResources,
-        menuResources,
-        directoryResources,
-        totalPermissions,
-        actionStats,
-        actionGroups,
-        message: `共 ${totalResources} 个资源（${directoryResources}个目录，${menuResources}个菜单），${totalPermissions} 个权限点`,
-      },
-      tree: rootNodes,
-    };
-
-    return result;
+    sortNodes(roots);
+    return { tree: roots };
   }
 
   async removeMany(ids: string[]): Promise<void> {

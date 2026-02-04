@@ -43,8 +43,6 @@ model User {
   createdRoles     Role[]           @relation("RoleCreatedBy")
   updatedRoles     Role[]           @relation("RoleUpdatedBy")
   createdRolePerms RolePermission[] @relation("RolePermissionCreatedBy")
-  createdResources Resource[]       @relation("ResourceCreatedBy")
-  updatedResources Resource[]       @relation("ResourceUpdatedBy")
   createdPerms     Permission[]     @relation("PermissionCreatedBy")
   updatedPerms     Permission[]     @relation("PermissionUpdatedBy")
   createdDepartments Department[]     @relation("DepartmentCreatedBy")
@@ -133,49 +131,21 @@ model RoleDepartment {
   @@map("role_departments")
 }
 
-model Resource {
-  id          Int          @id @default(autoincrement())
-  resourceId  String       @unique @default(uuid())
-  name        String       @unique // 资源名称，如：用户管理、角色管理
-  code        String       @unique // 资源代码，如：user, role, department
-  type        ResourceType @default(MENU) // 资源类型：directory(目录)用于分组, menu(菜单)挂载权限点
-  path        String? // 资源路径，如：/users, /api/users
-  icon        String? // 图标
-  parentId    String
-  parent      Resource?    @relation("ResourceHierarchy", fields: [parentId], references: [resourceId], onDelete: NoAction, onUpdate: NoAction)
-  children    Resource[]   @relation("ResourceHierarchy")
-  permissions Permission[]
-  status      Int          @default(1) // 0: 禁用, 1: 启用
-  sort        Int          @default(0)
-  description String?
-
-  // 审计字段
-  createdById String? // 创建者ID
-  createdBy   User?   @relation("ResourceCreatedBy", fields: [createdById], references: [userId], onDelete: NoAction, onUpdate: NoAction)
-  updatedById String? // 更新者ID
-  updatedBy   User?   @relation("ResourceUpdatedBy", fields: [updatedById], references: [userId], onDelete: NoAction, onUpdate: NoAction)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("resources")
-}
-
-enum ResourceType {
-  DIRECTORY // 目录（仅作结构分组，不跳页面）
-  MENU // 菜单项（跳转页面）
-}
+ 
 
 model Permission {
   id              Int              @id @default(autoincrement())
   permissionId    String           @unique @default(uuid())
   name            String           @unique // 权限名称，如：查看用户、创建用户
   code            String           @unique // 权限代码，如：user:view, user:create
+  type            PermissionType   @default(BUTTON)
   action          String // 操作类型：view(查看), create(创建), update(更新), delete(删除), export(导出), import(导入)
-  resourceId      String // 关联的菜单资源UUID（只能挂在MENU类型的资源上）
-  resource        Resource         @relation(fields: [resourceId], references: [resourceId], onDelete: Cascade)
   rolePermissions RolePermission[]
   description     String?
+  menuMeta        MenuMeta?
+  parentPermissionId String?
+  parent             Permission? @relation("PermissionHierarchy", fields: [parentPermissionId], references: [permissionId], onDelete: NoAction, onUpdate: NoAction)
+  children           Permission[] @relation("PermissionHierarchy")
 
   // 审计字段
   createdById String? // 创建者ID
@@ -187,6 +157,24 @@ model Permission {
   updatedAt DateTime @updatedAt
 
   @@map("permissions")
+}
+
+enum PermissionType {
+  MENU
+  BUTTON
+  API
+}
+
+model MenuMeta {
+  id                   Int         @id @default(autoincrement())
+  permissionId         String      @unique
+  permission           Permission  @relation(fields: [permissionId], references: [permissionId], onDelete: Cascade)
+  path                 String?
+  icon                 String?
+  hidden               Boolean     @default(false)
+  component            String?
+  sort                 Int         @default(0)
+  @@map("menu_meta")
 }
 
 model Department {

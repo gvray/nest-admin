@@ -31,7 +31,7 @@ import { CurrentUser } from '@/core/decorators/current-user.decorator';
 import { IUser } from '@/core/interfaces/user.interface';
 import { BatchDeletePermissionsDto } from './dto/batch-delete-permissions.dto';
 
-@ApiTags('系统-权限管理')
+@ApiTags('权限管理')
 @Controller('system/permissions')
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 @ApiBearerAuth('JWT-auth')

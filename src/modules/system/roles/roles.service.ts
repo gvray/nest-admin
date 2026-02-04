@@ -88,11 +88,7 @@ export class RolesService extends BaseService {
       include: {
         rolePermissions: {
           include: {
-            permission: {
-              include: {
-                resource: true,
-              },
-            },
+            permission: true,
           },
         },
       },
@@ -199,11 +195,7 @@ export class RolesService extends BaseService {
       include: {
         rolePermissions: {
           include: {
-            permission: {
-              include: {
-                resource: true,
-              },
-            },
+            permission: true,
           },
         },
         userRoles: {
@@ -289,11 +281,7 @@ export class RolesService extends BaseService {
       include: {
         rolePermissions: {
           include: {
-            permission: {
-              include: {
-                resource: true,
-              },
-            },
+            permission: true,
           },
         },
       },
@@ -377,11 +365,7 @@ export class RolesService extends BaseService {
       include: {
         rolePermissions: {
           include: {
-            permission: {
-              include: {
-                resource: true,
-              },
-            },
+            permission: true,
           },
         },
       },
@@ -425,11 +409,7 @@ export class RolesService extends BaseService {
       include: {
         rolePermissions: {
           include: {
-            permission: {
-              include: {
-                resource: true,
-              },
-            },
+            permission: true,
           },
         },
       },
@@ -527,11 +507,7 @@ export class RolesService extends BaseService {
       include: {
         rolePermissions: {
           include: {
-            permission: {
-              include: {
-                resource: true,
-              },
-            },
+            permission: true,
           },
         },
         userRoles: {
@@ -594,11 +570,7 @@ export class RolesService extends BaseService {
       include: {
         rolePermissions: {
           include: {
-            permission: {
-              include: {
-                resource: true,
-              },
-            },
+            permission: true,
           },
         },
         userRoles: {

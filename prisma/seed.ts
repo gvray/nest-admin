@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { seedPermissions } from './seeds/permissions';
-import { seedResources } from './seeds/resources';
+ 
 import { seedDepartments } from './seeds/department';
 import { seedPositions } from './seeds/positions';
 import { seedRoles } from './seeds/roles';
@@ -8,17 +8,17 @@ import { seedRolePermissions } from './seeds/role-permissions';
 import { seedUsers } from './seeds/users';
 import { seedDictionaries } from './seeds/dictionaries';
 import { seedConfigs } from './seeds/configs';
+ 
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('开始初始化数据库...');
 
-  // 1. 创建基础资源
-  await seedResources(prisma);
+  // 1. 初始化权限（包含菜单权限与动作权限）
+  await seedPermissions(prisma);
 
   // 2. 初始化权限
-  await seedPermissions(prisma);
 
   // 3. 创建部门
   const { itDepartment, hrDepartment } = await seedDepartments(prisma);

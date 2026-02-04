@@ -24,9 +24,13 @@ export class PermissionResponseDto {
   @Expose()
   action: string;
 
-  @ApiProperty({ description: '关联资源ID（UUID）' })
+  @ApiProperty({ description: '权限类型' })
   @Expose()
-  resourceId: string;
+  type: string;
+
+  @ApiPropertyOptional({ description: '父权限ID（仅非菜单）' })
+  @Expose()
+  parentPermissionId?: string;
 
   @ApiPropertyOptional({ description: '权限描述' })
   @Expose()
