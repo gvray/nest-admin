@@ -3,6 +3,7 @@ import { PrismaClient, PermissionType } from '@prisma/client';
 export async function seedPermissions(prisma: PrismaClient) {
   console.log('🔐 开始创建权限数据...');
 
+  const moduleKey = 'system';
   const menuDefs = [
     {
       type: 'DIRECTORY',
@@ -139,66 +140,64 @@ export async function seedPermissions(prisma: PrismaClient) {
 
   const menuMap: Record<string, string> = {};
   for (const r of menuDefs) {
-    const code = `menu:${r.code}`;
+    const isRootModule =
+      r.type === 'DIRECTORY' && !r.parentCode && r.code === moduleKey;
+    const code = isRootModule
+      ? `menu:${moduleKey}`
+      : `menu:${moduleKey}:${r.code}`;
     const perm = await prisma.permission.upsert({
       where: { code },
       update: {},
       create: {
-        name: `${r.name}菜单`,
+        name: `${r.name}`,
         code,
-        type: PermissionType.MENU,
+        type:
+          r.type === 'DIRECTORY'
+            ? PermissionType.DIRECTORY
+            : PermissionType.MENU,
         action: 'access',
         description: r.description,
       },
     });
-    menuMap[r.code] = perm.permissionId;
-    await prisma.menuMeta.upsert({
-      where: { permissionId: perm.permissionId },
-      update: {
-        path: r.path ?? undefined,
-        icon: r.icon ?? undefined,
-        hidden: false,
-        component: r.code,
-        sort: r.sort ?? 0,
-      },
-      create: {
-        permissionId: perm.permissionId,
-        path: r.path ?? undefined,
-        icon: r.icon ?? undefined,
-        hidden: false,
-        component: r.code,
-        sort: r.sort ?? 0,
-      },
-    });
+    const key = isRootModule ? moduleKey : `${moduleKey}:${r.code}`;
+    menuMap[key] = perm.permissionId;
+    if (r.type === 'MENU') {
+      await prisma.menuMeta.upsert({
+        where: { permissionId: perm.permissionId },
+        update: {
+          path: r.path ?? undefined,
+          icon: r.icon ?? undefined,
+          hidden: false,
+          component: r.code,
+          sort: r.sort ?? 0,
+        },
+        create: {
+          permissionId: perm.permissionId,
+          path: r.path ?? undefined,
+          icon: r.icon ?? undefined,
+          hidden: false,
+          component: r.code,
+          sort: r.sort ?? 0,
+        },
+      });
+    }
   }
   // 设置菜单层级
   for (const r of menuDefs) {
-    const permId = menuMap[r.code];
-    const parentPermId = r.parentCode ? menuMap[r.parentCode] : null;
+    const isRootModule =
+      r.type === 'DIRECTORY' && !r.parentCode && r.code === moduleKey;
+    const key = isRootModule ? moduleKey : `${moduleKey}:${r.code}`;
+    const permId = menuMap[key];
+    const parentPermId = r.parentCode
+      ? menuMap[`${moduleKey}:${r.parentCode}`]
+      : null;
     await prisma.permission.update({
       where: { permissionId: permId },
       data: { parentPermissionId: parentPermId ?? undefined },
     });
   }
 
-  // 创建 API 权限（每个菜单一个 API 入口）
-  for (const r of menuDefs) {
-    if (r.type !== 'MENU') continue;
-    const apiCode = `api:${r.code}`;
-    const parentPermissionId = menuMap[r.code];
-    await prisma.permission.upsert({
-      where: { code: apiCode },
-      update: {},
-      create: {
-        name: `${r.name}API`,
-        code: apiCode,
-        type: PermissionType.API,
-        action: 'access',
-        description: `${r.name}接口`,
-        parentPermissionId,
-      },
-    });
-  }
+  // 不在种子中创建 API 权限；由应用初始化阶段自动生成
 
   const permissions = [
     // 用户管理权限
@@ -231,7 +230,7 @@ export async function seedPermissions(prisma: PrismaClient) {
       description: '删除用户',
     },
     {
-      name: '用户管理',
+      name: '用户管理维护',
       code: 'system:user:manage',
       action: 'manage',
       parentMenuCode: 'user',
@@ -567,7 +566,7 @@ export async function seedPermissions(prisma: PrismaClient) {
   for (const permissionData of permissions) {
     const parentMenuCode = permissionData.parentMenuCode;
     const parentPermissionId = parentMenuCode
-      ? menuMap[parentMenuCode]
+      ? menuMap[`${moduleKey}:${parentMenuCode}`]
       : undefined;
     await prisma.permission.upsert({
       where: { code: permissionData.code },

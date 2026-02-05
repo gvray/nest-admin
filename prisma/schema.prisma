@@ -160,6 +160,7 @@ model Permission {
 }
 
 enum PermissionType {
+  DIRECTORY
   MENU
   BUTTON
   API

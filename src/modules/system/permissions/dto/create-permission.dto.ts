@@ -11,6 +11,7 @@ export enum ActionType {
 }
 
 export enum PermissionType {
+  DIRECTORY = 'DIRECTORY',
   MENU = 'MENU',
   BUTTON = 'BUTTON',
   API = 'API',

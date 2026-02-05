@@ -45,20 +45,39 @@ export class PermissionsService extends BaseService {
     }
 
     // 业务校验：菜单则父为空，非菜单必须有父且父必须是菜单
-    if (type === 'MENU') {
+    if (type === 'API') {
+      throw new ConflictException('API 权限点由系统自动生成，不能手动创建');
+    }
+    if (type === 'DIRECTORY') {
       if (parentPermissionId) {
-        throw new ConflictException('菜单权限不能指定父权限');
+        const parent = await (this.prisma as any).permission.findUnique({
+          where: { permissionId: parentPermissionId },
+          select: { type: true } as any,
+        });
+        if (!parent || parent.type !== 'DIRECTORY') {
+          throw new ConflictException('目录的父节点必须是目录');
+        }
+      }
+    } else if (type === 'MENU') {
+      if (parentPermissionId) {
+        const parent = await (this.prisma as any).permission.findUnique({
+          where: { permissionId: parentPermissionId },
+          select: { type: true } as any,
+        });
+        if (!parent || parent.type !== 'DIRECTORY') {
+          throw new ConflictException('菜单的父节点必须是目录');
+        }
       }
     } else {
       if (!parentPermissionId) {
-        throw new ConflictException('非菜单权限必须指定父菜单权限');
+        throw new ConflictException('按钮权限必须指定父菜单');
       }
       const parent = await (this.prisma as any).permission.findUnique({
         where: { permissionId: parentPermissionId },
         select: { type: true } as any,
       });
       if (!parent || parent.type !== 'MENU') {
-        throw new ConflictException('父权限必须是菜单类型');
+        throw new ConflictException('按钮的父节点必须是菜单');
       }
     }
 
@@ -114,11 +133,15 @@ export class PermissionsService extends BaseService {
       createdAtStart,
       createdAtEnd,
     } = query;
-    const where = this.buildWhere({
+    const where: Record<string, unknown> = this.buildWhere({
       contains: { name, code, action },
       equals: { type, parentPermissionId },
       date: { field: 'createdAt', start: createdAtStart, end: createdAtEnd },
     });
+    // 默认不返回 API 权限，除非显式按类型筛选
+    if (!type) {
+      (where as any).NOT = { type: 'API' };
+    }
     const state = this.getPaginationState(query);
     if (state) {
       const [items, total] = await Promise.all([
