@@ -9,27 +9,27 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+  provider     = "mysql"
+  url          = env("DATABASE_URL")
   relationMode = "prisma"
 }
 
 model User {
-  id           Int         @id @default(autoincrement())
-  userId       String      @unique @default(uuid())
-  email        String?     @unique
-  username     String      @unique
-  nickname     String // 昵称，必须
-  phone        String?     @unique
-  password     String
-  avatar       String?
-  gender       Int?        // 性别：0-未知, 1-男, 2-女, 3-其他
-  remark       String? // 备注信息
-  status       Int         @default(1) // 0: 禁用, 1: 启用, 2: 审核中, 3: 封禁
-  departmentId String?
-  department   Department? @relation(fields: [departmentId], references: [departmentId])
+  id            Int            @id @default(autoincrement())
+  userId        String         @unique @default(uuid())
+  email         String?        @unique
+  username      String         @unique
+  nickname      String // 昵称，必须
+  phone         String?        @unique
+  password      String
+  avatar        String?
+  gender        Int? // 性别：0-未知, 1-男, 2-女, 3-其他
+  remark        String? // 备注信息
+  status        Int            @default(1) // 0: 禁用, 1: 启用, 2: 审核中, 3: 封禁
+  departmentId  String?
+  department    Department?    @relation(fields: [departmentId], references: [departmentId])
   userPositions UserPosition[]
-  userRoles    UserRole[]
+  userRoles     UserRole[]
 
   // 审计字段
   createdById String? // 创建者ID
@@ -38,25 +38,25 @@ model User {
   updatedBy   User?   @relation("UserUpdatedBy", fields: [updatedById], references: [userId], onDelete: NoAction, onUpdate: NoAction)
 
   // 反向关联 - 作为创建者/更新者的记录
-  createdUsers     User[]           @relation("UserCreatedBy")
-  updatedUsers     User[]           @relation("UserUpdatedBy")
-  createdRoles     Role[]           @relation("RoleCreatedBy")
-  updatedRoles     Role[]           @relation("RoleUpdatedBy")
-  createdRolePerms RolePermission[] @relation("RolePermissionCreatedBy")
-  createdPerms     Permission[]     @relation("PermissionCreatedBy")
-  updatedPerms     Permission[]     @relation("PermissionUpdatedBy")
-  createdDepartments Department[]     @relation("DepartmentCreatedBy")
-  updatedDepartments Department[]     @relation("DepartmentUpdatedBy")
-  createdPositions Position[]       @relation("PositionCreatedBy")
-  updatedPositions Position[]       @relation("PositionUpdatedBy")
-  createdUserPositions UserPosition[] @relation("UserPositionCreatedBy")
-  createdUserRoles     UserRole[]     @relation("UserRoleCreatedBy")
+  createdUsers           User[]           @relation("UserCreatedBy")
+  updatedUsers           User[]           @relation("UserUpdatedBy")
+  createdRoles           Role[]           @relation("RoleCreatedBy")
+  updatedRoles           Role[]           @relation("RoleUpdatedBy")
+  createdRolePerms       RolePermission[] @relation("RolePermissionCreatedBy")
+  createdPerms           Permission[]     @relation("PermissionCreatedBy")
+  updatedPerms           Permission[]     @relation("PermissionUpdatedBy")
+  createdDepartments     Department[]     @relation("DepartmentCreatedBy")
+  updatedDepartments     Department[]     @relation("DepartmentUpdatedBy")
+  createdPositions       Position[]       @relation("PositionCreatedBy")
+  updatedPositions       Position[]       @relation("PositionUpdatedBy")
+  createdUserPositions   UserPosition[]   @relation("UserPositionCreatedBy")
+  createdUserRoles       UserRole[]       @relation("UserRoleCreatedBy")
   createdDictionaryTypes DictionaryType[] @relation("DictionaryTypeCreatedBy")
   updatedDictionaryTypes DictionaryType[] @relation("DictionaryTypeUpdatedBy")
   createdDictionaryItems DictionaryItem[] @relation("DictionaryItemCreatedBy")
   updatedDictionaryItems DictionaryItem[] @relation("DictionaryItemUpdatedBy")
-  createdConfigs Config[] @relation("ConfigCreatedBy")
-  updatedConfigs Config[] @relation("ConfigUpdatedBy")
+  createdConfigs         Config[]         @relation("ConfigCreatedBy")
+  updatedConfigs         Config[]         @relation("ConfigUpdatedBy")
   createdRoleDepartments RoleDepartment[] @relation("RoleDepartmentCreatedBy")
   updatedRoleDepartments RoleDepartment[] @relation("RoleDepartmentUpdatedBy")
 
@@ -131,21 +131,23 @@ model RoleDepartment {
   @@map("role_departments")
 }
 
- 
-
 model Permission {
-  id              Int              @id @default(autoincrement())
-  permissionId    String           @unique @default(uuid())
-  name            String           @unique // 权限名称，如：查看用户、创建用户
-  code            String           @unique // 权限代码，如：user:view, user:create
-  type            PermissionType   @default(BUTTON)
-  action          String // 操作类型：view(查看), create(创建), update(更新), delete(删除), export(导出), import(导入)
-  rolePermissions RolePermission[]
-  description     String?
-  menuMeta        MenuMeta?
+  id                 Int              @id @default(autoincrement())
+  permissionId       String           @unique @default(uuid())
+  name               String
+  code               String           @unique // 权限代码，如：user:view, user:create
+  type               PermissionType   @default(BUTTON)
+  origin             PermissionOrigin @default(USER) // 来源：USER=用户创建, SYSTEM=系统扫描
+  action             String // 操作类型：view(查看), create(创建), update(更新), delete(删除), export(导出), import(导入)
+  rolePermissions    RolePermission[]
+  description        String?          @db.Text
+  menuMeta           MenuMeta?
   parentPermissionId String?
-  parent             Permission? @relation("PermissionHierarchy", fields: [parentPermissionId], references: [permissionId], onDelete: NoAction, onUpdate: NoAction)
-  children           Permission[] @relation("PermissionHierarchy")
+  parent             Permission?      @relation("PermissionHierarchy", fields: [parentPermissionId], references: [permissionId], onDelete: NoAction, onUpdate: NoAction)
+  children           Permission[]     @relation("PermissionHierarchy")
+
+  // 软删除
+  deletedAt DateTime? // API 权限软删除时间，非空表示已删除
 
   // 审计字段
   createdById String? // 创建者ID
@@ -166,34 +168,40 @@ enum PermissionType {
   API
 }
 
+enum PermissionOrigin {
+  USER   // 用户手动创建
+  SYSTEM // 系统自动扫描生成
+}
+
 model MenuMeta {
-  id                   Int         @id @default(autoincrement())
-  permissionId         String      @unique
-  permission           Permission  @relation(fields: [permissionId], references: [permissionId], onDelete: Cascade)
-  path                 String?
-  icon                 String?
-  hidden               Boolean     @default(false)
-  component            String?
-  sort                 Int         @default(0)
+  id           Int        @id @default(autoincrement())
+  permissionId String     @unique
+  permission   Permission @relation(fields: [permissionId], references: [permissionId], onDelete: Cascade)
+  path         String?
+  icon         String?
+  hidden       Boolean    @default(false)
+  component    String?
+  sort         Int        @default(0)
+
   @@map("menu_meta")
 }
 
 model Department {
-  id                 Int          @id @default(autoincrement())
-  departmentId       String       @unique @default(uuid())
-  name               String       @unique
-  description        String?
-  remark             String? // 备注信息
-  parentId           String
-  manager            String?
-  phone              String?
-  email              String?
-  parent   Department?  @relation("DepartmentHierarchy", fields: [parentId], references: [departmentId], onDelete: NoAction, onUpdate: NoAction)
-  children           Department[] @relation("DepartmentHierarchy")
-  users              User[] // 部门下的用户
-  roleDepartments    RoleDepartment[] // 角色-部门关联
-  status             Int          @default(1) // 0: 禁用, 1: 启用
-  sort               Int          @default(0)
+  id              Int              @id @default(autoincrement())
+  departmentId    String           @unique @default(uuid())
+  name            String           @unique
+  description     String?
+  remark          String? // 备注信息
+  parentId        String
+  manager         String?
+  phone           String?
+  email           String?
+  parent          Department?      @relation("DepartmentHierarchy", fields: [parentId], references: [departmentId], onDelete: NoAction, onUpdate: NoAction)
+  children        Department[]     @relation("DepartmentHierarchy")
+  users           User[] // 部门下的用户
+  roleDepartments RoleDepartment[] // 角色-部门关联
+  status          Int              @default(1) // 0: 禁用, 1: 启用
+  sort            Int              @default(0)
 
   // 审计字段
   createdById String? // 创建者ID
@@ -208,15 +216,15 @@ model Department {
 }
 
 model Position {
-  id          Int     @id @default(autoincrement())
-  positionId  String  @unique @default(uuid())
-  name        String  @unique
-  code        String  @unique
-  description String?
-  remark      String? // 备注信息
+  id            Int            @id @default(autoincrement())
+  positionId    String         @unique @default(uuid())
+  name          String         @unique
+  code          String         @unique
+  description   String?
+  remark        String? // 备注信息
   userPositions UserPosition[]
-  status      Int     @default(1) // 0: 禁用, 1: 启用
-  sort        Int     @default(0)
+  status        Int            @default(1) // 0: 禁用, 1: 启用
+  sort          Int            @default(0)
 
   // 审计字段
   createdById String? // 创建者ID
@@ -249,11 +257,11 @@ model UserPosition {
 }
 
 model UserRole {
-  id         Int      @id @default(autoincrement())
-  userId     String
-  roleId     String
-  user       User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
-  role       Role     @relation(fields: [roleId], references: [roleId], onDelete: Cascade)
+  id     Int    @id @default(autoincrement())
+  userId String
+  roleId String
+  user   User   @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [roleId], onDelete: Cascade)
 
   // 审计字段
   createdById String? // 创建者ID
@@ -267,14 +275,14 @@ model UserRole {
 }
 
 model DictionaryType {
-  id          Int           @id @default(autoincrement())
-  typeId      String        @unique @default(uuid())
-  code        String        @unique // 字典类型编码
-  name        String        @unique // 字典类型名称
-  description String?       // 描述
-  status      Int           @default(1) // 0: 禁用, 1: 启用
-  sort        Int           @default(0) // 排序权重
-  remark      String?       // 备注信息
+  id          Int              @id @default(autoincrement())
+  typeId      String           @unique @default(uuid())
+  code        String           @unique // 字典类型编码
+  name        String           @unique // 字典类型名称
+  description String? // 描述
+  status      Int              @default(1) // 0: 禁用, 1: 启用
+  sort        Int              @default(0) // 排序权重
+  remark      String? // 备注信息
   items       DictionaryItem[] // 字典项列表
 
   // 审计字段
@@ -292,14 +300,14 @@ model DictionaryType {
 model DictionaryItem {
   id          Int            @id @default(autoincrement())
   itemId      String         @unique @default(uuid())
-  typeCode    String         // 字典类型编码
+  typeCode    String // 字典类型编码
   type        DictionaryType @relation(fields: [typeCode], references: [code], onDelete: Cascade)
-  value       String         // 字典项值
-  label       String         // 显示标签
-  description String?        // 描述
+  value       String // 字典项值
+  label       String // 显示标签
+  description String? // 描述
   status      Int            @default(1) // 0: 禁用, 1: 启用
   sort        Int            @default(0) // 排序权重
-  remark      String?        // 备注信息
+  remark      String? // 备注信息
 
   // 审计字段
   createdById String? // 创建者ID
@@ -312,18 +320,19 @@ model DictionaryItem {
 
   @@map("dictionary_items")
 }
+
 model Config {
-  id          Int      @id @default(autoincrement())
-  configId    String   @unique @default(uuid())
-  key         String   @unique // 配置键
-  value       String   // 配置值
-  name        String   // 配置名称
-  description String?  // 描述
-  type        String   @default("string") // 配置类型: string, number, boolean, json
-  group       String   @default("system") // 配置分组
-  status      Int      @default(1) // 0: 禁用, 1: 启用
-  sort        Int      @default(0) // 排序权重
-  remark      String?  // 备注信息
+  id          Int     @id @default(autoincrement())
+  configId    String  @unique @default(uuid())
+  key         String  @unique // 配置键
+  value       String // 配置值
+  name        String // 配置名称
+  description String? // 描述
+  type        String  @default("string") // 配置类型: string, number, boolean, json
+  group       String  @default("system") // 配置分组
+  status      Int     @default(1) // 0: 禁用, 1: 启用
+  sort        Int     @default(0) // 排序权重
+  remark      String? // 备注信息
 
   // 审计字段
   createdById String? // 创建者ID
@@ -338,17 +347,17 @@ model Config {
 }
 
 model LoginLog {
-  id          Int      @id @default(autoincrement())
-  account     String   // 登录用户名/邮箱/手机号
-  ipAddress   String   // 登录IP地址
-  userAgent   String?  // 用户代理信息
-  status      Int      // 登录状态：1-成功, 0-失败
-  loginType   String   @default("username") // 登录类型：username(用户名), email(邮箱), phone(手机号), wechat(微信), qq(QQ), alipay(支付宝), github(GitHub), google(Google)
-  failReason  String?  // 失败原因
-  location    String?  // 登录地点（可选，基于IP解析）
-  device      String?  // 设备信息
-  browser     String?  // 浏览器信息
-  os          String?  // 操作系统信息
+  id         Int     @id @default(autoincrement())
+  account    String // 登录用户名/邮箱/手机号
+  ipAddress  String // 登录IP地址
+  userAgent  String? // 用户代理信息
+  status     Int // 登录状态：1-成功, 0-失败
+  loginType  String  @default("username") // 登录类型：username(用户名), email(邮箱), phone(手机号), wechat(微信), qq(QQ), alipay(支付宝), github(GitHub), google(Google)
+  failReason String? // 失败原因
+  location   String? // 登录地点（可选，基于IP解析）
+  device     String? // 设备信息
+  browser    String? // 浏览器信息
+  os         String? // 操作系统信息
 
   createdAt DateTime @default(now())
 
@@ -356,33 +365,33 @@ model LoginLog {
 }
 
 model OperationLog {
-  id         Int      @id @default(autoincrement())
-  logId      String   @unique @default(uuid())
+  id    Int    @id @default(autoincrement())
+  logId String @unique @default(uuid())
 
   // 用户信息
-  userId     String?
-  username   String?
-  nickname   String?
+  userId   String?
+  username String?
+  nickname String?
 
   // 业务信息
-  module     String?
-  action     String?
-  resource   String?
+  module   String?
+  action   String?
+  resource String?
 
   // 请求上下文
-  method     String
-  path       String
-  query      Json?
-  body       Json?
-  ipAddress  String?
-  userAgent  String?
+  method    String
+  path      String
+  query     Json?
+  body      Json?
+  ipAddress String?
+  userAgent String?
 
   // 结果
-  status     Int      // 1 成功, 0 失败
-  message    String?
-  latencyMs  Int
+  status    Int // 1 成功, 0 失败
+  message   String?
+  latencyMs Int
 
-  createdAt  DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([createdAt])
   @@index([userId])

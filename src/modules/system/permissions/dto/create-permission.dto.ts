@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, IsEnum } from 'class-validator';
 
 export enum ActionType {
+  ACCESS = 'access',
   VIEW = 'view',
   CREATE = 'create',
   UPDATE = 'update',

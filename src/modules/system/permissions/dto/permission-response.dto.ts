@@ -28,6 +28,10 @@ export class PermissionResponseDto {
   @Expose()
   type: string;
 
+  @ApiProperty({ description: '权限来源', enum: ['USER', 'SYSTEM'] })
+  @Expose()
+  origin: string;
+
   @ApiPropertyOptional({ description: '父权限ID（仅非菜单）' })
   @Expose()
   parentPermissionId?: string;

@@ -10,6 +10,7 @@ import { UpdatePermissionDto } from './dto/update-permission.dto';
 import { QueryPermissionDto } from './dto/query-permission.dto';
 import { PermissionResponseDto } from './dto/permission-response.dto';
 import { BaseService } from '@/shared/services/base.service';
+import { ROOT_PARENT_ID } from '@/shared/constants/root.constant';
 import { PaginationData } from '@/shared/interfaces/response.interface';
 import type { Permission as PermissionModel } from '@prisma/client';
 
@@ -23,17 +24,15 @@ export class PermissionsService extends BaseService {
     createPermissionDto: CreatePermissionDto,
     currentUserId?: string,
   ): Promise<PermissionResponseDto> {
-    const { name, code, type, parentPermissionId, action, description, menuMeta } =
-      createPermissionDto;
-
-    // 检查权限名称是否已存在
-    const existingPermissionByName = await this.prisma.permission.findUnique({
-      where: { name },
-    });
-
-    if (existingPermissionByName) {
-      throw new ConflictException('权限名称已存在');
-    }
+    const {
+      name,
+      code,
+      type,
+      parentPermissionId,
+      action,
+      description,
+      menuMeta,
+    } = createPermissionDto;
 
     // 检查权限代码是否已存在
     const existingPermissionByCode = await this.prisma.permission.findUnique({
@@ -88,7 +87,8 @@ export class PermissionsService extends BaseService {
         name,
         code,
         type,
-        parentPermissionId: parentPermissionId ?? null,
+        origin: 'USER',
+        parentPermissionId: parentPermissionId || ROOT_PARENT_ID,
         description,
         action: finalAction,
         createdById: currentUserId,
@@ -138,10 +138,8 @@ export class PermissionsService extends BaseService {
       equals: { type, parentPermissionId },
       date: { field: 'createdAt', start: createdAtStart, end: createdAtEnd },
     });
-    // 默认不返回 API 权限，除非显式按类型筛选
-    if (!type) {
-      (where as any).NOT = { type: 'API' };
-    }
+    // 排除已软删除的记录
+    where['deletedAt'] = null;
     const state = this.getPaginationState(query);
     if (state) {
       const [items, total] = await Promise.all([
@@ -223,8 +221,15 @@ export class PermissionsService extends BaseService {
     updatePermissionDto: UpdatePermissionDto,
     currentUserId?: string,
   ): Promise<PermissionResponseDto> {
-    const { name, description, code, type, parentPermissionId, action, menuMeta } =
-      updatePermissionDto;
+    const {
+      name,
+      description,
+      code,
+      type,
+      parentPermissionId,
+      action,
+      menuMeta,
+    } = updatePermissionDto;
 
     // 支持UUID和数字ID查找
     let permission: PermissionModel | null = null;
@@ -245,47 +250,16 @@ export class PermissionsService extends BaseService {
       throw new NotFoundException(`权限ID ${id} 不存在`);
     }
 
-    // 校验类型变更与父关系
+    // API 权限不允许手动修改
+    if (permission.type === 'API') {
+      throw new ConflictException('API 权限由系统自动管理，不能手动修改');
+    }
+
+    // type 创建后不可修改
     if (type && type !== permission.type) {
-      if (type === 'MENU') {
-        if (parentPermissionId) {
-          throw new ConflictException('菜单权限不能指定父权限');
-        }
-      } else {
-        const parentId = parentPermissionId ?? permission.parentPermissionId;
-        if (!parentId) {
-          throw new ConflictException('非菜单权限必须指定父菜单权限');
-        }
-        const parent = await (this.prisma as any).permission.findUnique({
-          where: { permissionId: parentId },
-          select: { type: true } as any,
-        });
-        if (!parent || parent.type !== 'MENU') {
-          throw new ConflictException('父权限必须是菜单类型');
-        }
-      }
+      throw new ConflictException('权限类型创建后不可修改');
     }
 
-    // 如果更新权限名称，检查是否已存在
-    if (name && name !== permission.name) {
-      const existingPermissionByName = await this.prisma.permission.findUnique({
-        where: { name },
-      });
-
-      if (existingPermissionByName) {
-        throw new ConflictException('权限名称已存在');
-      }
-    }
-
-    // 校验名称与代码唯一
-    if (name && name !== permission.name) {
-      const existingPermissionByName = await this.prisma.permission.findUnique({
-        where: { name },
-      });
-      if (existingPermissionByName) {
-        throw new ConflictException('权限名称已存在');
-      }
-    }
     let newCode = permission.code;
     if (code && code !== permission.code) {
       const existingPermissionByCode = await this.prisma.permission.findUnique({
@@ -297,27 +271,25 @@ export class PermissionsService extends BaseService {
       newCode = code;
     }
 
-    const finalType = type ?? (permission as any).type;
     const finalParentId =
-      finalType === 'MENU'
-        ? null
-        : (parentPermissionId ?? (permission as any).parentPermissionId);
+      parentPermissionId ??
+      (permission as any).parentPermissionId ??
+      ROOT_PARENT_ID;
     const finalAction =
-      finalType === 'MENU' ? 'access' : (action ?? permission.action);
+      permission.type === 'MENU' ? 'access' : (action ?? permission.action);
     const updatedPermission = await (this.prisma as any).permission.update({
       where: { id: permission.id },
       data: {
         name,
         code: newCode,
         description,
-        type: finalType,
-        parentPermissionId: finalParentId ?? null,
+        parentPermissionId: finalParentId,
         action: finalAction,
         updatedById: currentUserId,
       },
     });
 
-    if (finalType === 'MENU') {
+    if (permission.type === 'MENU') {
       await (this.prisma as any).menuMeta.upsert({
         where: { permissionId: updatedPermission.permissionId },
         update: {
@@ -344,24 +316,15 @@ export class PermissionsService extends BaseService {
   }
 
   async remove(id: string): Promise<void> {
-    let permission: (PermissionModel & { rolePermissions: unknown[] }) | null =
-      null;
+    let permission: PermissionModel | null = null;
 
-    // 首先尝试用UUID查找 (permissionId)
     permission = await this.prisma.permission.findUnique({
       where: { permissionId: id },
-      include: {
-        rolePermissions: true,
-      },
     });
 
-    // 如果UUID查找失败，尝试数字ID查找
     if (!permission && !isNaN(Number(id))) {
       permission = await this.prisma.permission.findUnique({
         where: { id: Number(id) },
-        include: {
-          rolePermissions: true,
-        },
       });
     }
 
@@ -369,16 +332,84 @@ export class PermissionsService extends BaseService {
       throw new NotFoundException(`权限ID ${id} 不存在`);
     }
 
-    // 检查权限是否被角色使用
-    if (permission.rolePermissions && permission.rolePermissions.length > 0) {
-      throw new ConflictException('该权限正在被角色使用，无法删除');
+    // API 权限不允许手动删除（只能通过级联软删除）
+    if (permission.type === 'API') {
+      throw new ConflictException('API 权限由系统自动管理，不能手动删除');
     }
 
-    await this.prisma.permission.delete({
-      where: { id: permission.id },
+    await this.cascadeRemove(permission.permissionId);
+  }
+
+  /**
+   * 级联删除权限及其所有子项
+   * - 目录/菜单/按钮：解绑角色权限后真删除
+   * - API：软删除（设置 deletedAt），解绑角色权限，parentPermissionId 保留不动
+   */
+  private async cascadeRemove(permissionId: string): Promise<void> {
+    // 递归收集所有后代 permissionId
+    const allIds: string[] = [];
+    const collect = async (pid: string) => {
+      allIds.push(pid);
+      const children = await (this.prisma as any).permission.findMany({
+        where: { parentPermissionId: pid, deletedAt: null },
+        select: { permissionId: true },
+      });
+      for (const child of children) {
+        await collect(child.permissionId);
+      }
+    };
+    await collect(permissionId);
+
+    // 分离 API 和非 API
+    const allPerms = await this.prisma.permission.findMany({
+      where: { permissionId: { in: allIds } },
+      select: { permissionId: true, type: true },
+    });
+    const apiIds = allPerms
+      .filter((p) => p.type === 'API')
+      .map((p) => p.permissionId);
+    const nonApiIds = allPerms
+      .filter((p) => p.type !== 'API')
+      .map((p) => p.permissionId);
+
+    // 解绑所有相关角色权限
+    await this.prisma.rolePermission.deleteMany({
+      where: { permissionId: { in: allIds } },
     });
 
-    return;
+    // API 权限软删除，parentPermissionId 置 null（父节点即将被真删除）
+    if (apiIds.length > 0) {
+      await (this.prisma as any).permission.updateMany({
+        where: { permissionId: { in: apiIds } },
+        data: { deletedAt: new Date(), parentPermissionId: null },
+      });
+    }
+
+    // 非 API 权限：先删 menuMeta 再真删除（从叶子到根）
+    if (nonApiIds.length > 0) {
+      await (this.prisma as any).menuMeta.deleteMany({
+        where: { permissionId: { in: nonApiIds } },
+      });
+
+      // 将所有引用即将被删除节点的其他权限（如之前已软删除的 API）的 parentPermissionId 置 null
+      await (this.prisma as any).permission.updateMany({
+        where: {
+          parentPermissionId: { in: nonApiIds },
+          permissionId: { notIn: nonApiIds },
+        },
+        data: { parentPermissionId: null },
+      });
+
+      // 按层级从叶子到根删除，避免外键约束
+      for (let i = allIds.length - 1; i >= 0; i--) {
+        const pid = allIds[i];
+        if (nonApiIds.includes(pid)) {
+          await this.prisma.permission.delete({
+            where: { permissionId: pid },
+          });
+        }
+      }
+    }
   }
 
   /**
@@ -386,11 +417,16 @@ export class PermissionsService extends BaseService {
    * @returns 按照资源层级组织的权限树
    */
   async getPermissionTree(queryDto?: QueryPermissionDto): Promise<unknown> {
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = { deletedAt: null };
     if (queryDto?.name) where['name'] = { contains: queryDto.name };
     if (queryDto?.code) where['code'] = { contains: queryDto.code };
     if (queryDto?.action) where['action'] = { contains: queryDto.action };
-    if (queryDto?.type) where['type'] = queryDto.type as unknown;
+    if (queryDto?.type) {
+      where['type'] = queryDto.type as unknown;
+    } else {
+      // 默认只返回目录/菜单/按钮，不返回 API
+      where['type'] = { in: ['DIRECTORY', 'MENU', 'BUTTON'] };
+    }
     if (queryDto?.parentPermissionId)
       where['parentPermissionId'] = queryDto.parentPermissionId;
 
@@ -448,7 +484,7 @@ export class PermissionsService extends BaseService {
       const node = map.get(p.permissionId);
       if (!node) return;
       const parentId = p.parentPermissionId;
-      if (parentId) {
+      if (parentId && parentId !== ROOT_PARENT_ID) {
         const parent = map.get(parentId);
         if (parent) {
           parent.children = parent.children || [];
@@ -495,6 +531,7 @@ export class PermissionsService extends BaseService {
    */
   async getSimplePermissionTree(): Promise<unknown> {
     const permissions = await (this.prisma as any).permission.findMany({
+      where: { deletedAt: null },
       include: { menuMeta: { select: { path: true } } },
       orderBy: [{ createdAt: 'asc' }],
     });
@@ -524,7 +561,7 @@ export class PermissionsService extends BaseService {
       const node = map.get(p.permissionId);
       if (!node) return;
       const parentId = p.parentPermissionId;
-      if (parentId) {
+      if (parentId && parentId !== ROOT_PARENT_ID) {
         const parent = map.get(parentId);
         if (parent) {
           parent.children = parent.children || [];
@@ -566,14 +603,17 @@ export class PermissionsService extends BaseService {
   async removeMany(ids: string[]): Promise<void> {
     const perms = await this.prisma.permission.findMany({
       where: { permissionId: { in: ids } },
-      include: { rolePermissions: true },
+      select: { permissionId: true, type: true },
     });
-    const blocked = perms.filter((p) => (p.rolePermissions?.length ?? 0) > 0);
-    if (blocked.length > 0) {
-      throw new ConflictException('存在关联角色，无法批量删除');
+
+    // 不允许直接批量删除 API 权限
+    const apiPerms = perms.filter((p) => p.type === 'API');
+    if (apiPerms.length > 0) {
+      throw new ConflictException('API 权限由系统自动管理，不能手动删除');
     }
-    await this.prisma.permission.deleteMany({
-      where: { permissionId: { in: ids } },
-    });
+
+    for (const perm of perms) {
+      await this.cascadeRemove(perm.permissionId);
+    }
   }
 }
