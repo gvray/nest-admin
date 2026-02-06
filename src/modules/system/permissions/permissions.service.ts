@@ -434,7 +434,7 @@ export class PermissionsService extends BaseService {
       where,
       include: {
         menuMeta: {
-          select: { path: true, icon: true, hidden: true, component: true },
+          select: { path: true, icon: true, hidden: true, component: true, sort: true },
         },
       },
       orderBy: [{ createdAt: 'asc' }],
@@ -454,6 +454,7 @@ export class PermissionsService extends BaseService {
         icon?: string | null;
         hidden?: boolean;
         component?: string | null;
+        sort?: number;
       };
       children?: TreeNode[];
     };
@@ -475,6 +476,7 @@ export class PermissionsService extends BaseService {
               icon: p.menuMeta.icon ?? null,
               hidden: p.menuMeta.hidden ?? false,
               component: p.menuMeta.component ?? null,
+              sort: p.menuMeta.sort ?? 0,
             }
           : undefined,
         children: [],
@@ -507,6 +509,11 @@ export class PermissionsService extends BaseService {
     ];
     const sortChildren = (nodes: TreeNode[]) => {
       nodes.sort((a, b) => {
+        // 目录/菜单按 menuMeta.sort 排序
+        const as = a.menuMeta?.sort ?? 0;
+        const bs = b.menuMeta?.sort ?? 0;
+        if (as !== bs) return as - bs;
+        // 按钮按 actionOrder 排序
         const ai = actionOrder.indexOf(a.action || '');
         const bi = actionOrder.indexOf(b.action || '');
         if (ai !== -1 && bi !== -1 && ai !== bi) return ai - bi;
@@ -532,7 +539,7 @@ export class PermissionsService extends BaseService {
   async getSimplePermissionTree(): Promise<unknown> {
     const permissions = await (this.prisma as any).permission.findMany({
       where: { deletedAt: null },
-      include: { menuMeta: { select: { path: true } } },
+      include: { menuMeta: { select: { path: true, sort: true } } },
       orderBy: [{ createdAt: 'asc' }],
     });
     type Node = {
@@ -543,6 +550,7 @@ export class PermissionsService extends BaseService {
       parentId?: string | null;
       children?: Node[];
       action?: string;
+      sort?: number;
     };
     const map = new Map<string, Node>();
     const roots: Node[] = [];
@@ -554,6 +562,7 @@ export class PermissionsService extends BaseService {
         type: p.type,
         parentId: p.parentPermissionId ?? null,
         action: p.action,
+        sort: p.menuMeta?.sort ?? 0,
         children: [],
       });
     });
@@ -584,6 +593,11 @@ export class PermissionsService extends BaseService {
     ];
     const sortNodes = (nodes: Node[]) => {
       nodes.sort((a, b) => {
+        // 目录/菜单按 sort 排序
+        const as = a.sort ?? 0;
+        const bs = b.sort ?? 0;
+        if (as !== bs) return as - bs;
+        // 按钮按 actionOrder 排序
         if (a.action && b.action) {
           const ai = actionOrder.indexOf(a.action);
           const bi = actionOrder.indexOf(b.action);

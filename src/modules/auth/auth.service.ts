@@ -336,12 +336,13 @@ export class AuthService {
             icon: string | null;
             hidden: boolean;
             component: string | null;
+            sort: number;
           } | null;
         }>
       | [] = [];
     if (isSuperAdmin) {
       const perms = await this.prisma.permission.findMany({
-        where: { type: PermissionType.MENU },
+        where: { type: { in: [PermissionType.DIRECTORY, PermissionType.MENU] } },
         select: {
           permissionId: true,
           parentPermissionId: true,
@@ -374,6 +375,7 @@ export class AuthService {
               icon: p.menuMeta.icon ?? null,
               hidden: p.menuMeta.hidden,
               component: p.menuMeta.component ?? null,
+              sort: p.menuMeta.sort ?? 0,
             }
           : null,
       }));
@@ -392,7 +394,7 @@ export class AuthService {
       const perms = await this.prisma.permission.findMany({
         where: {
           permissionId: { in: assignedPermissionIds },
-          type: PermissionType.MENU,
+          type: { in: [PermissionType.DIRECTORY, PermissionType.MENU] },
         },
         select: {
           permissionId: true,
@@ -426,6 +428,7 @@ export class AuthService {
               icon: p.menuMeta.icon ?? null,
               hidden: p.menuMeta.hidden,
               component: p.menuMeta.component ?? null,
+              sort: p.menuMeta.sort ?? 0,
             }
           : null,
       }));
@@ -462,7 +465,7 @@ export class AuthService {
               icon: m.meta.icon ?? null,
               hidden: m.meta.hidden ?? false,
               component: m.meta.component ?? null,
-              sort: (m as any).meta?.sort ?? 0,
+              sort: m.meta?.sort ?? 0,
             }
           : null,
         children: [],
@@ -484,17 +487,18 @@ export class AuthService {
         roots.push(node);
       }
     });
-    roots.forEach(function sortChildren(n) {
-      if (n.children && n.children.length > 0) {
-        n.children.sort((a, b) => {
-          const as = a.meta?.sort ?? 0;
-          const bs = b.meta?.sort ?? 0;
-          if (as !== bs) return as - bs;
-          return a.name.localeCompare(b.name);
-        });
-        n.children.forEach(sortChildren);
-      }
-    });
+    const sortByMeta = (nodes: Node[]) => {
+      nodes.sort((a, b) => {
+        const as = a.meta?.sort ?? 0;
+        const bs = b.meta?.sort ?? 0;
+        if (as !== bs) return as - bs;
+        return a.name.localeCompare(b.name);
+      });
+      nodes.forEach((n) => {
+        if (n.children && n.children.length > 0) sortByMeta(n.children);
+      });
+    };
+    sortByMeta(roots);
     const result = plainToInstance(MenuResponseDto, roots, {
       excludeExtraneousValues: true,
     });

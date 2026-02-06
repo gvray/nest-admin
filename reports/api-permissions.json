@@ -1,5 +1,305 @@
 [
   {
+    "code": "api:system:config:create",
+    "action": "create",
+    "controller": "ConfigsController",
+    "method": "create",
+    "httpMethod": "POST",
+    "route": "/system/configs//",
+    "menuCode": "menu:system:config",
+    "status": "created"
+  },
+  {
+    "code": "api:system:config:delete",
+    "action": "delete",
+    "controller": "ConfigsController",
+    "method": "remove",
+    "httpMethod": "DELETE",
+    "route": "/system/configs/:configId",
+    "menuCode": "menu:system:config",
+    "status": "created"
+  },
+  {
+    "code": "api:system:config:delete",
+    "action": "delete",
+    "controller": "ConfigsController",
+    "method": "batchDelete",
+    "httpMethod": "POST",
+    "route": "/system/configs/batch-delete",
+    "menuCode": "menu:system:config",
+    "status": "created"
+  },
+  {
+    "code": "api:system:config:update",
+    "action": "update",
+    "controller": "ConfigsController",
+    "method": "update",
+    "httpMethod": "PATCH",
+    "route": "/system/configs/:configId",
+    "menuCode": "menu:system:config",
+    "status": "created"
+  },
+  {
+    "code": "api:system:config:view",
+    "action": "view",
+    "controller": "ConfigsController",
+    "method": "findOne",
+    "httpMethod": "GET",
+    "route": "/system/configs/:configId",
+    "menuCode": "menu:system:config",
+    "status": "created"
+  },
+  {
+    "code": "api:system:config:view",
+    "action": "view",
+    "controller": "ConfigsController",
+    "method": "findAll",
+    "httpMethod": "GET",
+    "route": "/system/configs//",
+    "menuCode": "menu:system:config",
+    "status": "created"
+  },
+  {
+    "code": "api:system:config:view",
+    "action": "view",
+    "controller": "ConfigsController",
+    "method": "getConfigsByKeys",
+    "httpMethod": "GET",
+    "route": "/system/configs/batch",
+    "menuCode": "menu:system:config",
+    "status": "created"
+  },
+  {
+    "code": "api:system:config:view",
+    "action": "view",
+    "controller": "ConfigsController",
+    "method": "findByGroup",
+    "httpMethod": "GET",
+    "route": "/system/configs/group/:group",
+    "menuCode": "menu:system:config",
+    "status": "created"
+  },
+  {
+    "code": "api:system:config:view",
+    "action": "view",
+    "controller": "ConfigsController",
+    "method": "findByKey",
+    "httpMethod": "GET",
+    "route": "/system/configs/key/:key",
+    "menuCode": "menu:system:config",
+    "status": "created"
+  },
+  {
+    "code": "api:system:department:create",
+    "action": "create",
+    "controller": "DepartmentsController",
+    "method": "create",
+    "httpMethod": "POST",
+    "route": "/system/departments//",
+    "menuCode": "menu:system:department",
+    "status": "created"
+  },
+  {
+    "code": "api:system:department:delete",
+    "action": "delete",
+    "controller": "DepartmentsController",
+    "method": "remove",
+    "httpMethod": "DELETE",
+    "route": "/system/departments/:departmentId",
+    "menuCode": "menu:system:department",
+    "status": "created"
+  },
+  {
+    "code": "api:system:department:delete",
+    "action": "delete",
+    "controller": "DepartmentsController",
+    "method": "batchDelete",
+    "httpMethod": "POST",
+    "route": "/system/departments/batch-delete",
+    "menuCode": "menu:system:department",
+    "status": "created"
+  },
+  {
+    "code": "api:system:department:update",
+    "action": "update",
+    "controller": "DepartmentsController",
+    "method": "update",
+    "httpMethod": "PATCH",
+    "route": "/system/departments/:departmentId",
+    "menuCode": "menu:system:department",
+    "status": "created"
+  },
+  {
+    "code": "api:system:department:view",
+    "action": "view",
+    "controller": "DepartmentsController",
+    "method": "findOne",
+    "httpMethod": "GET",
+    "route": "/system/departments/:departmentId",
+    "menuCode": "menu:system:department",
+    "status": "created"
+  },
+  {
+    "code": "api:system:department:view",
+    "action": "view",
+    "controller": "DepartmentsController",
+    "method": "findAll",
+    "httpMethod": "GET",
+    "route": "/system/departments//",
+    "menuCode": "menu:system:department",
+    "status": "created"
+  },
+  {
+    "code": "api:system:department:view",
+    "action": "view",
+    "controller": "DepartmentsController",
+    "method": "getTree",
+    "httpMethod": "GET",
+    "route": "/system/departments/tree",
+    "menuCode": "menu:system:department",
+    "status": "created"
+  },
+  {
+    "code": "api:system:dictionary:create",
+    "action": "create",
+    "controller": "DictionariesController",
+    "method": "createDictionaryItem",
+    "httpMethod": "POST",
+    "route": "/system/dictionaries/items",
+    "menuCode": "menu:system:dictionary",
+    "status": "created"
+  },
+  {
+    "code": "api:system:dictionary:create",
+    "action": "create",
+    "controller": "DictionariesController",
+    "method": "createDictionaryType",
+    "httpMethod": "POST",
+    "route": "/system/dictionaries/types",
+    "menuCode": "menu:system:dictionary",
+    "status": "created"
+  },
+  {
+    "code": "api:system:dictionary:delete",
+    "action": "delete",
+    "controller": "DictionariesController",
+    "method": "removeDictionaryItem",
+    "httpMethod": "DELETE",
+    "route": "/system/dictionaries/items/:itemId",
+    "menuCode": "menu:system:dictionary",
+    "status": "created"
+  },
+  {
+    "code": "api:system:dictionary:delete",
+    "action": "delete",
+    "controller": "DictionariesController",
+    "method": "batchDeleteItems",
+    "httpMethod": "POST",
+    "route": "/system/dictionaries/items/batch-delete",
+    "menuCode": "menu:system:dictionary",
+    "status": "created"
+  },
+  {
+    "code": "api:system:dictionary:delete",
+    "action": "delete",
+    "controller": "DictionariesController",
+    "method": "removeDictionaryType",
+    "httpMethod": "DELETE",
+    "route": "/system/dictionaries/types/:typeId",
+    "menuCode": "menu:system:dictionary",
+    "status": "created"
+  },
+  {
+    "code": "api:system:dictionary:delete",
+    "action": "delete",
+    "controller": "DictionariesController",
+    "method": "batchDeleteTypes",
+    "httpMethod": "POST",
+    "route": "/system/dictionaries/types/batch-delete",
+    "menuCode": "menu:system:dictionary",
+    "status": "created"
+  },
+  {
+    "code": "api:system:dictionary:update",
+    "action": "update",
+    "controller": "DictionariesController",
+    "method": "updateDictionaryItem",
+    "httpMethod": "PATCH",
+    "route": "/system/dictionaries/items/:itemId",
+    "menuCode": "menu:system:dictionary",
+    "status": "created"
+  },
+  {
+    "code": "api:system:dictionary:update",
+    "action": "update",
+    "controller": "DictionariesController",
+    "method": "updateDictionaryType",
+    "httpMethod": "PATCH",
+    "route": "/system/dictionaries/types/:typeId",
+    "menuCode": "menu:system:dictionary",
+    "status": "created"
+  },
+  {
+    "code": "api:system:dictionary:view",
+    "action": "view",
+    "controller": "DictionariesController",
+    "method": "findAllDictionaryItems",
+    "httpMethod": "GET",
+    "route": "/system/dictionaries/items",
+    "menuCode": "menu:system:dictionary",
+    "status": "created"
+  },
+  {
+    "code": "api:system:dictionary:view",
+    "action": "view",
+    "controller": "DictionariesController",
+    "method": "findOneDictionaryItem",
+    "httpMethod": "GET",
+    "route": "/system/dictionaries/items/:itemId",
+    "menuCode": "menu:system:dictionary",
+    "status": "created"
+  },
+  {
+    "code": "api:system:dictionary:view",
+    "action": "view",
+    "controller": "DictionariesController",
+    "method": "getDictionaryItemsByTypeCode",
+    "httpMethod": "GET",
+    "route": "/system/dictionaries/items/type/:typeCode",
+    "menuCode": "menu:system:dictionary",
+    "status": "created"
+  },
+  {
+    "code": "api:system:dictionary:view",
+    "action": "view",
+    "controller": "DictionariesController",
+    "method": "findAllDictionaryTypes",
+    "httpMethod": "GET",
+    "route": "/system/dictionaries/types",
+    "menuCode": "menu:system:dictionary",
+    "status": "created"
+  },
+  {
+    "code": "api:system:dictionary:view",
+    "action": "view",
+    "controller": "DictionariesController",
+    "method": "findOneDictionaryType",
+    "httpMethod": "GET",
+    "route": "/system/dictionaries/types/:typeId",
+    "menuCode": "menu:system:dictionary",
+    "status": "created"
+  },
+  {
+    "code": "api:system:dictionary:view",
+    "action": "view",
+    "controller": "DictionariesController",
+    "method": "getDictionaryItemsByTypeCodes",
+    "httpMethod": "GET",
+    "route": "/system/dictionaries/types/batch",
+    "menuCode": "menu:system:dictionary",
+    "status": "created"
+  },
+  {
     "code": "api:system:permission:create",
     "action": "create",
     "controller": "PermissionsController",
@@ -7,7 +307,7 @@
     "httpMethod": "POST",
     "route": "/system/permissions//",
     "menuCode": "menu:system:permission",
-    "status": "exists"
+    "status": "created"
   },
   {
     "code": "api:system:permission:delete",
@@ -17,7 +317,7 @@
     "httpMethod": "DELETE",
     "route": "/system/permissions/:id",
     "menuCode": "menu:system:permission",
-    "status": "exists"
+    "status": "created"
   },
   {
     "code": "api:system:permission:delete",
@@ -27,7 +327,7 @@
     "httpMethod": "POST",
     "route": "/system/permissions/batch-delete",
     "menuCode": "menu:system:permission",
-    "status": "exists"
+    "status": "created"
   },
   {
     "code": "api:system:permission:update",
@@ -37,7 +337,7 @@
     "httpMethod": "PATCH",
     "route": "/system/permissions/:id",
     "menuCode": "menu:system:permission",
-    "status": "exists"
+    "status": "created"
   },
   {
     "code": "api:system:permission:view",
@@ -47,7 +347,7 @@
     "httpMethod": "GET",
     "route": "/system/permissions/:id",
     "menuCode": "menu:system:permission",
-    "status": "exists"
+    "status": "created"
   },
   {
     "code": "api:system:permission:view",
@@ -57,7 +357,7 @@
     "httpMethod": "GET",
     "route": "/system/permissions//",
     "menuCode": "menu:system:permission",
-    "status": "exists"
+    "status": "created"
   },
   {
     "code": "api:system:permission:view",
@@ -67,7 +367,7 @@
     "httpMethod": "GET",
     "route": "/system/permissions/tree",
     "menuCode": "menu:system:permission",
-    "status": "exists"
+    "status": "created"
   },
   {
     "code": "api:system:permission:view",
@@ -77,7 +377,67 @@
     "httpMethod": "GET",
     "route": "/system/permissions/tree/simple",
     "menuCode": "menu:system:permission",
-    "status": "exists"
+    "status": "created"
+  },
+  {
+    "code": "api:system:position:create",
+    "action": "create",
+    "controller": "PositionsController",
+    "method": "create",
+    "httpMethod": "POST",
+    "route": "/system/positions//",
+    "menuCode": "menu:system:position",
+    "status": "created"
+  },
+  {
+    "code": "api:system:position:delete",
+    "action": "delete",
+    "controller": "PositionsController",
+    "method": "remove",
+    "httpMethod": "DELETE",
+    "route": "/system/positions/:id",
+    "menuCode": "menu:system:position",
+    "status": "created"
+  },
+  {
+    "code": "api:system:position:delete",
+    "action": "delete",
+    "controller": "PositionsController",
+    "method": "batchDelete",
+    "httpMethod": "POST",
+    "route": "/system/positions/batch-delete",
+    "menuCode": "menu:system:position",
+    "status": "created"
+  },
+  {
+    "code": "api:system:position:update",
+    "action": "update",
+    "controller": "PositionsController",
+    "method": "update",
+    "httpMethod": "PATCH",
+    "route": "/system/positions/:id",
+    "menuCode": "menu:system:position",
+    "status": "created"
+  },
+  {
+    "code": "api:system:position:view",
+    "action": "view",
+    "controller": "PositionsController",
+    "method": "findOne",
+    "httpMethod": "GET",
+    "route": "/system/positions/:id",
+    "menuCode": "menu:system:position",
+    "status": "created"
+  },
+  {
+    "code": "api:system:position:view",
+    "action": "view",
+    "controller": "PositionsController",
+    "method": "findAll",
+    "httpMethod": "GET",
+    "route": "/system/positions//",
+    "menuCode": "menu:system:position",
+    "status": "created"
   },
   {
     "code": "api:system:role:create",
@@ -87,7 +447,7 @@
     "httpMethod": "POST",
     "route": "/system/roles//",
     "menuCode": "menu:system:role",
-    "status": "exists"
+    "status": "created"
   },
   {
     "code": "api:system:role:delete",
@@ -97,7 +457,7 @@
     "httpMethod": "DELETE",
     "route": "/system/roles/:id",
     "menuCode": "menu:system:role",
-    "status": "exists"
+    "status": "created"
   },
   {
     "code": "api:system:role:delete",
@@ -107,7 +467,7 @@
     "httpMethod": "POST",
     "route": "/system/roles/batch-delete",
     "menuCode": "menu:system:role",
-    "status": "exists"
+    "status": "created"
   },
   {
     "code": "api:system:role:update",
@@ -117,7 +477,7 @@
     "httpMethod": "PATCH",
     "route": "/system/roles/:id",
     "menuCode": "menu:system:role",
-    "status": "exists"
+    "status": "created"
   },
   {
     "code": "api:system:role:update",
@@ -127,7 +487,7 @@
     "httpMethod": "PUT",
     "route": "/system/roles/:id/data-scope",
     "menuCode": "menu:system:role",
-    "status": "exists"
+    "status": "created"
   },
   {
     "code": "api:system:role:update",
@@ -137,7 +497,7 @@
     "httpMethod": "PUT",
     "route": "/system/roles/:id/permissions",
     "menuCode": "menu:system:role",
-    "status": "exists"
+    "status": "created"
   },
   {
     "code": "api:system:role:update",
@@ -147,7 +507,7 @@
     "httpMethod": "DELETE",
     "route": "/system/roles/:id/permissions",
     "menuCode": "menu:system:role",
-    "status": "exists"
+    "status": "created"
   },
   {
     "code": "api:system:role:update",
@@ -157,7 +517,7 @@
     "httpMethod": "PUT",
     "route": "/system/roles/:id/users",
     "menuCode": "menu:system:role",
-    "status": "exists"
+    "status": "created"
   },
   {
     "code": "api:system:role:update",
@@ -167,7 +527,7 @@
     "httpMethod": "DELETE",
     "route": "/system/roles/:id/users",
     "menuCode": "menu:system:role",
-    "status": "exists"
+    "status": "created"
   },
   {
     "code": "api:system:role:view",
@@ -177,7 +537,7 @@
     "httpMethod": "GET",
     "route": "/system/roles/:id",
     "menuCode": "menu:system:role",
-    "status": "exists"
+    "status": "created"
   },
   {
     "code": "api:system:role:view",
@@ -187,7 +547,7 @@
     "httpMethod": "GET",
     "route": "/system/roles/:id/data-scope",
     "menuCode": "menu:system:role",
-    "status": "exists"
+    "status": "created"
   },
   {
     "code": "api:system:role:view",
@@ -197,7 +557,7 @@
     "httpMethod": "GET",
     "route": "/system/roles//",
     "menuCode": "menu:system:role",
-    "status": "exists"
+    "status": "created"
   },
   {
     "code": "api:system:user:create",
@@ -207,7 +567,7 @@
     "httpMethod": "POST",
     "route": "/system/users//",
     "menuCode": "menu:system:user",
-    "status": "exists"
+    "status": "created"
   },
   {
     "code": "api:system:user:delete",
@@ -217,7 +577,7 @@
     "httpMethod": "DELETE",
     "route": "/system/users/:userId",
     "menuCode": "menu:system:user",
-    "status": "exists"
+    "status": "created"
   },
   {
     "code": "api:system:user:delete",
@@ -227,7 +587,7 @@
     "httpMethod": "POST",
     "route": "/system/users/batch-delete",
     "menuCode": "menu:system:user",
-    "status": "exists"
+    "status": "created"
   },
   {
     "code": "api:system:user:manage",
@@ -237,7 +597,7 @@
     "httpMethod": "PUT",
     "route": "/system/users/:userId/roles",
     "menuCode": "menu:system:user",
-    "status": "exists"
+    "status": "created"
   },
   {
     "code": "api:system:user:manage",
@@ -247,7 +607,7 @@
     "httpMethod": "DELETE",
     "route": "/system/users/:userId/roles",
     "menuCode": "menu:system:user",
-    "status": "exists"
+    "status": "created"
   },
   {
     "code": "api:system:user:update",
@@ -257,7 +617,7 @@
     "httpMethod": "PATCH",
     "route": "/system/users/:userId",
     "menuCode": "menu:system:user",
-    "status": "exists"
+    "status": "created"
   },
   {
     "code": "api:system:user:view",
@@ -267,7 +627,7 @@
     "httpMethod": "GET",
     "route": "/system/users/:userId",
     "menuCode": "menu:system:user",
-    "status": "exists"
+    "status": "created"
   },
   {
     "code": "api:system:user:view",
@@ -277,6 +637,6 @@
     "httpMethod": "GET",
     "route": "/system/users//",
     "menuCode": "menu:system:user",
-    "status": "exists"
+    "status": "created"
   }
 ]

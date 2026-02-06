@@ -493,26 +493,25 @@ export async function seedPermissions(prisma: PrismaClient) {
         },
       });
 
-      if (node.type === 'MENU') {
-        await prisma.menuMeta.upsert({
-          where: { permissionId: perm.permissionId },
-          update: {
-            path: node.path,
-            icon: node.icon,
-            hidden: false,
-            component: node.code,
-            sort: node.sort ?? 0,
-          },
-          create: {
-            permissionId: perm.permissionId,
-            path: node.path,
-            icon: node.icon,
-            hidden: false,
-            component: node.code,
-            sort: node.sort ?? 0,
-          },
-        });
-      }
+      // DIRECTORY 和 MENU 都需要 menuMeta（存储 path/icon/sort 等）
+      await prisma.menuMeta.upsert({
+        where: { permissionId: perm.permissionId },
+        update: {
+          path: node.path,
+          icon: node.icon,
+          hidden: false,
+          component: node.type === 'MENU' ? node.code : undefined,
+          sort: node.sort ?? 0,
+        },
+        create: {
+          permissionId: perm.permissionId,
+          path: node.path,
+          icon: node.icon,
+          hidden: false,
+          component: node.type === 'MENU' ? node.code : undefined,
+          sort: node.sort ?? 0,
+        },
+      });
     }
 
     menuMap[node.code] = perm.permissionId;
