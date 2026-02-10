@@ -46,6 +46,24 @@ export async function seedUsers(
       roleId: roles.superRole.roleId,
     },
   });
+  // 创建超级管理员用户设置
+  await prisma.userSettings.upsert({
+    where: { userId: superUser.userId },
+    update: {},
+    create: {
+      userId: superUser.userId,
+      settings: {
+        theme: 'light',
+        language: 'zh-CN',
+        sidebarCollapsed: false,
+        pageSize: 20,
+        timezone: 'Asia/Shanghai',
+        showWatermark: true,
+        enableNotification: true,
+        colorScheme: 'default',
+      },
+    },
+  });
   console.log(`超级管理员用户创建成功: ${superUser.username}`);
 
   // 创建管理员用户
@@ -96,6 +114,25 @@ export async function seedUsers(
     create: {
       userId: adminUser.userId,
       positionId: positions.managerPosition.positionId,
+    },
+  });
+
+  // 创建管理员用户设置
+  await prisma.userSettings.upsert({
+    where: { userId: adminUser.userId },
+    update: {},
+    create: {
+      userId: adminUser.userId,
+      settings: {
+        theme: 'dark',
+        language: 'zh-CN',
+        sidebarCollapsed: false,
+        pageSize: 10,
+        timezone: 'Asia/Shanghai',
+        showWatermark: false,
+        enableNotification: true,
+        colorScheme: 'blue',
+      },
     },
   });
 
@@ -299,6 +336,25 @@ export async function seedUsers(
         create: {
           userId: user.userId,
           positionId: positionToUse.positionId,
+        },
+      });
+
+      // 创建用户设置
+      await prisma.userSettings.upsert({
+        where: { userId: user.userId },
+        update: {},
+        create: {
+          userId: user.userId,
+          settings: {
+            theme: i % 3 === 0 ? 'dark' : 'light',
+            language: 'zh-CN',
+            sidebarCollapsed: i % 2 === 0,
+            pageSize: [10, 20, 50][i % 3],
+            timezone: 'Asia/Shanghai',
+            showWatermark: true,
+            enableNotification: i % 4 !== 0,
+            colorScheme: ['default', 'blue', 'green', 'purple'][i % 4],
+          },
         },
       });
     }

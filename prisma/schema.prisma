@@ -28,6 +28,7 @@ model User {
   status        Int            @default(1) // 0: 禁用, 1: 启用, 2: 审核中, 3: 封禁
   departmentId  String?
   department    Department?    @relation(fields: [departmentId], references: [departmentId])
+  userSettings  UserSettings?
   userPositions UserPosition[]
   userRoles     UserRole[]
 
@@ -64,6 +65,19 @@ model User {
   updatedAt DateTime @updatedAt
 
   @@map("users")
+}
+
+model UserSettings {
+  id       Int    @id @default(autoincrement())
+  userId   String @unique
+  user     User   @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  settings Json @default("{}") // 用户个人偏好设置（自由 key-value）
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("user_settings")
 }
 
 model Role {

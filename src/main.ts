@@ -82,37 +82,28 @@ async function bootstrap() {
   const config = new DocumentBuilder()
     .setTitle('NestAdmin 企业级后台管理系统')
     .setDescription(
-      '基于 NestJS + Prisma + MySQL 的企业级后台管理系统 API 文档\n\n' +
-        '## 功能特性\n' +
-        '- 🔐 JWT 身份认证\n' +
-        '- 👥 用户管理\n' +
-        '- 🎭 角色管理\n' +
-        '- 🔑 权限管理\n' +
-        '- 🏢 部门管理\n' +
-        '- 💼 岗位管理\n' +
-        '- 🛡️ 基于角色的访问控制 (RBAC)\n\n' +
-        '## 快速开始\n' +
-        '1. 使用管理员账户登录获取 token\n' +
-        '2. 点击右上角的 "Authorize" 按钮\n' +
-        '3. 输入 Bearer token (格式: Bearer your_token_here)\n' +
-        '4. 开始使用 API\n\n' +
-        '## 默认管理员账户\n' +
+      '企业级后台管理系统 API 文档，基于 NestJS + Prisma + MySQL。\n\n' +
+        '### 功能\n' +
+        '- JWT 身份认证\n' +
+        '- 用户、角色、权限管理\n' +
+        '- 部门与岗位管理\n' +
+        '- RBAC 权限控制\n\n' +
+        '### 快速开始\n' +
+        '1. 管理员登录获取 token\n' +
+        '2. 点击 "Authorize" 并输入 Bearer token\n' +
+        '3. 调用 API\n\n' +
+        '### 默认管理员\n' +
         '- 邮箱: admin@example.com\n' +
         '- 用户名: admin\n' +
         '- 密码: admin123',
     )
     .setVersion('1.0.0')
-    .addTag('认证管理', '用户登录、注册相关接口')
-    .addTag('用户管理', '用户的增删改查、角色分配等操作')
-    .addTag('角色管理', '角色的增删改查、权限分配等操作')
-    .addTag('权限管理', '权限的增删改查操作')
     .addBearerAuth(
       {
         type: 'http',
         scheme: 'bearer',
         bearerFormat: 'JWT',
-        name: 'JWT',
-        description: '输入 JWT token',
+        description: '输入 Bearer JWT token',
         in: 'header',
       },
       'JWT-auth',

@@ -5,6 +5,7 @@ import { AuthModule } from '@/modules/auth/auth.module';
 import { SystemModule } from '@/modules/system/system.module';
 import { PrismaModule } from '@/prisma/prisma.module';
 import { DashboardModule } from '@/modules/dashboard/dashboard.module';
+import { ProfileModule } from '@/modules/profile/profile.module';
 import { OperationLogsModule } from '@/modules/system/operation-logs/operation-logs.module';
 import configuration from '@/config/configuration';
 import { ResponseInterceptor } from '@/core/interceptors/response.interceptor';
@@ -26,6 +27,7 @@ import { ApiPermissionSyncService } from '@/core/services/api-permission-sync.se
     AuthModule,
     SystemModule,
     DashboardModule,
+    ProfileModule,
     OperationLogsModule,
     DiscoveryModule,
   ],

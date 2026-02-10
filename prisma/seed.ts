@@ -1,6 +1,5 @@
 import { PrismaClient } from '@prisma/client';
 import { seedPermissions } from './seeds/permissions';
- 
 import { seedDepartments } from './seeds/department';
 import { seedPositions } from './seeds/positions';
 import { seedRoles } from './seeds/roles';
@@ -8,7 +7,6 @@ import { seedRolePermissions } from './seeds/role-permissions';
 import { seedUsers } from './seeds/users';
 import { seedDictionaries } from './seeds/dictionaries';
 import { seedConfigs } from './seeds/configs';
- 
 
 const prisma = new PrismaClient();
 

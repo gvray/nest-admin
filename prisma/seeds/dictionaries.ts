@@ -1,66 +1,104 @@
 import { PrismaClient } from '@prisma/client';
 
 export async function seedDictionaries(prisma: PrismaClient) {
-  console.log('🌐 开始创建字典数据...');
+  console.log('🌐 开始创建完整字典数据（批量插入优化）...');
 
-  // 创建字典类型
+  // 字典类型
   const dictionaryTypes = [
     {
       code: 'user_status',
       name: '用户状态',
-      description: '用户状态字典类型',
-      status: 1,
+      description: '用户状态字典',
       sort: 0,
-      remark: '用户状态字典类型备注',
     },
     {
       code: 'user_gender',
       name: '用户性别',
-      description: '用户性别字典类型',
-      status: 1,
+      description: '用户性别字典',
       sort: 1,
-      remark: '用户性别字典类型备注',
     },
     {
       code: 'role_status',
       name: '角色状态',
-      description: '角色状态字典类型',
-      status: 1,
+      description: '角色状态字典',
       sort: 2,
-      remark: '角色状态字典类型备注',
+    },
+    {
+      code: 'data_scope',
+      name: '数据权限范围',
+      description: '角色数据权限范围',
+      sort: 3,
     },
     {
       code: 'department_status',
       name: '部门状态',
-      description: '部门状态字典类型',
-      status: 1,
-      sort: 3,
-      remark: '部门状态字典类型备注',
+      description: '部门状态字典',
+      sort: 4,
     },
     {
       code: 'position_status',
       name: '岗位状态',
-      description: '岗位状态字典类型',
-      status: 1,
-      sort: 4,
-      remark: '岗位状态字典类型备注',
+      description: '岗位状态字典',
+      sort: 5,
+    },
+    {
+      code: 'permission_type',
+      name: '权限类型',
+      description: '权限类型字典',
+      sort: 6,
+    },
+    {
+      code: 'menu_hidden',
+      name: '菜单显示状态',
+      description: '菜单隐藏/显示',
+      sort: 7,
+    },
+    {
+      code: 'login_status',
+      name: '登录状态',
+      description: '登录成功/失败',
+      sort: 8,
+    },
+    {
+      code: 'login_type',
+      name: '登录类型',
+      description: '登录方式类型',
+      sort: 9,
+    },
+    {
+      code: 'operation_status',
+      name: '操作状态',
+      description: '操作日志状态',
+      sort: 10,
+    },
+    {
+      code: 'operation_action',
+      name: '操作类型',
+      description: '操作日志动作类型',
+      sort: 11,
+    },
+    {
+      code: 'config_group',
+      name: '配置分组',
+      description: '系统配置分组',
+      sort: 12,
     },
   ];
 
+  // 批量 upsert 字典类型
   const createdTypes: any[] = [];
   for (const typeData of dictionaryTypes) {
     const type = await prisma.dictionaryType.upsert({
       where: { code: typeData.code },
       update: {},
-      create: typeData,
+      create: { ...typeData, status: 1 },
     });
     createdTypes.push(type);
-    console.log(`✅ 创建字典类型: ${type.name}`);
   }
+  console.log(`✅ 完成字典类型初始化，共 ${createdTypes.length} 条`);
 
-  // 创建字典项
+  // 字典项数据
   const dictionaryItems = [
-    // 用户状态
     {
       typeCode: 'user_status',
       items: [
@@ -70,7 +108,6 @@ export async function seedDictionaries(prisma: PrismaClient) {
         { value: '3', label: '封禁', sort: 3 },
       ],
     },
-    // 用户性别
     {
       typeCode: 'user_gender',
       items: [
@@ -80,7 +117,6 @@ export async function seedDictionaries(prisma: PrismaClient) {
         { value: '3', label: '其他', sort: 3 },
       ],
     },
-    // 角色状态
     {
       typeCode: 'role_status',
       items: [
@@ -88,7 +124,16 @@ export async function seedDictionaries(prisma: PrismaClient) {
         { value: '0', label: '禁用', sort: 1 },
       ],
     },
-    // 部门状态
+    {
+      typeCode: 'data_scope',
+      items: [
+        { value: '1', label: '仅本人', sort: 0 },
+        { value: '2', label: '本部门', sort: 1 },
+        { value: '3', label: '本部门及以下', sort: 2 },
+        { value: '4', label: '自定义', sort: 3 },
+        { value: '5', label: '全部', sort: 4 },
+      ],
+    },
     {
       typeCode: 'department_status',
       items: [
@@ -96,7 +141,6 @@ export async function seedDictionaries(prisma: PrismaClient) {
         { value: '0', label: '禁用', sort: 1 },
       ],
     },
-    // 岗位状态
     {
       typeCode: 'position_status',
       items: [
@@ -104,37 +148,89 @@ export async function seedDictionaries(prisma: PrismaClient) {
         { value: '0', label: '禁用', sort: 1 },
       ],
     },
-    // 配置分组
+    {
+      typeCode: 'permission_type',
+      items: [
+        { value: 'DIRECTORY', label: '目录', sort: 0 },
+        { value: 'MENU', label: '菜单', sort: 1 },
+        { value: 'BUTTON', label: '按钮', sort: 2 },
+        { value: 'API', label: '接口', sort: 3 },
+      ],
+    },
+    {
+      typeCode: 'menu_hidden',
+      items: [
+        { value: '0', label: '显示', sort: 0 },
+        { value: '1', label: '隐藏', sort: 1 },
+      ],
+    },
+    {
+      typeCode: 'login_status',
+      items: [
+        { value: '1', label: '成功', sort: 0 },
+        { value: '0', label: '失败', sort: 1 },
+      ],
+    },
+    {
+      typeCode: 'login_type',
+      items: [
+        { value: 'username', label: '用户名', sort: 0 },
+        { value: 'email', label: '邮箱', sort: 1 },
+        { value: 'phone', label: '手机号', sort: 2 },
+        { value: 'wechat', label: '微信', sort: 3 },
+        { value: 'qq', label: 'QQ', sort: 4 },
+        { value: 'alipay', label: '支付宝', sort: 5 },
+        { value: 'github', label: 'GitHub', sort: 6 },
+        { value: 'google', label: 'Google', sort: 7 },
+      ],
+    },
+    {
+      typeCode: 'operation_status',
+      items: [
+        { value: '1', label: '成功', sort: 0 },
+        { value: '0', label: '失败', sort: 1 },
+      ],
+    },
+    {
+      typeCode: 'operation_action',
+      items: [
+        { value: 'create', label: '创建', sort: 0 },
+        { value: 'update', label: '更新', sort: 1 },
+        { value: 'delete', label: '删除', sort: 2 },
+        { value: 'view', label: '查看', sort: 3 },
+        { value: 'export', label: '导出', sort: 4 },
+        { value: 'import', label: '导入', sort: 5 },
+      ],
+    },
+    // config_group 完整四大类
     {
       typeCode: 'config_group',
       items: [
         { value: 'system', label: '系统配置', sort: 0 },
-        { value: 'email', label: '邮箱配置', sort: 1 },
-        { value: 'sms', label: '短信配置', sort: 2 },
-        { value: 'oss', label: '对象存储配置', sort: 3 },
-        { value: 'wechat', label: '微信配置', sort: 4 },
-        { value: 'alipay', label: '支付宝配置', sort: 5 },
-        { value: 'wechatpay', label: '微信支付配置', sort: 6 },
-        { value: 'alipay', label: '支付宝支付配置', sort: 7 },
+        { value: 'auth', label: '认证配置', sort: 1 },
+        { value: 'user', label: '用户配置', sort: 2 },
+        { value: 'notify', label: '通知配置', sort: 3 },
+        { value: 'other', label: '其他配置', sort: 4 },
       ],
     },
-    // 配置分组
   ];
 
-  for (const itemGroup of dictionaryItems) {
-    const type = createdTypes.find((t) => t.code === itemGroup.typeCode);
+  // 批量准备字典项
+  const allItems: any[] = [];
+  for (const group of dictionaryItems) {
+    const type = createdTypes.find((t) => t.code === group.typeCode);
     if (!type) continue;
-
-    for (const itemData of itemGroup.items) {
-      await prisma.dictionaryItem.create({
-        data: {
-          ...itemData,
-          typeCode: type.code,
-        },
-      });
-      console.log(`✅ 创建字典项: ${itemData.label} (${type.name})`);
+    for (const item of group.items) {
+      allItems.push({ ...item, typeCode: type.code, status: 1 });
     }
   }
 
-  console.log('✅ 字典数据创建完成');
+  // 批量插入字典项
+  await prisma.dictionaryItem.createMany({
+    data: allItems,
+    skipDuplicates: true, // 避免重复插入
+  });
+
+  console.log(`✅ 完成字典项初始化，共 ${allItems.length} 条`);
+  console.log('✅ 全部系统字典数据创建完成（批量优化）');
 }

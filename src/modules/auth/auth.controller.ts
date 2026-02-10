@@ -8,7 +8,6 @@ import {
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
-import { CurrentUserResponseDto } from './dto/current-user-response.dto';
 import { MenuResponseDto } from './dto/menu-response.dto';
 import { ResponseUtil } from '../../shared/utils/response.util';
 import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
@@ -92,76 +91,6 @@ export class AuthController {
   async login(@Body() loginDto: LoginDto, @Req() req: any) {
     const data = await this.authService.login(loginDto, req);
     return ResponseUtil.success(data, '登录成功');
-  }
-
-  @Get('profile')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: '获取当前用户信息' })
-  @ApiResponse({
-    status: 200,
-    description: '成功获取当前用户信息',
-    type: CurrentUserResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'JWT令牌无效或已过期',
-    schema: {
-      type: 'object',
-      properties: {
-        code: { type: 'number', example: 401 },
-        message: { type: 'string', example: 'JWT令牌无效或已过期' },
-        data: { type: 'null', example: null },
-        timestamp: { type: 'string', example: '2024-01-01T00:00:00.000Z' },
-        path: { type: 'string', example: '/api/auth/profile' },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 403,
-    description: '用户账户已被禁用',
-    schema: {
-      type: 'object',
-      properties: {
-        code: { type: 'number', example: 403 },
-        message: { type: 'string', example: '用户账户已被禁用' },
-        data: { type: 'null', example: null },
-        timestamp: { type: 'string', example: '2024-01-01T00:00:00.000Z' },
-        path: { type: 'string', example: '/api/auth/profile' },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 404,
-    description: '用户不存在',
-    schema: {
-      type: 'object',
-      properties: {
-        code: { type: 'number', example: 404 },
-        message: { type: 'string', example: '用户不存在' },
-        data: { type: 'null', example: null },
-        timestamp: { type: 'string', example: '2024-01-01T00:00:00.000Z' },
-        path: { type: 'string', example: '/api/auth/profile' },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 500,
-    description: '服务器内部错误',
-    schema: {
-      type: 'object',
-      properties: {
-        code: { type: 'number', example: 500 },
-        message: { type: 'string', example: '服务器内部错误' },
-        data: { type: 'null', example: null },
-        timestamp: { type: 'string', example: '2024-01-01T00:00:00.000Z' },
-        path: { type: 'string', example: '/api/auth/profile' },
-      },
-    },
-  })
-  async profile(@CurrentUser() user: { userId: string }) {
-    const data = await this.authService.getCurrentUser(user.userId);
-    return ResponseUtil.found(data, '获取当前用户信息');
   }
 
   @Post('logout')
