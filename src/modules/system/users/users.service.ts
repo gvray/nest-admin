@@ -167,6 +167,23 @@ export class UsersService extends BaseService {
       });
     }
 
+    // 初始化用户默认偏好设置
+    await this.prisma.userSettings.create({
+      data: {
+        userId: user.userId,
+        settings: {
+          theme: 'light',
+          language: 'zh-CN',
+          sidebarCollapsed: false,
+          pageSize: 10,
+          timezone: 'Asia/Shanghai',
+          showWatermark: true,
+          enableNotification: true,
+          colorScheme: 'default',
+        },
+      },
+    });
+
     // 移除密码字段
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _, ...userWithoutPassword } = user;

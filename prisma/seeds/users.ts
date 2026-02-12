@@ -47,22 +47,20 @@ export async function seedUsers(
     },
   });
   // 创建超级管理员用户设置
+  const superSettings = {
+    theme: 'light',
+    language: 'zh-CN',
+    sidebarCollapsed: false,
+    pageSize: 20,
+    timezone: 'Asia/Shanghai',
+    showWatermark: true,
+    enableNotification: true,
+    colorScheme: 'default',
+  };
   await prisma.userSettings.upsert({
     where: { userId: superUser.userId },
-    update: {},
-    create: {
-      userId: superUser.userId,
-      settings: {
-        theme: 'light',
-        language: 'zh-CN',
-        sidebarCollapsed: false,
-        pageSize: 20,
-        timezone: 'Asia/Shanghai',
-        showWatermark: true,
-        enableNotification: true,
-        colorScheme: 'default',
-      },
-    },
+    update: { settings: superSettings },
+    create: { userId: superUser.userId, settings: superSettings },
   });
   console.log(`超级管理员用户创建成功: ${superUser.username}`);
 
@@ -118,22 +116,20 @@ export async function seedUsers(
   });
 
   // 创建管理员用户设置
+  const adminSettings = {
+    theme: 'dark',
+    language: 'zh-CN',
+    sidebarCollapsed: false,
+    pageSize: 10,
+    timezone: 'Asia/Shanghai',
+    showWatermark: false,
+    enableNotification: true,
+    colorScheme: 'blue',
+  };
   await prisma.userSettings.upsert({
     where: { userId: adminUser.userId },
-    update: {},
-    create: {
-      userId: adminUser.userId,
-      settings: {
-        theme: 'dark',
-        language: 'zh-CN',
-        sidebarCollapsed: false,
-        pageSize: 10,
-        timezone: 'Asia/Shanghai',
-        showWatermark: false,
-        enableNotification: true,
-        colorScheme: 'blue',
-      },
-    },
+    update: { settings: adminSettings },
+    create: { userId: adminUser.userId, settings: adminSettings },
   });
 
   // 开发环境下创建测试用户
@@ -340,22 +336,20 @@ export async function seedUsers(
       });
 
       // 创建用户设置
+      const testSettings = {
+        theme: i % 3 === 0 ? 'dark' : 'light',
+        language: 'zh-CN',
+        sidebarCollapsed: i % 2 === 0,
+        pageSize: [10, 20, 50][i % 3],
+        timezone: 'Asia/Shanghai',
+        showWatermark: true,
+        enableNotification: i % 4 !== 0,
+        colorScheme: ['default', 'blue', 'green', 'purple'][i % 4],
+      };
       await prisma.userSettings.upsert({
         where: { userId: user.userId },
-        update: {},
-        create: {
-          userId: user.userId,
-          settings: {
-            theme: i % 3 === 0 ? 'dark' : 'light',
-            language: 'zh-CN',
-            sidebarCollapsed: i % 2 === 0,
-            pageSize: [10, 20, 50][i % 3],
-            timezone: 'Asia/Shanghai',
-            showWatermark: true,
-            enableNotification: i % 4 !== 0,
-            colorScheme: ['default', 'blue', 'green', 'purple'][i % 4],
-          },
-        },
+        update: { settings: testSettings },
+        create: { userId: user.userId, settings: testSettings },
       });
     }
 

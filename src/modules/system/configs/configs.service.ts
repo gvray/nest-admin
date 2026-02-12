@@ -8,6 +8,7 @@ import { CreateConfigDto } from './dto/create-config.dto';
 import { UpdateConfigDto } from './dto/update-config.dto';
 import { QueryConfigDto } from './dto/query-config.dto';
 import { ConfigResponseDto } from './dto/config-response.dto';
+import { RuntimeConfigResponseDto } from './dto/runtime-config-response.dto';
 import { plainToInstance } from 'class-transformer';
 import { BaseService } from '@/shared/services/base.service';
 import { PaginationData } from '@/shared/interfaces/response.interface';
@@ -178,6 +179,41 @@ export class ConfigsService extends BaseService {
     await this.prisma.config.deleteMany({
       where: { configId: { in: validIds } },
     });
+  }
+
+  /**
+   * 获取前端运行时配置（公开接口，无需认证）
+   * 后端硬编码，不查数据库。defaults 的 key 与 userSettings(preferences) 一致，前端可直接覆盖。
+   */
+  getRuntimeConfig(): RuntimeConfigResponseDto {
+    return {
+      system: {
+        name: 'G-ADMIN',
+        description:
+          '🦄 基于 React + Umi + Ant Design 的现代企业级 RBAC 权限管理系统，支持动态路由、菜单权限、操作权限控制、多语言及多环境配置，帮助你快速搭建企业级管理系统。',
+        logo: '/logo.svg',
+        favicon: '/favicon.ico',
+        welcomeMessage: '这是你的系统运行概览，祝你工作愉快',
+      },
+      defaults: {
+        theme: 'light',
+        language: 'zh-CN',
+        timezone: 'Asia/Shanghai',
+        sidebarCollapsed: false,
+        pageSize: 10,
+        colorScheme: 'default',
+        showWatermark: true,
+        enableNotification: true,
+      },
+      features: {
+        oauthGithubEnabled: false,
+        fileUploadMaxSize: 10485760,
+        fileUploadAllowedTypes: 'jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx',
+      },
+      assets: {
+        defaultAvatar: 'https://api.dicebear.com/9.x/bottts/svg?seed=GavinRay',
+      },
+    };
   }
 
   async getConfigsByKeys(keys: string[]): Promise<Record<string, unknown>> {

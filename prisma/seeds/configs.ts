@@ -9,9 +9,9 @@ export async function seedConfigs() {
     // ====================== 系统配置 ======================
     {
       key: 'system.name',
-      value: 'Nest Admin',
+      value: 'G-ADMIN',
       name: '系统名称',
-      description: '系统显示名称',
+      description: '系统名称',
       type: 'string',
       group: 'system',
       status: 1,
@@ -31,7 +31,8 @@ export async function seedConfigs() {
     },
     {
       key: 'system.description',
-      value: '基于NestJS的管理后台系统',
+      value:
+        '🦄 基于 React + Umi + Ant Design 的现代企业级 RBAC 权限管理系统，支持动态路由、菜单权限、操作权限控制、多语言及多环境配置，帮助你快速搭建企业级管理系统。',
       name: '系统描述',
       description: '系统描述信息',
       type: 'string',
@@ -42,7 +43,7 @@ export async function seedConfigs() {
     },
     {
       key: 'system.logo',
-      value: '/static/logo.png',
+      value: '/logo.svg',
       name: '系统Logo',
       description: '系统顶部Logo显示',
       type: 'string',
@@ -53,7 +54,7 @@ export async function seedConfigs() {
     },
     {
       key: 'system.favicon',
-      value: '/static/favicon.ico',
+      value: '/favicon.ico',
       name: '系统Favicon',
       description: '浏览器标签图标',
       type: 'string',
@@ -97,7 +98,7 @@ export async function seedConfigs() {
     },
     {
       key: 'system.welcome.message',
-      value: '欢迎使用 Nest Admin',
+      value: '这是你的系统运行概览，祝你工作愉快',
       name: '系统欢迎语',
       description: '首页欢迎用户显示文字',
       type: 'string',
@@ -119,7 +120,7 @@ export async function seedConfigs() {
     },
     {
       key: 'system.layout.pageSize',
-      value: '20',
+      value: '10',
       name: '表格默认分页',
       description: '表格列表默认每页显示条数',
       type: 'number',
@@ -132,7 +133,7 @@ export async function seedConfigs() {
     // ====================== 用户配置 ======================
     {
       key: 'user.default.password',
-      value: 'admin123',
+      value: '123456',
       name: '默认密码',
       description: '新用户的默认密码',
       type: 'string',
@@ -165,7 +166,7 @@ export async function seedConfigs() {
     },
     {
       key: 'user.session.timeout',
-      value: '7200',
+      value: '60',
       name: '会话超时时间',
       description: '用户会话超时时间（秒）',
       type: 'number',
@@ -198,7 +199,7 @@ export async function seedConfigs() {
     },
     {
       key: 'user.avatar.default',
-      value: '/static/avatar-default.png',
+      value: 'https://api.dicebear.com/9.x/bottts/svg?seed=GavinRay',
       name: '默认头像',
       description: '新用户或未上传头像的默认头像',
       type: 'string',

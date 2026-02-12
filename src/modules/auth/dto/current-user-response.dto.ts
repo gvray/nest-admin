@@ -232,6 +232,30 @@ export class CurrentUserResponseDto {
   department?: CurrentUserDepartmentResponseDto;
 
   @ApiPropertyOptional({
+    description: '用户偏好设置',
+    example: {
+      theme: 'light',
+      language: 'zh-CN',
+      sidebarCollapsed: false,
+      pageSize: 20,
+      timezone: 'Asia/Shanghai',
+    },
+  })
+  @Expose()
+  @Transform(({ obj }: { obj: any }): Record<string, unknown> => {
+    try {
+      if (!obj?.userSettings) {
+        return {};
+      }
+      const settings = obj.userSettings.settings;
+      return typeof settings === 'object' && settings !== null ? settings : {};
+    } catch {
+      return {};
+    }
+  })
+  preferences?: Record<string, unknown>;
+
+  @ApiPropertyOptional({
     description: '所属岗位',
     type: [CurrentUserPositionResponseDto],
   })

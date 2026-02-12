@@ -257,6 +257,11 @@ export class AuthService {
             },
           },
         },
+        userSettings: {
+          select: {
+            settings: true,
+          },
+        },
       },
     });
 
