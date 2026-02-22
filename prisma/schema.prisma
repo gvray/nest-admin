@@ -23,9 +23,9 @@ model User {
   phone         String?        @unique
   password      String
   avatar        String?
-  gender        Int? // 性别：0-未知, 1-男, 2-女, 3-其他
+  gender        String?        @db.VarChar(16) // 性别：unknown-未知, male-男, female-女, other-其他
   remark        String? // 备注信息
-  status        Int            @default(1) // 0: 禁用, 1: 启用, 2: 审核中, 3: 封禁
+  status        String         @default("enabled") @db.VarChar(16) // disabled: 禁用, enabled: 启用, pending: 审核中, banned: 封禁
   departmentId  String?
   department    Department?    @relation(fields: [departmentId], references: [departmentId])
   userSettings  UserSettings?
@@ -88,7 +88,7 @@ model Role {
   description     String?
   remark          String? // 备注信息
   sort            Int              @default(0) // 排序权重
-  status          Int              @default(1) // 0: 禁用, 1: 启用
+  status          String           @default("enabled") @db.VarChar(16) // disabled: 禁用, enabled: 启用
   dataScope       Int              @default(1) // 数据权限：1-仅本人, 2-本部门, 3-本部门及以下, 4-自定义, 5-全部
   userRoles       UserRole[]
   rolePermissions RolePermission[]
@@ -214,7 +214,7 @@ model Department {
   children        Department[]     @relation("DepartmentHierarchy")
   users           User[] // 部门下的用户
   roleDepartments RoleDepartment[] // 角色-部门关联
-  status          Int              @default(1) // 0: 禁用, 1: 启用
+  status          String           @default("enabled") @db.VarChar(16) // disabled: 禁用, enabled: 启用
   sort            Int              @default(0)
 
   // 审计字段
@@ -237,7 +237,7 @@ model Position {
   description   String?
   remark        String? // 备注信息
   userPositions UserPosition[]
-  status        Int            @default(1) // 0: 禁用, 1: 启用
+  status        String         @default("enabled") @db.VarChar(16) // disabled: 禁用, enabled: 启用
   sort          Int            @default(0)
 
   // 审计字段
@@ -294,7 +294,7 @@ model DictionaryType {
   code        String           @unique // 字典类型编码
   name        String           @unique // 字典类型名称
   description String? // 描述
-  status      Int              @default(1) // 0: 禁用, 1: 启用
+  status      String           @default("enabled") @db.VarChar(16) // disabled: 禁用, enabled: 启用
   sort        Int              @default(0) // 排序权重
   remark      String? // 备注信息
   items       DictionaryItem[] // 字典项列表
@@ -319,7 +319,7 @@ model DictionaryItem {
   value       String // 字典项值
   label       String // 显示标签
   description String? // 描述
-  status      Int            @default(1) // 0: 禁用, 1: 启用
+  status      String         @default("enabled") @db.VarChar(16) // disabled: 禁用, enabled: 启用
   sort        Int            @default(0) // 排序权重
   remark      String? // 备注信息
 
@@ -344,7 +344,7 @@ model Config {
   description String? // 描述
   type        String  @default("string") // 配置类型: string, number, boolean, json
   group       String  @default("system") // 配置分组
-  status      Int     @default(1) // 0: 禁用, 1: 启用
+  status      String  @default("enabled") @db.VarChar(16) // disabled: 禁用, enabled: 启用
   sort        Int     @default(0) // 排序权重
   remark      String? // 备注信息
 
@@ -365,7 +365,7 @@ model LoginLog {
   account    String // 登录用户名/邮箱/手机号
   ipAddress  String // 登录IP地址
   userAgent  String? // 用户代理信息
-  status     Int // 登录状态：1-成功, 0-失败
+  status     String         @db.VarChar(16) // 登录状态：success-成功, failure-失败
   loginType  String  @default("username") // 登录类型：username(用户名), email(邮箱), phone(手机号), wechat(微信), qq(QQ), alipay(支付宝), github(GitHub), google(Google)
   failReason String? // 失败原因
   location   String? // 登录地点（可选，基于IP解析）
@@ -401,7 +401,7 @@ model OperationLog {
   userAgent String?
 
   // 结果
-  status    Int // 1 成功, 0 失败
+  status    String         @db.VarChar(16) // success 成功, failure 失败
   message   String?
   latencyMs Int
 

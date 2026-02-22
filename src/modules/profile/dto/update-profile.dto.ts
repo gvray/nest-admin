@@ -28,11 +28,11 @@ export class UpdateProfileDto {
   phone?: string;
 
   @ApiPropertyOptional({
-    description: '性别：0-未知, 1-男, 2-女, 3-其他',
-    enum: [0, 1, 2, 3],
+    description: '性别：unknown-未知, male-男, female-女, other-其他',
+    enum: ['unknown', 'male', 'female', 'other'],
   })
   @IsOptional()
-  @IsInt()
-  @IsIn([0, 1, 2, 3])
-  gender?: number;
+  @IsString()
+  @IsIn(['unknown', 'male', 'female', 'other'])
+  gender?: string;
 }

@@ -14,11 +14,13 @@ export class QueryLoginLogDto extends PaginationDto {
   @IsString()
   ipAddress?: string;
 
-  @ApiPropertyOptional({ description: '登录状态：1-成功, 0-失败' })
+  @ApiPropertyOptional({
+    description: '登录状态：success-成功, failure-失败',
+    example: 'success',
+  })
   @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  status?: number;
+  @IsString()
+  status?: string;
 
   @ApiPropertyOptional({
     description: '创建时间开始（YYYY-MM-DD）',

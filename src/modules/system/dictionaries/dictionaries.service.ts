@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
+import { CommonStatus } from '@/shared/constants/common-status.constant';
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreateDictionaryTypeDto } from './dto/create-dictionary-type.dto';
 import { UpdateDictionaryTypeDto } from './dto/update-dictionary-type.dto';
@@ -102,7 +103,7 @@ export class DictionariesService extends BaseService {
       where: { typeId },
       include: {
         items: {
-          where: { status: 1 },
+          where: { status: CommonStatus.ENABLED },
           orderBy: { sort: 'asc' },
         },
       },
@@ -331,7 +332,7 @@ export class DictionariesService extends BaseService {
       where: { code: typeCode },
       include: {
         items: {
-          where: { status: 1 },
+          where: { status: CommonStatus.ENABLED },
           orderBy: { sort: 'asc' },
         },
       },
@@ -367,7 +368,7 @@ export class DictionariesService extends BaseService {
         const dictionaryItems = await this.prisma.dictionaryItem.findMany({
           where: {
             typeCode: typeCode,
-            status: 1,
+            status: CommonStatus.ENABLED,
           },
           orderBy: { sort: 'asc' },
         });

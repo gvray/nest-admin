@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
+import { CommonStatus } from '@/shared/constants/common-status.constant';
 import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '@/prisma/prisma.service';
 import type { Department } from '@prisma/client';
@@ -284,9 +285,9 @@ export class DepartmentsService extends BaseService {
 
       // 处理状态过滤
       if (queryDto?.status !== undefined) {
-        whereConditions.status = queryDto.status;
+        whereConditions.status = queryDto.status as string;
       } else {
-        whereConditions.status = 1;
+        whereConditions.status = CommonStatus.ENABLED;
       }
 
       // 处理名称搜索
@@ -351,7 +352,7 @@ export class DepartmentsService extends BaseService {
         allDepartments = await this.prisma.department.findMany({
           where: {
             departmentId: { in: Array.from(departmentIdsToInclude) },
-            status: queryDto?.status !== undefined ? queryDto.status : 1,
+            status: queryDto?.status !== undefined ? (queryDto.status as string) : CommonStatus.ENABLED,
           },
           orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
         });
@@ -359,7 +360,7 @@ export class DepartmentsService extends BaseService {
     } else {
       // 没有搜索条件时，获取所有启用状态的部门
       allDepartments = await this.prisma.department.findMany({
-        where: { status: 1 },
+        where: { status: CommonStatus.ENABLED },
         orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
       });
     }

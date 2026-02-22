@@ -25,15 +25,12 @@ export class CreateDictionaryTypeDto {
   description?: string;
 
   @ApiPropertyOptional({
-    description: '状态：0-禁用, 1-启用',
-    example: 1,
-    default: 1,
+    description: '状态：disabled-禁用, enabled-启用',
+    example: 'enabled',
   })
   @IsOptional()
-  @IsInt({ message: '状态必须是整数' })
-  @Min(0, { message: '状态不能小于0' })
-  @Max(1, { message: '状态不能大于1' })
-  status?: number;
+  @IsString()
+  status?: string;
 
   @ApiPropertyOptional({
     description: '排序权重',

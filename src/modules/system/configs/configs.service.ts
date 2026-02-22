@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { CommonStatus } from '@/shared/constants/common-status.constant';
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreateConfigDto } from './dto/create-config.dto';
 import { UpdateConfigDto } from './dto/update-config.dto';
@@ -118,7 +119,7 @@ export class ConfigsService extends BaseService {
 
   async findByGroup(group: string): Promise<ConfigResponseDto[]> {
     const configs = await this.prisma.config.findMany({
-      where: { group, status: 1 },
+      where: { group, status: CommonStatus.ENABLED },
       orderBy: { sort: 'asc' },
     });
 
@@ -183,35 +184,109 @@ export class ConfigsService extends BaseService {
 
   /**
    * 获取前端运行时配置（公开接口，无需认证）
-   * 后端硬编码，不查数据库。defaults 的 key 与 userSettings(preferences) 一致，前端可直接覆盖。
+   * - system / env：写死或读环境变量
+   * - uiDefaults / securityPolicy / features：从 config 表读取，管理员可改
+   * - capabilities：动态计算
    */
-  getRuntimeConfig(): RuntimeConfigResponseDto {
+  async getRuntimeConfig(): Promise<RuntimeConfigResponseDto> {
+    // 1. 从 config 表批量读取管理员可改项
+    const configKeys = [
+      'uiDefaults.theme',
+      'uiDefaults.language',
+      'uiDefaults.timezone',
+      'uiDefaults.sidebarCollapsed',
+      'uiDefaults.pageSize',
+      'uiDefaults.welcomeMessage',
+      'uiDefaults.showBreadcrumb',
+      'securityPolicy.watermark.enabled',
+      'securityPolicy.password.minLength',
+      'securityPolicy.password.requireComplexity',
+      'securityPolicy.login.failureLockCount',
+      'features.fileUpload.maxSize',
+      'features.fileUpload.allowedTypes',
+      'features.oss.enabled',
+      'features.email.enabled',
+      'features.oauth.github.enabled',
+    ];
+
+    const configs = await this.prisma.config.findMany({
+      where: { key: { in: configKeys }, status: CommonStatus.ENABLED },
+    });
+
+    const configMap = new Map<string, string>();
+    for (const c of configs) {
+      configMap.set(c.key, c.value);
+    }
+
+    const str = (key: string, fallback: string) =>
+      configMap.get(key) ?? fallback;
+    const num = (key: string, fallback: number) => {
+      const v = configMap.get(key);
+      return v !== undefined ? Number(v) : fallback;
+    };
+    const bool = (key: string, fallback: boolean) => {
+      const v = configMap.get(key);
+      return v !== undefined ? v === 'true' || v === '1' : fallback;
+    };
+
+    // 2. 动态计算 capabilities
+    const [totalUsers, totalRoles, totalPermissions] = await Promise.all([
+      this.prisma.user.count(),
+      this.prisma.role.count(),
+      this.prisma.permission.count(),
+    ]);
+
     return {
+      // 写死
       system: {
         name: 'G-ADMIN',
         description:
-          '🦄 基于 React + Umi + Ant Design 的现代企业级 RBAC 权限管理系统，支持动态路由、菜单权限、操作权限控制、多语言及多环境配置，帮助你快速搭建企业级管理系统。',
+          '🦄 基于 React + Umi + Ant Design 的现代企业级 RBAC 权限管理系统',
         logo: '/logo.svg',
         favicon: '/favicon.ico',
-        welcomeMessage: '这是你的系统运行概览，祝你工作愉快',
+        defaultAvatar: 'https://api.dicebear.com/9.x/bottts/svg?seed=GavinRay',
       },
-      defaults: {
-        theme: 'light',
-        language: 'zh-CN',
-        timezone: 'Asia/Shanghai',
-        sidebarCollapsed: false,
-        pageSize: 10,
-        colorScheme: 'default',
-        showWatermark: true,
-        enableNotification: true,
+      env: {
+        mode: process.env.NODE_ENV || 'development',
+        apiPrefix: '/api/v1',
+      },
+      // 管理员可改（从 config 表）
+      uiDefaults: {
+        theme: str('uiDefaults.theme', 'light'),
+        language: str('uiDefaults.language', 'zh-CN'),
+        timezone: str('uiDefaults.timezone', 'Asia/Shanghai'),
+        sidebarCollapsed: bool('uiDefaults.sidebarCollapsed', false),
+        pageSize: num('uiDefaults.pageSize', 10),
+        welcomeMessage: str(
+          'uiDefaults.welcomeMessage',
+          '这是你的系统运行概览，祝你工作愉快',
+        ),
+        showBreadcrumb: bool('uiDefaults.showBreadcrumb', true),
+      },
+      securityPolicy: {
+        watermarkEnabled: bool('securityPolicy.watermark.enabled', true),
+        passwordMinLength: num('securityPolicy.password.minLength', 6),
+        passwordRequireComplexity: bool(
+          'securityPolicy.password.requireComplexity',
+          true,
+        ),
+        loginFailureLockCount: num('securityPolicy.login.failureLockCount', 5),
       },
       features: {
-        oauthGithubEnabled: false,
-        fileUploadMaxSize: 10485760,
-        fileUploadAllowedTypes: 'jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx',
+        fileUploadMaxSize: num('features.fileUpload.maxSize', 10485760),
+        fileUploadAllowedTypes: str(
+          'features.fileUpload.allowedTypes',
+          'jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx',
+        ),
+        ossEnabled: bool('features.oss.enabled', false),
+        emailEnabled: bool('features.email.enabled', false),
+        oauthGithubEnabled: bool('features.oauth.github.enabled', false),
       },
-      assets: {
-        defaultAvatar: 'https://api.dicebear.com/9.x/bottts/svg?seed=GavinRay',
+      // 动态计算
+      capabilities: {
+        totalUsers,
+        totalRoles,
+        totalPermissions,
       },
     };
   }
@@ -220,7 +295,7 @@ export class ConfigsService extends BaseService {
     const configs = await this.prisma.config.findMany({
       where: {
         key: { in: keys },
-        status: 1,
+        status: CommonStatus.ENABLED,
       },
     });
 

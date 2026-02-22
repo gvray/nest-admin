@@ -9,11 +9,13 @@ export class QueryDepartmentDto extends PaginationDto {
   @IsString()
   name?: string;
 
-  @ApiPropertyOptional({ description: '状态' })
+  @ApiPropertyOptional({
+    description: '状态：disabled-禁用, enabled-启用',
+    example: 'enabled',
+  })
   @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  status?: number;
+  @IsString()
+  status?: string;
 
   @ApiPropertyOptional({ description: '父部门ID（UUID）' })
   @IsOptional()

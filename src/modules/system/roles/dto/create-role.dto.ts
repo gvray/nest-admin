@@ -26,10 +26,13 @@ export class CreateRoleDto {
   @Min(0, { message: '排序权重不能小于0' })
   sort?: number;
 
-  @ApiPropertyOptional({ description: '状态：0-禁用，1-启用', example: 1 })
+  @ApiPropertyOptional({
+    description: '状态：disabled-禁用, enabled-启用',
+    example: 'enabled',
+  })
   @IsOptional()
-  @IsInt({ message: '状态必须是整数' })
-  status?: number;
+  @IsString()
+  status?: string;
 
   @ApiPropertyOptional({ description: '权限ID列表', type: [String] })
   @IsOptional()

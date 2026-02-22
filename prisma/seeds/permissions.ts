@@ -2,7 +2,7 @@ import { PrismaClient, PermissionType } from '@prisma/client';
 const ROOT_PARENT_ID = '00000000-0000-0000-0000-000000000000';
 
 interface MenuNode {
-  type: 'DIRECTORY' | 'MENU' | 'BUTTON';
+  type: 'DIRECTORY' | 'MENU' | 'BUTTON' | 'API';
   name: string;
   code: string;
   path?: string;
@@ -10,6 +10,7 @@ interface MenuNode {
   sort?: number;
   description?: string;
   action?: string;
+  method?: string; // HTTP method for API type
   children?: MenuNode[];
 }
 
@@ -84,6 +85,71 @@ export async function seedPermissions(prisma: PrismaClient) {
               action: 'export',
               description: '导出用户数据',
             },
+            // API 权限
+            {
+              type: 'API',
+              name: '获取用户列表',
+              code: 'api:system:user:list',
+              method: 'GET',
+              path: '/system/users',
+              description: 'GET /system/users - 获取用户列表',
+            },
+            {
+              type: 'API',
+              name: '获取用户详情',
+              code: 'api:system:user:detail',
+              method: 'GET',
+              path: '/system/users/:id',
+              description: 'GET /system/users/:id - 获取用户详情',
+            },
+            {
+              type: 'API',
+              name: '创建用户接口',
+              code: 'api:system:user:create',
+              method: 'POST',
+              path: '/system/users',
+              description: 'POST /system/users - 创建用户',
+            },
+            {
+              type: 'API',
+              name: '更新用户接口',
+              code: 'api:system:user:update',
+              method: 'PATCH',
+              path: '/system/users/:id',
+              description: 'PATCH /system/users/:id - 更新用户',
+            },
+            {
+              type: 'API',
+              name: '删除用户接口',
+              code: 'api:system:user:delete',
+              method: 'DELETE',
+              path: '/system/users/:id',
+              description: 'DELETE /system/users/:id - 删除用户',
+            },
+            {
+              type: 'API',
+              name: '批量删除用户接口',
+              code: 'api:system:user:batch-delete',
+              method: 'DELETE',
+              path: '/system/users/batch',
+              description: 'DELETE /system/users/batch - 批量删除用户',
+            },
+            {
+              type: 'API',
+              name: '分配角色接口',
+              code: 'api:system:user:assign-roles',
+              method: 'POST',
+              path: '/system/users/:id/roles',
+              description: 'POST /system/users/:id/roles - 分配用户角色',
+            },
+            {
+              type: 'API',
+              name: '移除角色接口',
+              code: 'api:system:user:remove-roles',
+              method: 'DELETE',
+              path: '/system/users/:id/roles',
+              description: 'DELETE /system/users/:id/roles - 移除用户角色',
+            },
           ],
         },
         {
@@ -136,6 +202,55 @@ export async function seedPermissions(prisma: PrismaClient) {
               code: 'system:role:export',
               action: 'export',
               description: '导出角色数据',
+            },
+            // API 权限
+            {
+              type: 'API',
+              name: '获取角色列表',
+              code: 'api:system:role:list',
+              method: 'GET',
+              path: '/system/roles',
+              description: 'GET /system/roles - 获取角色列表',
+            },
+            {
+              type: 'API',
+              name: '获取角色详情',
+              code: 'api:system:role:detail',
+              method: 'GET',
+              path: '/system/roles/:id',
+              description: 'GET /system/roles/:id - 获取角色详情',
+            },
+            {
+              type: 'API',
+              name: '创建角色接口',
+              code: 'api:system:role:create',
+              method: 'POST',
+              path: '/system/roles',
+              description: 'POST /system/roles - 创建角色',
+            },
+            {
+              type: 'API',
+              name: '更新角色接口',
+              code: 'api:system:role:update',
+              method: 'PATCH',
+              path: '/system/roles/:id',
+              description: 'PATCH /system/roles/:id - 更新角色',
+            },
+            {
+              type: 'API',
+              name: '删除角色接口',
+              code: 'api:system:role:delete',
+              method: 'DELETE',
+              path: '/system/roles/:id',
+              description: 'DELETE /system/roles/:id - 删除角色',
+            },
+            {
+              type: 'API',
+              name: '分配权限接口',
+              code: 'api:system:role:assign-permissions',
+              method: 'POST',
+              path: '/system/roles/:id/permissions',
+              description: 'POST /system/roles/:id/permissions - 分配角色权限',
             },
           ],
         },
@@ -190,6 +305,47 @@ export async function seedPermissions(prisma: PrismaClient) {
               action: 'export',
               description: '导出权限数据',
             },
+            // API 权限
+            {
+              type: 'API',
+              name: '获取权限列表',
+              code: 'api:system:permission:list',
+              method: 'GET',
+              path: '/system/permissions',
+              description: 'GET /system/permissions - 获取权限列表',
+            },
+            {
+              type: 'API',
+              name: '获取权限详情',
+              code: 'api:system:permission:detail',
+              method: 'GET',
+              path: '/system/permissions/:id',
+              description: 'GET /system/permissions/:id - 获取权限详情',
+            },
+            {
+              type: 'API',
+              name: '创建权限接口',
+              code: 'api:system:permission:create',
+              method: 'POST',
+              path: '/system/permissions',
+              description: 'POST /system/permissions - 创建权限',
+            },
+            {
+              type: 'API',
+              name: '更新权限接口',
+              code: 'api:system:permission:update',
+              method: 'PATCH',
+              path: '/system/permissions/:id',
+              description: 'PATCH /system/permissions/:id - 更新权限',
+            },
+            {
+              type: 'API',
+              name: '删除权限接口',
+              code: 'api:system:permission:delete',
+              method: 'DELETE',
+              path: '/system/permissions/:id',
+              description: 'DELETE /system/permissions/:id - 删除权限',
+            },
           ],
         },
         {
@@ -243,6 +399,47 @@ export async function seedPermissions(prisma: PrismaClient) {
               action: 'export',
               description: '导出部门数据',
             },
+            // API 权限
+            {
+              type: 'API',
+              name: '获取部门列表',
+              code: 'api:system:department:list',
+              method: 'GET',
+              path: '/system/departments',
+              description: 'GET /system/departments - 获取部门列表',
+            },
+            {
+              type: 'API',
+              name: '获取部门详情',
+              code: 'api:system:department:detail',
+              method: 'GET',
+              path: '/system/departments/:id',
+              description: 'GET /system/departments/:id - 获取部门详情',
+            },
+            {
+              type: 'API',
+              name: '创建部门接口',
+              code: 'api:system:department:create',
+              method: 'POST',
+              path: '/system/departments',
+              description: 'POST /system/departments - 创建部门',
+            },
+            {
+              type: 'API',
+              name: '更新部门接口',
+              code: 'api:system:department:update',
+              method: 'PATCH',
+              path: '/system/departments/:id',
+              description: 'PATCH /system/departments/:id - 更新部门',
+            },
+            {
+              type: 'API',
+              name: '删除部门接口',
+              code: 'api:system:department:delete',
+              method: 'DELETE',
+              path: '/system/departments/:id',
+              description: 'DELETE /system/departments/:id - 删除部门',
+            },
           ],
         },
         {
@@ -295,6 +492,47 @@ export async function seedPermissions(prisma: PrismaClient) {
               code: 'system:position:export',
               action: 'export',
               description: '导出岗位数据',
+            },
+            // API 权限
+            {
+              type: 'API',
+              name: '获取岗位列表',
+              code: 'api:system:position:list',
+              method: 'GET',
+              path: '/system/positions',
+              description: 'GET /system/positions - 获取岗位列表',
+            },
+            {
+              type: 'API',
+              name: '获取岗位详情',
+              code: 'api:system:position:detail',
+              method: 'GET',
+              path: '/system/positions/:id',
+              description: 'GET /system/positions/:id - 获取岗位详情',
+            },
+            {
+              type: 'API',
+              name: '创建岗位接口',
+              code: 'api:system:position:create',
+              method: 'POST',
+              path: '/system/positions',
+              description: 'POST /system/positions - 创建岗位',
+            },
+            {
+              type: 'API',
+              name: '更新岗位接口',
+              code: 'api:system:position:update',
+              method: 'PATCH',
+              path: '/system/positions/:id',
+              description: 'PATCH /system/positions/:id - 更新岗位',
+            },
+            {
+              type: 'API',
+              name: '删除岗位接口',
+              code: 'api:system:position:delete',
+              method: 'DELETE',
+              path: '/system/positions/:id',
+              description: 'DELETE /system/positions/:id - 删除岗位',
             },
           ],
         },
@@ -471,6 +709,21 @@ export async function seedPermissions(prisma: PrismaClient) {
           type: PermissionType.BUTTON,
           origin: 'USER',
           action: node.action!,
+          description: node.description,
+          parentPermissionId,
+        },
+      });
+    } else if (node.type === 'API') {
+      const parentPermissionId = parentId || ROOT_PARENT_ID;
+      perm = await prisma.permission.upsert({
+        where: { code: node.code },
+        update: {},
+        create: {
+          name: node.name,
+          code: node.code,
+          type: PermissionType.API,
+          origin: 'USER',
+          action: node.method || 'GET',
           description: node.description,
           parentPermissionId,
         },

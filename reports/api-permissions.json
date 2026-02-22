@@ -97,7 +97,7 @@
     "httpMethod": "POST",
     "route": "/system/departments//",
     "menuCode": "menu:system:department",
-    "status": "created"
+    "status": "exists"
   },
   {
     "code": "api:system:department:delete",
@@ -107,7 +107,7 @@
     "httpMethod": "DELETE",
     "route": "/system/departments/:departmentId",
     "menuCode": "menu:system:department",
-    "status": "created"
+    "status": "exists"
   },
   {
     "code": "api:system:department:delete",
@@ -117,7 +117,7 @@
     "httpMethod": "POST",
     "route": "/system/departments/batch-delete",
     "menuCode": "menu:system:department",
-    "status": "created"
+    "status": "exists"
   },
   {
     "code": "api:system:department:update",
@@ -127,7 +127,7 @@
     "httpMethod": "PATCH",
     "route": "/system/departments/:departmentId",
     "menuCode": "menu:system:department",
-    "status": "created"
+    "status": "exists"
   },
   {
     "code": "api:system:department:view",
@@ -307,7 +307,7 @@
     "httpMethod": "POST",
     "route": "/system/permissions//",
     "menuCode": "menu:system:permission",
-    "status": "created"
+    "status": "exists"
   },
   {
     "code": "api:system:permission:delete",
@@ -317,7 +317,7 @@
     "httpMethod": "DELETE",
     "route": "/system/permissions/:id",
     "menuCode": "menu:system:permission",
-    "status": "created"
+    "status": "exists"
   },
   {
     "code": "api:system:permission:delete",
@@ -327,7 +327,7 @@
     "httpMethod": "POST",
     "route": "/system/permissions/batch-delete",
     "menuCode": "menu:system:permission",
-    "status": "created"
+    "status": "exists"
   },
   {
     "code": "api:system:permission:update",
@@ -337,7 +337,7 @@
     "httpMethod": "PATCH",
     "route": "/system/permissions/:id",
     "menuCode": "menu:system:permission",
-    "status": "created"
+    "status": "exists"
   },
   {
     "code": "api:system:permission:view",
@@ -387,7 +387,7 @@
     "httpMethod": "POST",
     "route": "/system/positions//",
     "menuCode": "menu:system:position",
-    "status": "created"
+    "status": "exists"
   },
   {
     "code": "api:system:position:delete",
@@ -397,7 +397,7 @@
     "httpMethod": "DELETE",
     "route": "/system/positions/:id",
     "menuCode": "menu:system:position",
-    "status": "created"
+    "status": "exists"
   },
   {
     "code": "api:system:position:delete",
@@ -407,7 +407,7 @@
     "httpMethod": "POST",
     "route": "/system/positions/batch-delete",
     "menuCode": "menu:system:position",
-    "status": "created"
+    "status": "exists"
   },
   {
     "code": "api:system:position:update",
@@ -417,7 +417,7 @@
     "httpMethod": "PATCH",
     "route": "/system/positions/:id",
     "menuCode": "menu:system:position",
-    "status": "created"
+    "status": "exists"
   },
   {
     "code": "api:system:position:view",
@@ -447,7 +447,7 @@
     "httpMethod": "POST",
     "route": "/system/roles//",
     "menuCode": "menu:system:role",
-    "status": "created"
+    "status": "exists"
   },
   {
     "code": "api:system:role:delete",
@@ -457,7 +457,7 @@
     "httpMethod": "DELETE",
     "route": "/system/roles/:id",
     "menuCode": "menu:system:role",
-    "status": "created"
+    "status": "exists"
   },
   {
     "code": "api:system:role:delete",
@@ -467,7 +467,7 @@
     "httpMethod": "POST",
     "route": "/system/roles/batch-delete",
     "menuCode": "menu:system:role",
-    "status": "created"
+    "status": "exists"
   },
   {
     "code": "api:system:role:update",
@@ -477,7 +477,7 @@
     "httpMethod": "PATCH",
     "route": "/system/roles/:id",
     "menuCode": "menu:system:role",
-    "status": "created"
+    "status": "exists"
   },
   {
     "code": "api:system:role:update",
@@ -487,7 +487,7 @@
     "httpMethod": "PUT",
     "route": "/system/roles/:id/data-scope",
     "menuCode": "menu:system:role",
-    "status": "created"
+    "status": "exists"
   },
   {
     "code": "api:system:role:update",
@@ -497,7 +497,7 @@
     "httpMethod": "PUT",
     "route": "/system/roles/:id/permissions",
     "menuCode": "menu:system:role",
-    "status": "created"
+    "status": "exists"
   },
   {
     "code": "api:system:role:update",
@@ -507,7 +507,7 @@
     "httpMethod": "DELETE",
     "route": "/system/roles/:id/permissions",
     "menuCode": "menu:system:role",
-    "status": "created"
+    "status": "exists"
   },
   {
     "code": "api:system:role:update",
@@ -517,7 +517,7 @@
     "httpMethod": "PUT",
     "route": "/system/roles/:id/users",
     "menuCode": "menu:system:role",
-    "status": "created"
+    "status": "exists"
   },
   {
     "code": "api:system:role:update",
@@ -527,7 +527,7 @@
     "httpMethod": "DELETE",
     "route": "/system/roles/:id/users",
     "menuCode": "menu:system:role",
-    "status": "created"
+    "status": "exists"
   },
   {
     "code": "api:system:role:view",
@@ -567,7 +567,7 @@
     "httpMethod": "POST",
     "route": "/system/users//",
     "menuCode": "menu:system:user",
-    "status": "created"
+    "status": "exists"
   },
   {
     "code": "api:system:user:delete",
@@ -577,7 +577,7 @@
     "httpMethod": "DELETE",
     "route": "/system/users/:userId",
     "menuCode": "menu:system:user",
-    "status": "created"
+    "status": "exists"
   },
   {
     "code": "api:system:user:delete",
@@ -587,7 +587,7 @@
     "httpMethod": "POST",
     "route": "/system/users/batch-delete",
     "menuCode": "menu:system:user",
-    "status": "created"
+    "status": "exists"
   },
   {
     "code": "api:system:user:manage",
@@ -617,7 +617,7 @@
     "httpMethod": "PATCH",
     "route": "/system/users/:userId",
     "menuCode": "menu:system:user",
-    "status": "created"
+    "status": "exists"
   },
   {
     "code": "api:system:user:view",

@@ -31,10 +31,8 @@ export class CreateConfigDto {
 
   @ApiProperty({ description: '状态', default: 1 })
   @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(1)
-  status?: number = 1;
+  @IsString()
+  status?: string = 'enabled';
 
   @ApiProperty({ description: '排序权重', default: 0 })
   @IsOptional()

@@ -20,8 +20,8 @@ export class ConfigsRuntimeController {
     description: '运行时配置（仅安全字段）',
     type: RuntimeConfigResponseDto,
   })
-  getRuntimeConfig() {
-    const data = this.configsService.getRuntimeConfig();
+  async getRuntimeConfig() {
+    const data = await this.configsService.getRuntimeConfig();
     return ResponseUtil.success(data, '获取运行时配置成功');
   }
 }

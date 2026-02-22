@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
+import { CommonStatus } from '@/shared/constants/common-status.constant';
 import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreateRoleDto } from './dto/create-role.dto';
@@ -67,7 +68,7 @@ export class RolesService extends BaseService {
         description,
         remark,
         sort: sort ?? 0,
-        status: status ?? 1,
+        status: (status as string) ?? CommonStatus.ENABLED,
         createdById: currentUserId,
       },
     });
@@ -123,7 +124,7 @@ export class RolesService extends BaseService {
     }
 
     if (query?.status !== undefined) {
-      where.status = query.status;
+      where.status = query.status as string;
     }
 
     if (query?.createdAtStart || query?.createdAtEnd) {
@@ -253,7 +254,7 @@ export class RolesService extends BaseService {
         description,
         remark,
         sort,
-        status,
+        status: status as string | undefined,
         updatedById: currentUserId,
       },
     });

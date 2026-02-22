@@ -21,15 +21,12 @@ export class QueryRoleDto extends PaginationDto {
   description?: string;
 
   @ApiPropertyOptional({
-    description: '角色状态（0: 禁用, 1: 启用）',
-    example: 1,
+    description: '状态：disabled-禁用, enabled-启用',
+    example: 'enabled',
   })
   @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  @Max(1)
-  status?: number;
+  @IsString()
+  status?: string;
 
   @ApiPropertyOptional({
     description: '角色键（支持模糊查询）',

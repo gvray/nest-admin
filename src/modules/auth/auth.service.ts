@@ -1,4 +1,5 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { LogStatus } from '@/shared/constants/log-status.constant';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '@/modules/system/users/users.service';
 import { LoginLogsService } from '@/modules/system/login-logs/login-logs.service';
@@ -529,7 +530,7 @@ export class AuthService {
     account: string;
     ipAddress: string;
     userAgent: string;
-    status: number;
+    status: number; // HTTP status code
     loginType: string;
     failReason?: string;
   }): Promise<void> {
@@ -554,7 +555,7 @@ export class AuthService {
         account: logData.account,
         ipAddress: logData.ipAddress,
         userAgent: logData.userAgent,
-        status: logData.status,
+        status: logData.status >= 200 && logData.status < 300 ? LogStatus.SUCCESS : LogStatus.FAILURE,
         loginType: logData.loginType,
         failReason: logData.failReason,
         location,

@@ -14,11 +14,13 @@ export class QueryPositionDto extends PaginationDto {
   @IsString()
   code?: string;
 
-  @ApiPropertyOptional({ description: '状态' })
+  @ApiPropertyOptional({
+    description: '状态：disabled-禁用, enabled-启用',
+    example: 'enabled',
+  })
   @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  status?: number;
+  @IsString()
+  status?: string;
 
   @ApiPropertyOptional({ description: '创建时间开始（YYYY-MM-DD）' })
   @IsOptional()

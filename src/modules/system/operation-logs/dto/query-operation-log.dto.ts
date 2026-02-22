@@ -29,11 +29,13 @@ export class QueryOperationLogDto extends PaginationDto {
   @IsString()
   action?: string;
 
-  @ApiPropertyOptional({ description: '状态 1成功/0失败', example: 1 })
+  @ApiPropertyOptional({
+    description: '操作状态：success-成功, failure-失败',
+    example: 'success',
+  })
   @IsOptional()
-  @Transform(({ value }) => (value !== undefined ? Number(value) : undefined))
-  @IsInt()
-  status?: number;
+  @IsString()
+  status?: string;
 
   @ApiPropertyOptional({ description: '路径 模糊匹配' })
   @IsOptional()

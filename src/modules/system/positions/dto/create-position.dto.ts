@@ -27,10 +27,13 @@ export class CreatePositionDto {
   @IsString()
   remark?: string;
 
-  @ApiPropertyOptional({ description: '状态', default: 1 })
+  @ApiPropertyOptional({
+    description: '状态：disabled-禁用, enabled-启用',
+    example: 'enabled',
+  })
   @IsOptional()
-  @IsInt()
-  status?: number;
+  @IsString()
+  status?: string;
 
   @ApiPropertyOptional({ description: '排序', default: 0 })
   @IsOptional()

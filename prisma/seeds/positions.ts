@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { CommonStatus } from '../../src/shared/constants/common-status.constant';
 
 export async function seedPositions(prisma: PrismaClient) {
   console.log('开始创建岗位...');
@@ -11,7 +12,7 @@ export async function seedPositions(prisma: PrismaClient) {
       name: '开发工程师',
       code: 'DEVELOPER',
       description: '负责系统开发',
-      status: 1,
+      status: CommonStatus.ENABLED,
       sort: 1,
     },
   });
@@ -24,7 +25,7 @@ export async function seedPositions(prisma: PrismaClient) {
       name: '部门经理',
       code: 'MANAGER',
       description: '负责部门管理',
-      status: 1,
+      status: CommonStatus.ENABLED,
       sort: 2,
     },
   });
@@ -37,7 +38,7 @@ export async function seedPositions(prisma: PrismaClient) {
       name: 'HR专员',
       code: 'HR_SPECIALIST',
       description: '负责人力资源相关工作',
-      status: 1,
+      status: CommonStatus.ENABLED,
       sort: 3,
     },
   });
@@ -50,7 +51,7 @@ export async function seedPositions(prisma: PrismaClient) {
       name: '会计',
       code: 'ACCOUNTANT',
       description: '负责财务核算',
-      status: 1,
+      status: CommonStatus.ENABLED,
       sort: 4,
     },
   });
@@ -63,7 +64,7 @@ export async function seedPositions(prisma: PrismaClient) {
       name: '系统管理员',
       code: 'ADMIN',
       description: '负责系统管理和维护',
-      status: 1,
+      status: CommonStatus.ENABLED,
       sort: 5,
     },
   });

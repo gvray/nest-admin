@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { CommonStatus } from '../../src/shared/constants/common-status.constant';
 
 export async function seedDictionaries(prisma: PrismaClient) {
   console.log('🌐 开始创建完整字典数据（批量插入优化）...');
@@ -10,12 +11,14 @@ export async function seedDictionaries(prisma: PrismaClient) {
       name: '用户状态',
       description: '用户状态字典',
       sort: 0,
+      status: CommonStatus.ENABLED,
     },
     {
       code: 'user_gender',
       name: '用户性别',
       description: '用户性别字典',
       sort: 1,
+      status: CommonStatus.ENABLED,
     },
     {
       code: 'role_status',
@@ -91,7 +94,7 @@ export async function seedDictionaries(prisma: PrismaClient) {
     const type = await prisma.dictionaryType.upsert({
       where: { code: typeData.code },
       update: {},
-      create: { ...typeData, status: 1 },
+      create: { ...typeData, status: CommonStatus.ENABLED },
     });
     createdTypes.push(type);
   }
@@ -102,26 +105,26 @@ export async function seedDictionaries(prisma: PrismaClient) {
     {
       typeCode: 'user_status',
       items: [
-        { value: '1', label: '启用', sort: 0 },
-        { value: '0', label: '禁用', sort: 1 },
-        { value: '2', label: '审核中', sort: 2 },
-        { value: '3', label: '封禁', sort: 3 },
+        { value: 'enabled', label: '启用', sort: 0 },
+        { value: 'disabled', label: '禁用', sort: 1 },
+        { value: 'pending', label: '审核中', sort: 2 },
+        { value: 'banned', label: '封禁', sort: 3 },
       ],
     },
     {
       typeCode: 'user_gender',
       items: [
-        { value: '0', label: '未知', sort: 0 },
-        { value: '1', label: '男', sort: 1 },
-        { value: '2', label: '女', sort: 2 },
-        { value: '3', label: '其他', sort: 3 },
+        { value: 'unknown', label: '未知', sort: 0 },
+        { value: 'male', label: '男', sort: 1 },
+        { value: 'female', label: '女', sort: 2 },
+        { value: 'other', label: '其他', sort: 3 },
       ],
     },
     {
       typeCode: 'role_status',
       items: [
-        { value: '1', label: '启用', sort: 0 },
-        { value: '0', label: '禁用', sort: 1 },
+        { value: 'enabled', label: '启用', sort: 0 },
+        { value: 'disabled', label: '禁用', sort: 1 },
       ],
     },
     {
@@ -137,15 +140,15 @@ export async function seedDictionaries(prisma: PrismaClient) {
     {
       typeCode: 'department_status',
       items: [
-        { value: '1', label: '启用', sort: 0 },
-        { value: '0', label: '禁用', sort: 1 },
+        { value: 'enabled', label: '启用', sort: 0 },
+        { value: 'disabled', label: '禁用', sort: 1 },
       ],
     },
     {
       typeCode: 'position_status',
       items: [
-        { value: '1', label: '启用', sort: 0 },
-        { value: '0', label: '禁用', sort: 1 },
+        { value: 'enabled', label: '启用', sort: 0 },
+        { value: 'disabled', label: '禁用', sort: 1 },
       ],
     },
     {
@@ -167,8 +170,8 @@ export async function seedDictionaries(prisma: PrismaClient) {
     {
       typeCode: 'login_status',
       items: [
-        { value: '1', label: '成功', sort: 0 },
-        { value: '0', label: '失败', sort: 1 },
+        { value: 'success', label: '成功', sort: 0 },
+        { value: 'failure', label: '失败', sort: 1 },
       ],
     },
     {
@@ -187,8 +190,8 @@ export async function seedDictionaries(prisma: PrismaClient) {
     {
       typeCode: 'operation_status',
       items: [
-        { value: '1', label: '成功', sort: 0 },
-        { value: '0', label: '失败', sort: 1 },
+        { value: 'success', label: '成功', sort: 0 },
+        { value: 'failure', label: '失败', sort: 1 },
       ],
     },
     {
@@ -206,11 +209,10 @@ export async function seedDictionaries(prisma: PrismaClient) {
     {
       typeCode: 'config_group',
       items: [
-        { value: 'system', label: '系统配置', sort: 0 },
-        { value: 'auth', label: '认证配置', sort: 1 },
-        { value: 'user', label: '用户配置', sort: 2 },
-        { value: 'notify', label: '通知配置', sort: 3 },
-        { value: 'other', label: '其他配置', sort: 4 },
+        { value: 'uiDefaults', label: 'UI 默认配置', sort: 0 },
+        { value: 'securityPolicy', label: '安全策略', sort: 1 },
+        { value: 'features', label: '功能开关', sort: 2 },
+        { value: 'user', label: '用户默认值', sort: 3 },
       ],
     },
   ];
@@ -221,7 +223,7 @@ export async function seedDictionaries(prisma: PrismaClient) {
     const type = createdTypes.find((t) => t.code === group.typeCode);
     if (!type) continue;
     for (const item of group.items) {
-      allItems.push({ ...item, typeCode: type.code, status: 1 });
+      allItems.push({ ...item, typeCode: type.code, status: CommonStatus.ENABLED });
     }
   }
 

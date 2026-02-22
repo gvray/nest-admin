@@ -3,6 +3,7 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+import { LogStatus } from '@/shared/constants/log-status.constant';
 import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreateLoginLogDto } from './dto/create-login-log.dto';
@@ -196,7 +197,7 @@ export class LoginLogsService extends BaseService {
         createdAt: {
           gte: startDate,
         },
-        status: 1,
+        status: LogStatus.SUCCESS,
       },
     });
 
@@ -206,7 +207,7 @@ export class LoginLogsService extends BaseService {
         createdAt: {
           gte: startDate,
         },
-        status: 0,
+        status: LogStatus.FAILURE,
       },
     });
 

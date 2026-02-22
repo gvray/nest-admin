@@ -1,7 +1,8 @@
 import { PrismaClient, Department, Position, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
-import { Gender } from '../../src/shared/constants/gender.constant';
 import { SUPER_ROLE_KEY } from '../../src/shared/constants/role.constant';
+import { Gender } from '../../src/shared/constants/gender.constant';
+import { UserStatus } from '../../src/shared/constants/user-status.constant';
 
 export async function seedUsers(
   prisma: PrismaClient,
@@ -18,7 +19,7 @@ export async function seedUsers(
     where: { email: 'super@example.com' },
     update: {
       phone: '13900139000',
-      status: 1, // 确保启用状态
+      status: UserStatus.ENABLED, // 确保启用状态
     },
     create: {
       email: 'super@example.com',
@@ -26,8 +27,8 @@ export async function seedUsers(
       nickname: '超级管理员',
       phone: '13900139000',
       password: hashedSuperPassword,
-      gender: Gender.OTHER, // 3-未知
-      status: 1, // 确保启用状态
+      gender: Gender.OTHER, // 其他
+      status: UserStatus.ENABLED, // 确保启用状态
       remark: '系统超级管理员，不可删除和禁用',
     },
   });
@@ -79,8 +80,8 @@ export async function seedUsers(
       nickname: '管理员',
       phone: '13800138000',
       password: hashedAdminPassword,
-      gender: Gender.MALE, // 1-男
-      status: 1 as const, // 启用状态
+      gender: Gender.MALE, // 男
+      status: UserStatus.ENABLED, // 启用状态
       departmentId: departments.itDepartment.departmentId,
     },
   });
@@ -142,140 +143,140 @@ export async function seedUsers(
         email: 'zhang.san@company.com',
         nickname: '张三',
         phone: '13800138001',
-        gender: Gender.MALE, // 1-男
+        gender: Gender.MALE, // 男
       },
       {
         username: 'li.si',
         email: 'li.si@company.com',
         nickname: '李四',
         phone: '13800138002',
-        gender: Gender.MALE, // 1-男
+        gender: Gender.MALE, // 男
       },
       {
         username: 'wang.wu',
         email: 'wang.wu@company.com',
         nickname: '王五',
         phone: '13800138003',
-        gender: Gender.MALE, // 1-男
+        gender: Gender.MALE, // 男
       },
       {
         username: 'zhao.liu',
         email: 'zhao.liu@company.com',
         nickname: '赵六',
         phone: '13800138004',
-        gender: Gender.MALE, // 1-男
+        gender: Gender.MALE, // 男
       },
       {
         username: 'sun.qi',
         email: 'sun.qi@company.com',
         nickname: '孙七',
         phone: '13800138005',
-        gender: Gender.MALE, // 1-男
+        gender: Gender.MALE, // 男
       },
       {
         username: 'zhou.ba',
         email: 'zhou.ba@company.com',
         nickname: '周八',
         phone: '13800138006',
-        gender: Gender.MALE, // 1-男
+        gender: Gender.MALE, // 男
       },
       {
         username: 'wu.jiu',
         email: 'wu.jiu@company.com',
         nickname: '吴九',
         phone: '13800138007',
-        gender: Gender.MALE, // 1-男
+        gender: Gender.MALE, // 男
       },
       {
         username: 'zheng.shi',
         email: 'zheng.shi@company.com',
         nickname: '郑十',
         phone: '13800138008',
-        gender: Gender.MALE, // 1-男
+        gender: Gender.MALE, // 男
       },
       {
         username: 'chen.ming',
         email: 'chen.ming@company.com',
         nickname: '陈明',
         phone: '13800138009',
-        gender: Gender.MALE, // 1-男
+        gender: Gender.MALE, // 男
       },
       {
         username: 'lin.hua',
         email: 'lin.hua@company.com',
         nickname: '林华',
         phone: '13800138010',
-        gender: Gender.FEMALE, // 2-女
+        gender: Gender.FEMALE, // 女
       },
       {
         username: 'huang.lei',
         email: 'huang.lei@company.com',
         nickname: '黄磊',
         phone: '13800138011',
-        gender: Gender.MALE, // 1-男
+        gender: Gender.MALE, // 男
       },
       {
         username: 'xu.fang',
         email: 'xu.fang@company.com',
         nickname: '徐芳',
         phone: '13800138012',
-        gender: Gender.FEMALE, // 2-女
+        gender: Gender.FEMALE, // 女
       },
       {
         username: 'zhu.gang',
         email: 'zhu.gang@company.com',
         nickname: '朱刚',
         phone: '13800138013',
-        gender: Gender.MALE, // 1-男
+        gender: Gender.MALE, // 男
       },
       {
         username: 'he.mei',
         email: 'he.mei@company.com',
         nickname: '何美',
         phone: '13800138014',
-        gender: Gender.FEMALE, // 2-女
+        gender: Gender.FEMALE, // 女
       },
       {
         username: 'gao.qiang',
         email: 'gao.qiang@company.com',
         nickname: '高强',
         phone: '13800138015',
-        gender: Gender.MALE, // 1-男
+        gender: Gender.MALE, // 男
       },
       {
         username: 'ma.jun',
         email: 'ma.jun@company.com',
         nickname: '马俊',
         phone: '13800138016',
-        gender: Gender.MALE, // 1-男
+        gender: Gender.MALE, // 男
       },
       {
         username: 'luo.yan',
         email: 'luo.yan@company.com',
         nickname: '罗燕',
         phone: '13800138017',
-        gender: Gender.FEMALE, // 2-女
+        gender: Gender.FEMALE, // 女
       },
       {
         username: 'liang.bo',
         email: 'liang.bo@company.com',
         nickname: '梁波',
         phone: '13800138018',
-        gender: Gender.MALE, // 1-男
+        gender: Gender.MALE, // 男
       },
       {
         username: 'song.jie',
         email: 'song.jie@company.com',
         nickname: '宋杰',
         phone: '13800138019',
-        gender: Gender.MALE, // 1-男
+        gender: Gender.MALE, // 男
       },
       {
         username: 'tang.yu',
         email: 'tang.yu@company.com',
         nickname: '唐宇',
         phone: '13800138020',
-        gender: Gender.MALE, // 1-男
+        gender: Gender.MALE, // 男
       },
     ];
 
@@ -300,7 +301,7 @@ export async function seedUsers(
           password: hashedPassword,
           avatar: '',
           remark: `测试用户 - ${userData.nickname}`,
-          status: 1 as const,
+          status: UserStatus.ENABLED,
           departmentId: departmentToUse.departmentId,
         },
       });

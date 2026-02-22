@@ -3,6 +3,7 @@ import {
   SUPER_ROLE_KEY,
   SUPER_ROLE_NAME,
 } from '../../src/shared/constants/role.constant';
+import { CommonStatus } from '../../src/shared/constants/common-status.constant';
 
 export async function seedRoles(prisma: PrismaClient) {
   console.log('开始创建角色...');
@@ -17,7 +18,7 @@ export async function seedRoles(prisma: PrismaClient) {
       description: '超级管理员角色，拥有所有权限，不允许删除、创建和修改',
       remark: '系统超级管理员角色，具有最高权限且受保护',
       sort: 0,
-      status: 1,
+      status: CommonStatus.ENABLED,
     },
   });
 
@@ -31,7 +32,7 @@ export async function seedRoles(prisma: PrismaClient) {
       description: '系统管理员角色，拥有所有权限',
       remark: '系统默认管理员角色，具有最高权限',
       sort: 1,
-      status: 1,
+      status: CommonStatus.ENABLED,
     },
   });
 
@@ -45,7 +46,7 @@ export async function seedRoles(prisma: PrismaClient) {
       description: '普通用户角色，拥有基础权限',
       remark: '系统默认普通用户角色，具有基础查看权限',
       sort: 10,
-      status: 1,
+      status: CommonStatus.ENABLED,
     },
   });
 
@@ -59,7 +60,7 @@ export async function seedRoles(prisma: PrismaClient) {
       description: '部门经理角色，拥有部门管理权限',
       remark: '部门经理角色，可以管理本部门用户和资源',
       sort: 5,
-      status: 1,
+      status: CommonStatus.ENABLED,
     },
   });
 

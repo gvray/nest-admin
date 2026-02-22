@@ -15,9 +15,9 @@ import { RolesGuard } from '@/core/guards/roles.guard';
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('jwt.secret'),
+        secret: configService.get<string>('jwt.secret') || 'default-secret-key',
         signOptions: {
-          expiresIn: configService.get<string>('jwt.expiresIn'),
+          expiresIn: (configService.get<string>('jwt.expiresIn') || '7d') as any,
         },
       }),
     }),
