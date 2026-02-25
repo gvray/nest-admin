@@ -363,6 +363,16 @@
     "code": "api:system:permission:view",
     "action": "view",
     "controller": "PermissionsController",
+    "method": "getParentList",
+    "httpMethod": "GET",
+    "route": "/system/permissions/parent-list",
+    "menuCode": "menu:system:permission",
+    "status": "created"
+  },
+  {
+    "code": "api:system:permission:view",
+    "action": "view",
+    "controller": "PermissionsController",
     "method": "getTree",
     "httpMethod": "GET",
     "route": "/system/permissions/tree",

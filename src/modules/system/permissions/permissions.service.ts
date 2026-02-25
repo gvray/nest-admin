@@ -8,6 +8,7 @@ import { PrismaService } from '@/prisma/prisma.service';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
 import { QueryPermissionDto } from './dto/query-permission.dto';
+import { PermissionTreeNodeDto } from './dto/permission-response.dto';
 import { PermissionResponseDto } from './dto/permission-response.dto';
 import { BaseService } from '@/shared/services/base.service';
 import { ROOT_PARENT_ID } from '@/shared/constants/root.constant';
@@ -18,6 +19,78 @@ import type { Permission as PermissionModel } from '@prisma/client';
 export class PermissionsService extends BaseService {
   constructor(prisma: PrismaService) {
     super(prisma);
+  }
+
+  /**
+   * 验证权限类型层级关系
+   * 规则：
+   * - DIRECTORY 下只能有 DIRECTORY 或 MENU
+   * - MENU 下只能有 BUTTON 或 API
+   * - BUTTON 和 API 不能有子权限
+   */
+  private async validatePermissionHierarchy(
+    type: string,
+    parentPermissionId?: string,
+  ): Promise<void> {
+    // API 权限不允许手动创建
+    if (type === 'API') {
+      throw new ConflictException('API 权限由系统自动生成，不能手动创建');
+    }
+
+    // 如果没有父权限，只能是 DIRECTORY
+    if (!parentPermissionId || parentPermissionId === ROOT_PARENT_ID) {
+      if (type !== 'DIRECTORY') {
+        throw new ConflictException('顶层权限只能是目录类型');
+      }
+      return;
+    }
+
+    // 查询父权限类型
+    const parent = await (this.prisma as any).permission.findUnique({
+      where: { permissionId: parentPermissionId },
+      select: { type: true, name: true },
+    });
+
+    if (!parent) {
+      throw new ConflictException('父权限不存在');
+    }
+
+    // 验证父子类型关系
+    const parentType = parent.type;
+    
+    if (parentType === 'DIRECTORY') {
+      // 目录下只能有目录或菜单
+      if (type !== 'DIRECTORY' && type !== 'MENU') {
+        throw new ConflictException(
+          `目录"${parent.name}"下只能添加目录或菜单，不能添加${this.getTypeLabel(type)}`,
+        );
+      }
+    } else if (parentType === 'MENU') {
+      // 菜单下只能有按钮或API
+      if (type !== 'BUTTON' && type !== 'API') {
+        throw new ConflictException(
+          `菜单"${parent.name}"下只能添加按钮或API，不能添加${this.getTypeLabel(type)}`,
+        );
+      }
+    } else {
+      // 按钮和API不能有子权限
+      throw new ConflictException(
+        `${this.getTypeLabel(parentType)}"${parent.name}"不能添加子权限`,
+      );
+    }
+  }
+
+  /**
+   * 获取权限类型的中文标签
+   */
+  private getTypeLabel(type: string): string {
+    const labels: Record<string, string> = {
+      DIRECTORY: '目录',
+      MENU: '菜单',
+      BUTTON: '按钮',
+      API: 'API',
+    };
+    return labels[type] || type;
   }
 
   async create(
@@ -43,42 +116,8 @@ export class PermissionsService extends BaseService {
       throw new ConflictException('权限代码已存在');
     }
 
-    // 业务校验：菜单则父为空，非菜单必须有父且父必须是菜单
-    if (type === 'API') {
-      throw new ConflictException('API 权限点由系统自动生成，不能手动创建');
-    }
-    if (type === 'DIRECTORY') {
-      if (parentPermissionId) {
-        const parent = await (this.prisma as any).permission.findUnique({
-          where: { permissionId: parentPermissionId },
-          select: { type: true } as any,
-        });
-        if (!parent || parent.type !== 'DIRECTORY') {
-          throw new ConflictException('目录的父节点必须是目录');
-        }
-      }
-    } else if (type === 'MENU') {
-      if (parentPermissionId) {
-        const parent = await (this.prisma as any).permission.findUnique({
-          where: { permissionId: parentPermissionId },
-          select: { type: true } as any,
-        });
-        if (!parent || parent.type !== 'DIRECTORY') {
-          throw new ConflictException('菜单的父节点必须是目录');
-        }
-      }
-    } else {
-      if (!parentPermissionId) {
-        throw new ConflictException('按钮权限必须指定父菜单');
-      }
-      const parent = await (this.prisma as any).permission.findUnique({
-        where: { permissionId: parentPermissionId },
-        select: { type: true } as any,
-      });
-      if (!parent || parent.type !== 'MENU') {
-        throw new ConflictException('按钮的父节点必须是菜单');
-      }
-    }
+    // 验证权限类型层级关系
+    await this.validatePermissionHierarchy(type, parentPermissionId);
 
     const finalAction = type === 'MENU' ? 'access' : action || 'view';
 
@@ -271,6 +310,15 @@ export class PermissionsService extends BaseService {
       newCode = code;
     }
 
+    // 如果修改了父权限，需要验证层级关系
+    const currentParentId = (permission as any).parentPermissionId;
+    if (parentPermissionId && parentPermissionId !== currentParentId) {
+      await this.validatePermissionHierarchy(
+        permission.type,
+        parentPermissionId,
+      );
+    }
+
     const finalParentId =
       parentPermissionId ??
       (permission as any).parentPermissionId ??
@@ -416,7 +464,9 @@ export class PermissionsService extends BaseService {
    * 获取权限树结构
    * @returns 按照资源层级组织的权限树
    */
-  async getPermissionTree(queryDto?: QueryPermissionDto): Promise<unknown> {
+  async getPermissionTree(
+    queryDto?: QueryPermissionDto,
+  ): Promise<PermissionTreeNodeDto[]> {
     const where: Record<string, unknown> = { deletedAt: null };
     if (queryDto?.name) where['name'] = { contains: queryDto.name };
     if (queryDto?.code) where['code'] = { contains: queryDto.code };
@@ -445,10 +495,12 @@ export class PermissionsService extends BaseService {
       name: string;
       code: string;
       type: string;
-      action?: string;
+      action: string;
+      origin: string;
+      parentPermissionId?: string;
       description?: string | null;
       createdAt: Date;
-      updatedAt?: Date;
+      updatedAt: Date;
       menuMeta?: {
         path?: string | null;
         icon?: string | null;
@@ -467,6 +519,8 @@ export class PermissionsService extends BaseService {
         code: p.code,
         type: p.type,
         action: p.action,
+        origin: p.origin,
+        parentPermissionId: p.parentPermissionId ?? undefined,
         description: p.description,
         createdAt: p.createdAt,
         updatedAt: p.updatedAt,
@@ -525,12 +579,38 @@ export class PermissionsService extends BaseService {
       });
     };
     sortChildren(roots);
-    return roots;
+    return plainToInstance(PermissionTreeNodeDto, roots, {
+      excludeExtraneousValues: true,
+    });
   }
 
   /**
    * 递归添加资源祖先ID
    */
+
+  /**
+   * 获取父权限列表（仅目录和菜单）
+   * @returns 扁平化的目录和菜单列表，用于父权限选择器
+   */
+  async getParentList(): Promise<PermissionResponseDto[]> {
+    const permissions = await (this.prisma as any).permission.findMany({
+      where: {
+        deletedAt: null,
+        type: { in: ['DIRECTORY', 'MENU'] },
+      },
+      include: {
+        menuMeta: {
+          select: { sort: true },
+        },
+      },
+      orderBy: [{ createdAt: 'asc' }],
+    });
+
+    const transformed = plainToInstance(PermissionResponseDto, permissions, {
+      excludeExtraneousValues: true,
+    });
+    return Array.isArray(transformed) ? transformed : [transformed];
+  }
 
   /**
    * 获取简化权限树结构（仅包含必要信息）

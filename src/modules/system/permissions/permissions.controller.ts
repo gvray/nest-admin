@@ -30,6 +30,10 @@ import { ResponseUtil } from '@/shared/utils/response.util';
 import { CurrentUser } from '@/core/decorators/current-user.decorator';
 import { IUser } from '@/core/interfaces/user.interface';
 import { BatchDeletePermissionsDto } from './dto/batch-delete-permissions.dto';
+import {
+  PermissionResponseDto,
+  PermissionTreeNodeDto,
+} from './dto/permission-response.dto';
 
 @ApiTags('权限管理')
 @Controller('system/permissions')
@@ -42,7 +46,7 @@ export class PermissionsController {
   @RequirePermissions('system:permission:create')
   @Audit('create')
   @ApiOperation({ summary: '创建权限' })
-  @ApiResponse({ status: 201, description: '创建成功' })
+  @ApiResponse({ status: 201, description: '创建成功', type: PermissionResponseDto })
   async create(
     @Body() createPermissionDto: CreatePermissionDto,
     @CurrentUser() user: IUser,
@@ -57,7 +61,7 @@ export class PermissionsController {
   @Get()
   @RequirePermissions('system:permission:view')
   @ApiOperation({ summary: '获取权限列表' })
-  @ApiResponse({ status: 200, description: '权限列表' })
+  @ApiResponse({ status: 200, description: '权限列表', type: [PermissionResponseDto] })
   async findAll(@Query() query: QueryPermissionDto) {
     const pageData = await this.permissionsService.findAll(query);
     return ResponseUtil.paginated(pageData, '权限列表');
@@ -66,10 +70,27 @@ export class PermissionsController {
   @Get('tree')
   @RequirePermissions('system:permission:view')
   @ApiOperation({ summary: '获取权限树结构' })
-  @ApiResponse({ status: 200, description: '权限树结构' })
+  @ApiResponse({
+    status: 200,
+    description: '权限树结构',
+    type: [PermissionTreeNodeDto],
+  })
   async getTree(@Query() queryDto: QueryPermissionDto) {
     const data = await this.permissionsService.getPermissionTree(queryDto);
     return ResponseUtil.found(data, '权限树结构');
+  }
+
+  @Get('parent-list')
+  @RequirePermissions('system:permission:view')
+  @ApiOperation({ summary: '获取父权限列表（仅目录和菜单）' })
+  @ApiResponse({
+    status: 200,
+    description: '父权限列表',
+    type: [PermissionResponseDto],
+  })
+  async getParentList() {
+    const data = await this.permissionsService.getParentList();
+    return ResponseUtil.found(data, '父权限列表');
   }
 
   @Get('tree/simple')
@@ -84,7 +105,7 @@ export class PermissionsController {
   @Get(':id')
   @RequirePermissions('system:permission:view')
   @ApiOperation({ summary: '获取指定权限' })
-  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 200, description: '获取成功', type: PermissionResponseDto })
   @ApiResponse({ status: 404, description: '权限不存在' })
   async findOne(@Param('id') id: string) {
     const data = await this.permissionsService.findOne(id);
@@ -95,7 +116,7 @@ export class PermissionsController {
   @RequirePermissions('system:permission:update')
   @Audit('update')
   @ApiOperation({ summary: '更新权限' })
-  @ApiResponse({ status: 200, description: '更新成功' })
+  @ApiResponse({ status: 200, description: '更新成功', type: PermissionResponseDto })
   @ApiResponse({ status: 404, description: '权限不存在' })
   async update(
     @Param('id') id: string,

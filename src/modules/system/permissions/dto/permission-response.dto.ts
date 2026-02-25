@@ -1,5 +1,27 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Exclude, Expose, Transform } from 'class-transformer';
+import { Exclude, Expose, Transform, Type } from 'class-transformer';
+
+export class MenuMetaDto {
+  @ApiPropertyOptional({ description: '菜单路径', example: '/system/users' })
+  @Expose()
+  path?: string | null;
+
+  @ApiPropertyOptional({ description: '菜单图标', example: 'UserOutlined' })
+  @Expose()
+  icon?: string | null;
+
+  @ApiProperty({ description: '是否隐藏', example: false })
+  @Expose()
+  hidden?: boolean;
+
+  @ApiPropertyOptional({ description: '组件路径', example: 'menu:system:user' })
+  @Expose()
+  component?: string | null;
+
+  @ApiProperty({ description: '排序权重', example: 1 })
+  @Expose()
+  sort?: number;
+}
 
 export class PermissionResponseDto {
   @Exclude()
@@ -41,6 +63,14 @@ export class PermissionResponseDto {
   @Transform(({ value }): string => value ?? '')
   description?: string;
 
+  @ApiPropertyOptional({
+    description: '菜单元数据（仅 DIRECTORY 和 MENU 类型有）',
+    type: MenuMetaDto,
+  })
+  @Expose()
+  @Type(() => MenuMetaDto)
+  menuMeta?: MenuMetaDto;
+
   @ApiProperty({ description: '创建时间' })
   @Expose()
   createdAt: Date;
@@ -48,4 +78,14 @@ export class PermissionResponseDto {
   @ApiProperty({ description: '更新时间' })
   @Expose()
   updatedAt: Date;
+}
+
+export class PermissionTreeNodeDto extends PermissionResponseDto {
+  @ApiPropertyOptional({
+    description: '子权限列表',
+    type: () => [PermissionTreeNodeDto],
+  })
+  @Expose()
+  @Type(() => PermissionTreeNodeDto)
+  children?: PermissionTreeNodeDto[];
 }

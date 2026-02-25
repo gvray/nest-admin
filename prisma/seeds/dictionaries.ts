@@ -51,40 +51,46 @@ export async function seedDictionaries(prisma: PrismaClient) {
       sort: 6,
     },
     {
+      code: 'permission_action',
+      name: '权限操作',
+      description: '权限操作类型字典',
+      sort: 7,
+    },
+    {
       code: 'menu_hidden',
       name: '菜单显示状态',
       description: '菜单隐藏/显示',
-      sort: 7,
+      sort: 8,
     },
     {
       code: 'login_status',
       name: '登录状态',
       description: '登录成功/失败',
-      sort: 8,
+      sort: 9,
     },
     {
       code: 'login_type',
       name: '登录类型',
       description: '登录方式类型',
-      sort: 9,
+      sort: 10,
     },
     {
       code: 'operation_status',
       name: '操作状态',
       description: '操作日志状态',
-      sort: 10,
+      sort: 11,
     },
     {
       code: 'operation_action',
       name: '操作类型',
       description: '操作日志动作类型',
-      sort: 11,
+      sort: 12,
     },
     {
       code: 'config_group',
       name: '配置分组',
       description: '系统配置分组',
-      sort: 12,
+      sort: 13,
     },
   ];
 
@@ -158,6 +164,18 @@ export async function seedDictionaries(prisma: PrismaClient) {
         { value: 'MENU', label: '菜单', sort: 1 },
         { value: 'BUTTON', label: '按钮', sort: 2 },
         { value: 'API', label: '接口', sort: 3 },
+      ],
+    },
+    {
+      typeCode: 'permission_action',
+      items: [
+        { value: 'access', label: '访问', sort: 0 },
+        { value: 'view', label: '查看', sort: 1 },
+        { value: 'create', label: '创建', sort: 2 },
+        { value: 'update', label: '更新', sort: 3 },
+        { value: 'delete', label: '删除', sort: 4 },
+        { value: 'export', label: '导出', sort: 5 },
+        { value: 'import', label: '导入', sort: 6 },
       ],
     },
     {

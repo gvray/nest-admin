@@ -66,13 +66,6 @@ export async function seedPermissions(prisma: PrismaClient) {
             },
             {
               type: 'BUTTON',
-              name: '维护用户',
-              code: 'system:user:manage',
-              action: 'manage',
-              description: '用户角色分配等管理操作',
-            },
-            {
-              type: 'BUTTON',
               name: '导入用户',
               code: 'system:user:import',
               action: 'import',
