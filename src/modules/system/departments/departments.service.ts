@@ -186,8 +186,13 @@ export class DepartmentsService extends BaseService {
       }
     }
 
-    // 如果更新父部门，检查父部门是否存在且不形成循环引用
-    if (updateDepartmentDto.parentId) {
+    // 处理父部门ID
+    let finalParentId: string | null;
+    if (updateDepartmentDto.parentId === null) {
+      // 设置为顶级部门
+      finalParentId = ROOT_PARENT_ID;
+    } else if (updateDepartmentDto.parentId) {
+      // 检查父部门是否存在
       const parentDepartment = await this.prisma.department.findUnique({
         where: { departmentId: updateDepartmentDto.parentId },
       });
@@ -204,11 +209,22 @@ export class DepartmentsService extends BaseService {
       if (isCircular) {
         throw new ConflictException('不能形成循环引用');
       }
+
+      finalParentId = updateDepartmentDto.parentId;
+    } else {
+      // 没有更新父部门，保持原值
+      finalParentId = existingDepartment.parentId;
     }
+
+    const updateData = { ...updateDepartmentDto };
+    delete updateData.parentId;
 
     const department = await this.prisma.department.update({
       where: { departmentId },
-      data: updateDepartmentDto,
+      data: {
+        ...updateData,
+        parentId: finalParentId,
+      },
       include: {
         parent: true,
         children: true,

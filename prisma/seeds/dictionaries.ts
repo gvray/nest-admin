@@ -92,6 +92,36 @@ export async function seedDictionaries(prisma: PrismaClient) {
       description: '系统配置分组',
       sort: 13,
     },
+    {
+      code: 'dictionary_status',
+      name: '字典状态',
+      description: '字典启用/禁用状态',
+      sort: 14,
+    },
+    {
+      code: 'config_status',
+      name: '配置状态',
+      description: '系统配置启用/禁用状态',
+      sort: 15,
+    },
+    {
+      code: 'common_status',
+      name: '通用状态',
+      description: '通用启用/禁用状态',
+      sort: 16,
+    },
+    {
+      code: 'common_enabled_status',
+      name: '通用启用状态',
+      description: '通用启用/禁用状态（仅两项）',
+      sort: 17,
+    },
+    {
+      code: 'config_type',
+      name: '配置类型',
+      description: '系统配置数据类型',
+      sort: 18,
+    },
   ];
 
   // 批量 upsert 字典类型
@@ -233,7 +263,50 @@ export async function seedDictionaries(prisma: PrismaClient) {
         { value: 'user', label: '用户默认值', sort: 3 },
       ],
     },
+    {
+      typeCode: 'dictionary_status',
+      items: [
+        { value: 'enabled', label: '启用', sort: 0 },
+        { value: 'disabled', label: '禁用', sort: 1 },
+      ],
+    },
+    {
+      typeCode: 'config_status',
+      items: [
+        { value: 'enabled', label: '启用', sort: 0 },
+        { value: 'disabled', label: '禁用', sort: 1 },
+      ],
+    },
+    {
+      typeCode: 'common_status',
+      items: [
+        { value: 'enabled', label: '启用', sort: 0 },
+        { value: 'disabled', label: '禁用', sort: 1 },
+        { value: 'pending', label: '待审核', sort: 2 },
+        { value: 'archived', label: '已归档', sort: 3 },
+      ],
+    },
+    {
+      typeCode: 'common_enabled_status',
+      items: [
+        { value: 'enabled', label: '启用', sort: 0 },
+        { value: 'disabled', label: '禁用', sort: 1 },
+      ],
+    },
+    {
+      typeCode: 'config_type',
+      items: [
+        { value: 'string', label: '字符串', sort: 0 },
+        { value: 'number', label: '数字', sort: 1 },
+        { value: 'boolean', label: '布尔值', sort: 2 },
+        { value: 'json', label: 'JSON对象', sort: 3 },
+      ],
+    },
   ];
+
+  // 先删除所有现有的字典项，然后重新创建以确保唯一性
+  console.log('🗑️ 清理现有字典项...');
+  await prisma.dictionaryItem.deleteMany({});
 
   // 批量准备字典项
   const allItems: any[] = [];
@@ -241,16 +314,23 @@ export async function seedDictionaries(prisma: PrismaClient) {
     const type = createdTypes.find((t) => t.code === group.typeCode);
     if (!type) continue;
     for (const item of group.items) {
-      allItems.push({ ...item, typeCode: type.code, status: CommonStatus.ENABLED });
+      allItems.push({
+        typeCode: type.code,
+        value: item.value,
+        label: item.label,
+        description: null,
+        sort: item.sort,
+        status: CommonStatus.ENABLED,
+        remark: null,
+      });
     }
   }
 
   // 批量插入字典项
   await prisma.dictionaryItem.createMany({
     data: allItems,
-    skipDuplicates: true, // 避免重复插入
   });
 
-  console.log(`✅ 完成字典项初始化，共 ${allItems.length} 条`);
-  console.log('✅ 全部系统字典数据创建完成（批量优化）');
+  console.log(`✅ 完成字典项初始化，共 ${allItems.length} 项`);
+  console.log('✅ 全部系统字典数据创建完成（确保唯一性）');
 }
