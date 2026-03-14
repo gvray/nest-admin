@@ -64,8 +64,22 @@ export async function seedRoles(prisma: PrismaClient) {
     },
   });
 
+  // 创建游客角色
+  const guestRole = await prisma.role.upsert({
+    where: { roleKey: 'guest' },
+    update: {},
+    create: {
+      name: '游客',
+      roleKey: 'guest',
+      description: '游客角色，可以查看所有菜单和按钮，但只能执行查看类API操作',
+      remark: '供访客浏览系统使用，拥有完整的界面访问权限但仅限查看数据',
+      sort: 99,
+      status: CommonStatus.ENABLED,
+    },
+  });
+
   console.log('角色创建完成');
 
   // 返回创建的角色
-  return { superRole: superAdminRole, adminRole, userRole, managerRole };
+  return { superRole: superAdminRole, adminRole, userRole, managerRole, guestRole };
 }

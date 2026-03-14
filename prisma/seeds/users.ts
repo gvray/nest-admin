@@ -8,7 +8,7 @@ export async function seedUsers(
   prisma: PrismaClient,
   departments: { itDepartment: Department; hrDepartment: Department },
   positions: { managerPosition: Position; hrPosition: Position },
-  roles: { superRole: Role; adminRole: Role; userRole: Role },
+  roles: { superRole: Role; adminRole: Role; userRole: Role; guestRole: Role },
 ) {
   console.log('开始创建用户...');
 
@@ -132,6 +132,66 @@ export async function seedUsers(
     update: { settings: adminSettings },
     create: { userId: adminUser.userId, settings: adminSettings },
   });
+
+  // 创建游客用户（生产和开发环境都创建）
+  console.log('创建游客用户...');
+  const hashedGuestPassword = await bcrypt.hash('guest123', 10);
+  const guestUser = await prisma.user.upsert({
+    where: { email: 'guest@example.com' },
+    update: {
+      phone: '13900139999',
+      status: UserStatus.ENABLED,
+    },
+    create: {
+      email: 'guest@example.com',
+      username: 'guest',
+      nickname: '游客',
+      phone: '13900139999',
+      password: hashedGuestPassword,
+      gender: Gender.UNKNOWN,
+      status: UserStatus.ENABLED,
+      description: '游客账号，可以查看所有界面但只能执行查看操作',
+    },
+  });
+
+  // 创建游客角色关联
+  await prisma.userRole.upsert({
+    where: {
+      userId_roleId: {
+        userId: guestUser.userId,
+        roleId: roles.guestRole.roleId,
+      },
+    },
+    update: {},
+    create: {
+      userId: guestUser.userId,
+      roleId: roles.guestRole.roleId,
+    },
+  });
+
+  // 创建游客用户设置
+  const guestSettings = {
+    theme: 'light',
+    language: 'zh-CN',
+    sidebarCollapsed: false,
+    pageSize: 20,
+    timezone: 'Asia/Shanghai',
+    showWatermark: true,
+    enableNotification: false,
+    colorScheme: 'default',
+  };
+
+  await prisma.userSettings.upsert({
+    where: { userId: guestUser.userId },
+    update: { settings: guestSettings },
+    create: { userId: guestUser.userId, settings: guestSettings },
+  });
+
+  console.log('✅ 游客用户创建成功');
+  console.log('📝 游客登录信息:');
+  console.log('   用户名: guest');
+  console.log('   邮箱: guest@example.com');
+  console.log('   密码: guest123');
 
   // 开发环境下创建测试用户
   if (process.env.NODE_ENV === 'development') {

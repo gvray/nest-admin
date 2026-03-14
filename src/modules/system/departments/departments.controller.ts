@@ -22,6 +22,7 @@ import { QueryDepartmentDto } from './dto/query-department.dto';
 import { DepartmentResponseDto } from './dto/department-response.dto';
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
 import { ResponseUtil } from '@/shared/utils/response.util';
+import { DEPARTMENT_PERMISSIONS } from '@/shared/constants/permissions.constant';
 import { BatchDeleteDepartmentsDto } from './dto/batch-delete-departments.dto';
 
 @ApiTags('部门管理')
@@ -31,7 +32,7 @@ export class DepartmentsController {
   constructor(private readonly departmentsService: DepartmentsService) {}
 
   @Post()
-  @RequirePermissions('system:department:create')
+  @RequirePermissions(DEPARTMENT_PERMISSIONS.CREATE)
   @ApiOperation({ summary: '创建部门' })
   @ApiResponse({
     status: 201,
@@ -44,7 +45,7 @@ export class DepartmentsController {
   }
 
   @Get()
-  @RequirePermissions('system:department:view')
+  @RequirePermissions(DEPARTMENT_PERMISSIONS.LIST)
   @ApiOperation({ summary: '获取部门列表' })
   @ApiResponse({
     status: 200,
@@ -56,7 +57,7 @@ export class DepartmentsController {
   }
 
   @Get('tree')
-  @RequirePermissions('system:department:view')
+  @RequirePermissions(DEPARTMENT_PERMISSIONS.LIST)
   @ApiOperation({ summary: '获取部门树形结构' })
   @ApiResponse({
     status: 200,
@@ -68,21 +69,21 @@ export class DepartmentsController {
     return ResponseUtil.found(data, '获取部门树形结构成功');
   }
 
-  @Get(':departmentId')
-  @RequirePermissions('system:department:view')
+  @Get(':id')
+  @RequirePermissions(DEPARTMENT_PERMISSIONS.VIEW)
   @ApiOperation({ summary: '获取部门详情' })
   @ApiResponse({
     status: 200,
     description: '获取部门详情成功',
     type: DepartmentResponseDto,
   })
-  async findOne(@Param('departmentId') departmentId: string) {
-    const data = await this.departmentsService.findOne(departmentId);
+  async findOne(@Param('id') id: string) {
+    const data = await this.departmentsService.findOne(id);
     return ResponseUtil.found(data, '获取部门详情成功');
   }
 
-  @Patch(':departmentId')
-  @RequirePermissions('system:department:update')
+  @Patch(':id')
+  @RequirePermissions(DEPARTMENT_PERMISSIONS.UPDATE)
   @ApiOperation({ summary: '更新部门' })
   @ApiResponse({
     status: 200,
@@ -90,30 +91,27 @@ export class DepartmentsController {
     type: DepartmentResponseDto,
   })
   async update(
-    @Param('departmentId') departmentId: string,
+    @Param('id') id: string,
     @Body() updateDepartmentDto: UpdateDepartmentDto,
   ) {
-    const data = await this.departmentsService.update(
-      departmentId,
-      updateDepartmentDto,
-    );
+    const data = await this.departmentsService.update(id, updateDepartmentDto);
     return ResponseUtil.updated(data, '部门更新成功');
   }
 
-  @Delete(':departmentId')
-  @RequirePermissions('system:department:delete')
+  @Delete(':id')
+  @RequirePermissions(DEPARTMENT_PERMISSIONS.DELETE)
   @ApiOperation({ summary: '删除部门' })
   @ApiResponse({
     status: 200,
     description: '部门删除成功',
   })
-  async remove(@Param('departmentId') departmentId: string) {
-    await this.departmentsService.remove(departmentId);
+  async remove(@Param('id') id: string) {
+    await this.departmentsService.remove(id);
     return ResponseUtil.deleted(null, '部门删除成功');
   }
 
   @Post('batch-delete')
-  @RequirePermissions('system:department:delete')
+  @RequirePermissions(DEPARTMENT_PERMISSIONS.DELETE)
   @ApiOperation({ summary: '批量删除部门' })
   @ApiBody({ type: BatchDeleteDepartmentsDto })
   async batchDelete(@Body() dto: BatchDeleteDepartmentsDto) {

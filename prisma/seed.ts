@@ -7,6 +7,7 @@ import { seedRolePermissions } from './seeds/role-permissions';
 import { seedUsers } from './seeds/users';
 import { seedDictionaries } from './seeds/dictionaries';
 import { seedConfigs } from './seeds/configs';
+import { seedGuestPermissions } from './seeds/guest-permissions';
 
 const prisma = new PrismaClient();
 
@@ -16,26 +17,27 @@ async function main() {
   // 1. 初始化权限（包含菜单权限与动作权限）
   await seedPermissions(prisma);
 
-  // 2. 初始化权限
-
-  // 3. 创建部门
+  // 2. 创建部门
   const { itDepartment, hrDepartment } = await seedDepartments(prisma);
 
-  // 4. 创建岗位
+  // 3. 创建岗位
   const { managerPosition, hrPosition } = await seedPositions(prisma);
 
-  // 5. 创建角色
-  const { superRole, adminRole, userRole } = await seedRoles(prisma);
+  // 4. 创建角色
+  const { superRole, adminRole, userRole, guestRole } = await seedRoles(prisma);
 
-  // 6. 创建角色权限关联
+  // 5. 创建角色权限关联（超级管理员和管理员）
   await seedRolePermissions(prisma);
+
+  // 6. 创建游客角色权限（所有菜单/按钮，仅查看类API）
+  await seedGuestPermissions(prisma, guestRole);
 
   // 7. 创建用户
   const { superUser, adminUser } = await seedUsers(
     prisma,
     { itDepartment, hrDepartment },
     { managerPosition, hrPosition },
-    { superRole, adminRole, userRole },
+    { superRole, adminRole, userRole, guestRole },
   );
 
   // 8. 创建字典数据

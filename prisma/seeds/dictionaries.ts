@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { CommonStatus } from '../../src/shared/constants/common-status.constant';
+import { PERMISSION_ACTIONS } from '../../src/shared/constants/permissions.constant';
 
 export async function seedDictionaries(prisma: PrismaClient) {
   console.log('🌐 开始创建完整字典数据（批量插入优化）...');
@@ -200,12 +201,22 @@ export async function seedDictionaries(prisma: PrismaClient) {
       typeCode: 'permission_action',
       items: [
         { value: 'access', label: '访问', sort: 0 },
-        { value: 'view', label: '查看', sort: 1 },
-        { value: 'create', label: '创建', sort: 2 },
-        { value: 'update', label: '更新', sort: 3 },
-        { value: 'delete', label: '删除', sort: 4 },
-        { value: 'export', label: '导出', sort: 5 },
-        { value: 'import', label: '导入', sort: 6 },
+        { value: PERMISSION_ACTIONS.LIST, label: '列表', sort: 1 },
+        { value: PERMISSION_ACTIONS.VIEW, label: '查看', sort: 2 },
+        { value: PERMISSION_ACTIONS.CREATE, label: '创建', sort: 3 },
+        { value: PERMISSION_ACTIONS.UPDATE, label: '更新', sort: 4 },
+        { value: PERMISSION_ACTIONS.DELETE, label: '删除', sort: 5 },
+        { value: PERMISSION_ACTIONS.IMPORT, label: '导入', sort: 6 },
+        { value: PERMISSION_ACTIONS.EXPORT, label: '导出', sort: 7 },
+        { value: PERMISSION_ACTIONS.ASSIGN, label: '分配', sort: 8 },
+        { value: PERMISSION_ACTIONS.REMOVE, label: '移除', sort: 9 },
+        { value: PERMISSION_ACTIONS.ENABLE, label: '启用', sort: 10 },
+        { value: PERMISSION_ACTIONS.DISABLE, label: '禁用', sort: 11 },
+        { value: PERMISSION_ACTIONS.RESET, label: '重置', sort: 12 },
+        { value: PERMISSION_ACTIONS.PUBLISH, label: '发布', sort: 13 },
+        { value: PERMISSION_ACTIONS.UNPUBLISH, label: '取消发布', sort: 14 },
+        { value: PERMISSION_ACTIONS.APPROVE, label: '审批通过', sort: 15 },
+        { value: PERMISSION_ACTIONS.REJECT, label: '审批拒绝', sort: 16 },
       ],
     },
     {

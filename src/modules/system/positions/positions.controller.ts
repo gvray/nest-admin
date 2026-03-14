@@ -31,6 +31,7 @@ import { ResponseUtil } from '@/shared/utils/response.util';
 import { BatchDeletePositionsDto } from './dto/batch-delete-positions.dto';
 import { CurrentUser } from '@/core/decorators/current-user.decorator';
 import { IUser } from '@/core/interfaces/user.interface';
+import { POSITION_PERMISSIONS } from '@/shared/constants/permissions.constant';
 
 @ApiTags('岗位管理')
 @Controller('system/positions')
@@ -40,7 +41,7 @@ export class PositionsController {
   constructor(private readonly positionsService: PositionsService) {}
 
   @Post()
-  @RequirePermissions('system:position:create')
+  @RequirePermissions(POSITION_PERMISSIONS.CREATE)
   @Audit('create')
   @ApiOperation({ summary: '创建岗位' })
   @ApiResponse({
@@ -61,7 +62,7 @@ export class PositionsController {
   }
 
   @Get()
-  @RequirePermissions('system:position:view')
+  @RequirePermissions(POSITION_PERMISSIONS.LIST)
   @ApiOperation({ summary: '获取岗位列表' })
   @ApiResponse({
     status: 200,
@@ -73,7 +74,7 @@ export class PositionsController {
   }
 
   @Get(':id')
-  @RequirePermissions('system:position:view')
+  @RequirePermissions(POSITION_PERMISSIONS.VIEW)
   @ApiOperation({ summary: '获取岗位详情' })
   @ApiResponse({
     status: 200,
@@ -86,7 +87,7 @@ export class PositionsController {
   }
 
   @Patch(':id')
-  @RequirePermissions('system:position:update')
+  @RequirePermissions(POSITION_PERMISSIONS.UPDATE)
   @Audit('update')
   @ApiOperation({ summary: '更新岗位' })
   @ApiResponse({
@@ -109,7 +110,7 @@ export class PositionsController {
   }
 
   @Delete(':id')
-  @RequirePermissions('system:position:delete')
+  @RequirePermissions(POSITION_PERMISSIONS.DELETE)
   @Audit('delete')
   @ApiOperation({ summary: '删除岗位' })
   @ApiResponse({
@@ -122,7 +123,7 @@ export class PositionsController {
   }
 
   @Post('batch-delete')
-  @RequirePermissions('system:position:delete')
+  @RequirePermissions(POSITION_PERMISSIONS.DELETE)
   @Audit('delete')
   @ApiOperation({ summary: '批量删除岗位' })
   @ApiBody({ type: BatchDeletePositionsDto })

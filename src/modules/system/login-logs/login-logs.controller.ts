@@ -23,6 +23,7 @@ import { RolesGuard } from '@/core/guards/roles.guard';
 import { PermissionsGuard } from '@/core/guards/permissions.guard';
 import { RequirePermissions } from '@/core/decorators/permissions.decorator';
 import { ResponseUtil } from '@/shared/utils/response.util';
+import { LOGIN_LOG_PERMISSIONS } from '@/shared/constants/permissions.constant';
 import { BatchDeleteLoginLogsDto } from './dto/batch-delete-login-logs.dto';
 import { CleanLoginLogsDto } from './dto/clean-login-logs.dto';
 
@@ -34,7 +35,7 @@ export class LoginLogsController {
   constructor(private readonly loginLogsService: LoginLogsService) {}
 
   @Get()
-  @RequirePermissions('system:loginlog:view')
+  @RequirePermissions(LOGIN_LOG_PERMISSIONS.VIEW)
   @ApiOperation({ summary: '获取登录日志列表' })
   @ApiResponse({
     status: 200,
@@ -47,7 +48,7 @@ export class LoginLogsController {
   }
 
   @Get('stats')
-  @RequirePermissions('system:loginlog:view')
+  @RequirePermissions(LOGIN_LOG_PERMISSIONS.VIEW)
   @ApiOperation({ summary: '获取登录统计信息' })
   @ApiResponse({
     status: 200,
@@ -59,7 +60,7 @@ export class LoginLogsController {
   }
 
   @Delete('clear')
-  @RequirePermissions('system:loginlog:delete')
+  @RequirePermissions(LOGIN_LOG_PERMISSIONS.DELETE)
   @ApiOperation({ summary: '清空所有登录日志' })
   @ApiResponse({ status: 200, description: '清理成功' })
   async clear() {
@@ -68,7 +69,7 @@ export class LoginLogsController {
   }
 
   @Get(':id')
-  @RequirePermissions('system:loginlog:view')
+  @RequirePermissions(LOGIN_LOG_PERMISSIONS.VIEW)
   @ApiOperation({ summary: '获取指定登录日志' })
   @ApiResponse({
     status: 200,
@@ -82,7 +83,7 @@ export class LoginLogsController {
   }
 
   @Delete(':id')
-  @RequirePermissions('system:loginlog:delete')
+  @RequirePermissions(LOGIN_LOG_PERMISSIONS.DELETE)
   @ApiOperation({ summary: '删除登录日志' })
   @ApiResponse({ status: 200, description: '删除成功' })
   @ApiResponse({ status: 404, description: '登录日志不存在' })
@@ -92,7 +93,7 @@ export class LoginLogsController {
   }
 
   @Post('batch-delete')
-  @RequirePermissions('system:loginlog:delete')
+  @RequirePermissions(LOGIN_LOG_PERMISSIONS.DELETE)
   @ApiOperation({ summary: '批量删除登录日志' })
   @ApiResponse({ status: 200, description: '删除成功' })
   @ApiBody({ type: BatchDeleteLoginLogsDto })
@@ -102,7 +103,7 @@ export class LoginLogsController {
   }
 
   @Post('clean')
-  @RequirePermissions('system:loginlog:delete')
+  @RequirePermissions(LOGIN_LOG_PERMISSIONS.DELETE)
   @ApiOperation({ summary: '清理指定天数之前的登录日志' })
   @ApiResponse({ status: 200, description: '清理成功' })
   @ApiBody({ type: CleanLoginLogsDto })

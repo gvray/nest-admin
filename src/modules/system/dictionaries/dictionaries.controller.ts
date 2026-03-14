@@ -35,6 +35,7 @@ import { IUser } from '@/core/interfaces/user.interface';
 import { ResponseUtil } from '@/shared/utils/response.util';
 import { BatchDeleteDictionaryTypesDto } from './dto/batch-delete-dictionary-types.dto';
 import { BatchDeleteDictionaryItemsDto } from './dto/batch-delete-dictionary-items.dto';
+import { DICTIONARY_PERMISSIONS } from '@/shared/constants/permissions.constant';
 
 @ApiTags('字典管理')
 @Controller('system/dictionaries')
@@ -45,7 +46,7 @@ export class DictionariesController {
 
   // 字典类型相关接口
   @Post('types')
-  @RequirePermissions('system:dictionary:create')
+  @RequirePermissions(DICTIONARY_PERMISSIONS.CREATE)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '创建字典类型' })
   @ApiResponse({
@@ -67,7 +68,7 @@ export class DictionariesController {
   }
 
   @Get('types')
-  @RequirePermissions('system:dictionary:view')
+  @RequirePermissions(DICTIONARY_PERMISSIONS.VIEW)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '获取字典类型列表' })
   @ApiResponse({
@@ -83,7 +84,7 @@ export class DictionariesController {
     return ResponseUtil.paginated(pageData, '字典类型列表');
   }
   @Get('types/batch')
-  @RequirePermissions('system:dictionary:view')
+  @RequirePermissions(DICTIONARY_PERMISSIONS.VIEW)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '根据多个字典类型编码获取字典项列表' })
   @ApiResponse({
@@ -113,7 +114,7 @@ export class DictionariesController {
   }
 
   @Get('types/:typeId')
-  @RequirePermissions('system:dictionary:view')
+  @RequirePermissions(DICTIONARY_PERMISSIONS.VIEW)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '获取指定字典类型（通过TypeId）' })
   @ApiResponse({
@@ -128,7 +129,7 @@ export class DictionariesController {
   }
 
   @Patch('types/:typeId')
-  @RequirePermissions('system:dictionary:update')
+  @RequirePermissions(DICTIONARY_PERMISSIONS.UPDATE)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '更新字典类型（通过TypeId）' })
   @ApiResponse({
@@ -151,7 +152,7 @@ export class DictionariesController {
   }
 
   @Delete('types/:typeId')
-  @RequirePermissions('system:dictionary:delete')
+  @RequirePermissions(DICTIONARY_PERMISSIONS.DELETE)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '删除字典类型（通过TypeId）' })
   @ApiResponse({ status: 200, description: '删除成功' })
@@ -162,7 +163,7 @@ export class DictionariesController {
   }
 
   @Post('types/batch-delete')
-  @RequirePermissions('system:dictionary:delete')
+  @RequirePermissions(DICTIONARY_PERMISSIONS.DELETE)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '批量删除字典类型' })
   @ApiBody({ type: BatchDeleteDictionaryTypesDto })
@@ -173,7 +174,7 @@ export class DictionariesController {
 
   // 字典项相关接口
   @Post('items')
-  @RequirePermissions('system:dictionary:create')
+  @RequirePermissions(DICTIONARY_PERMISSIONS.CREATE)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '创建字典项' })
   @ApiResponse({
@@ -195,7 +196,7 @@ export class DictionariesController {
   }
 
   @Get('items')
-  @RequirePermissions('system:dictionary:view')
+  @RequirePermissions(DICTIONARY_PERMISSIONS.VIEW)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '获取字典项列表' })
   @ApiResponse({
@@ -210,7 +211,7 @@ export class DictionariesController {
   }
 
   @Get('items/:itemId')
-  @RequirePermissions('system:dictionary:view')
+  @RequirePermissions(DICTIONARY_PERMISSIONS.VIEW)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '获取指定字典项（通过ItemId）' })
   @ApiResponse({
@@ -225,7 +226,7 @@ export class DictionariesController {
   }
 
   @Patch('items/:itemId')
-  @RequirePermissions('system:dictionary:update')
+  @RequirePermissions(DICTIONARY_PERMISSIONS.UPDATE)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '更新字典项（通过ItemId）' })
   @ApiResponse({
@@ -248,7 +249,7 @@ export class DictionariesController {
   }
 
   @Delete('items/:itemId')
-  @RequirePermissions('system:dictionary:delete')
+  @RequirePermissions(DICTIONARY_PERMISSIONS.DELETE)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '删除字典项（通过ItemId）' })
   @ApiResponse({ status: 200, description: '删除成功' })
@@ -260,7 +261,7 @@ export class DictionariesController {
 
   // 根据字典类型编码获取字典项列表
   @Get('items/type/:typeCode')
-  @RequirePermissions('system:dictionary:view')
+  @RequirePermissions(DICTIONARY_PERMISSIONS.VIEW)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '根据字典类型编码获取字典项列表' })
   @ApiResponse({
@@ -276,7 +277,7 @@ export class DictionariesController {
   }
 
   @Post('items/batch-delete')
-  @RequirePermissions('system:dictionary:delete')
+  @RequirePermissions(DICTIONARY_PERMISSIONS.DELETE)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '批量删除字典项' })
   @ApiBody({ type: BatchDeleteDictionaryItemsDto })

@@ -30,6 +30,7 @@ import { CurrentUser } from '@/core/decorators/current-user.decorator';
 import { IUser } from '@/core/interfaces/user.interface';
 import { ResponseUtil } from '@/shared/utils/response.util';
 import { BatchDeleteConfigsDto } from './dto/batch-delete-configs.dto';
+import { CONFIG_PERMISSIONS } from '@/shared/constants/permissions.constant';
 
 @ApiTags('配置管理')
 @Controller('system/configs')
@@ -39,7 +40,7 @@ export class ConfigsController {
   constructor(private readonly configsService: ConfigsService) {}
 
   @Post()
-  @RequirePermissions('system:config:create')
+  @RequirePermissions(CONFIG_PERMISSIONS.CREATE)
   @ApiOperation({ summary: '创建配置' })
   @ApiResponse({
     status: 201,
@@ -51,7 +52,7 @@ export class ConfigsController {
   }
 
   @Get()
-  @RequirePermissions('system:config:view')
+  @RequirePermissions(CONFIG_PERMISSIONS.VIEW)
   @ApiOperation({ summary: '获取配置列表' })
   @ApiResponse({
     status: 200,
@@ -64,7 +65,7 @@ export class ConfigsController {
   }
 
   @Get('key/:key')
-  @RequirePermissions('system:config:view')
+  @RequirePermissions(CONFIG_PERMISSIONS.VIEW)
   @ApiOperation({ summary: '根据配置键获取配置' })
   @ApiResponse({
     status: 200,
@@ -77,7 +78,7 @@ export class ConfigsController {
   }
 
   @Get('group/:group')
-  @RequirePermissions('system:config:view')
+  @RequirePermissions(CONFIG_PERMISSIONS.VIEW)
   @ApiOperation({ summary: '根据分组获取配置列表' })
   @ApiResponse({
     status: 200,
@@ -90,7 +91,7 @@ export class ConfigsController {
   }
 
   @Get('batch')
-  @RequirePermissions('system:config:view')
+  @RequirePermissions(CONFIG_PERMISSIONS.VIEW)
   @ApiOperation({ summary: '根据多个配置键获取配置' })
   @ApiResponse({
     status: 200,
@@ -107,7 +108,7 @@ export class ConfigsController {
   }
 
   @Get(':configId')
-  @RequirePermissions('system:config:view')
+  @RequirePermissions(CONFIG_PERMISSIONS.VIEW)
   @ApiOperation({ summary: '根据ID获取配置详情' })
   @ApiResponse({
     status: 200,
@@ -120,7 +121,7 @@ export class ConfigsController {
   }
 
   @Patch(':configId')
-  @RequirePermissions('system:config:update')
+  @RequirePermissions(CONFIG_PERMISSIONS.UPDATE)
   @ApiOperation({ summary: '更新配置' })
   @ApiResponse({
     status: 200,
@@ -141,7 +142,7 @@ export class ConfigsController {
   }
 
   @Delete(':configId')
-  @RequirePermissions('system:config:delete')
+  @RequirePermissions(CONFIG_PERMISSIONS.DELETE)
   @ApiOperation({ summary: '删除配置' })
   @ApiResponse({
     status: 200,
@@ -153,7 +154,7 @@ export class ConfigsController {
   }
 
   @Post('batch-delete')
-  @RequirePermissions('system:config:delete')
+  @RequirePermissions(CONFIG_PERMISSIONS.DELETE)
   @ApiOperation({ summary: '批量删除配置' })
   @ApiBody({ type: BatchDeleteConfigsDto })
   async batchDelete(@Body() dto: BatchDeleteConfigsDto) {

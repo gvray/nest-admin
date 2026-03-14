@@ -21,6 +21,7 @@ import {
 import { RolesService } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
+import { ROLE_PERMISSIONS } from '@/shared/constants/permissions.constant';
 import { AssignPermissionsDto } from './dto/assign-permissions.dto';
 import { AssignUsersDto } from './dto/assign-users.dto';
 import { QueryRoleDto } from './dto/query-role.dto';
@@ -46,7 +47,7 @@ export class RolesController {
   constructor(private readonly rolesService: RolesService) {}
 
   @Post()
-  @RequirePermissions('system:role:create')
+  @RequirePermissions(ROLE_PERMISSIONS.CREATE)
   @Audit('create')
   @ApiOperation({ summary: '创建角色' })
   @ApiResponse({ status: 201, description: '创建成功' })
@@ -59,7 +60,7 @@ export class RolesController {
   }
 
   @Get()
-  @RequirePermissions('system:role:view')
+  @RequirePermissions(ROLE_PERMISSIONS.LIST)
   @ApiOperation({ summary: '获取角色列表' })
   @ApiResponse({ status: 200, description: '获取成功' })
   async findAll(@Query() query: QueryRoleDto) {
@@ -68,7 +69,7 @@ export class RolesController {
   }
 
   @Get(':id')
-  @RequirePermissions('system:role:view')
+  @RequirePermissions(ROLE_PERMISSIONS.VIEW)
   @ApiOperation({ summary: '获取指定角色' })
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 404, description: '角色不存在' })
@@ -78,7 +79,7 @@ export class RolesController {
   }
 
   @Patch(':id')
-  @RequirePermissions('system:role:update')
+  @RequirePermissions(ROLE_PERMISSIONS.UPDATE)
   @Audit('update')
   @ApiOperation({ summary: '更新角色' })
   @ApiResponse({ status: 200, description: '更新成功' })
@@ -93,7 +94,7 @@ export class RolesController {
   }
 
   @Delete(':id')
-  @RequirePermissions('system:role:delete')
+  @RequirePermissions(ROLE_PERMISSIONS.DELETE)
   @ApiOperation({ summary: '删除角色' })
   @ApiResponse({ status: 200, description: '删除成功' })
   @ApiResponse({ status: 404, description: '角色不存在' })
@@ -103,7 +104,7 @@ export class RolesController {
   }
 
   @Put(':id/permissions')
-  @RequirePermissions('system:role:update')
+  @RequirePermissions(ROLE_PERMISSIONS.ASSIGN_PERMISSIONS)
   @ApiOperation({ summary: '为角色分配权限（替换所有权限）' })
   @ApiResponse({ status: 200, description: '分配成功' })
   @ApiResponse({ status: 404, description: '角色不存在' })
@@ -119,7 +120,7 @@ export class RolesController {
   }
 
   @Delete(':id/permissions')
-  @RequirePermissions('system:role:update')
+  @RequirePermissions(ROLE_PERMISSIONS.REMOVE_PERMISSIONS)
   @ApiOperation({ summary: '移除角色的权限' })
   @ApiResponse({ status: 200, description: '移除成功' })
   @ApiResponse({ status: 404, description: '角色不存在' })
@@ -135,7 +136,7 @@ export class RolesController {
   }
 
   @Put(':id/users')
-  @RequirePermissions('system:role:update')
+  @RequirePermissions(ROLE_PERMISSIONS.UPDATE)
   @ApiOperation({ summary: '为角色分配用户（替换所有用户）' })
   @ApiResponse({
     status: 200,
@@ -157,7 +158,7 @@ export class RolesController {
   }
 
   @Delete(':id/users')
-  @RequirePermissions('system:role:update')
+  @RequirePermissions(ROLE_PERMISSIONS.UPDATE)
   @ApiOperation({ summary: '移除角色用户' })
   @ApiResponse({
     status: 200,
@@ -179,7 +180,7 @@ export class RolesController {
   }
 
   @Put(':id/data-scope')
-  @RequirePermissions('system:role:update')
+  @RequirePermissions(ROLE_PERMISSIONS.UPDATE)
   @Audit('update')
   @ApiOperation({ summary: '为角色分配数据权限' })
   @ApiResponse({ status: 200, description: '数据权限分配成功' })
@@ -199,7 +200,7 @@ export class RolesController {
   }
 
   @Get(':id/data-scope')
-  @RequirePermissions('system:role:view')
+  @RequirePermissions(ROLE_PERMISSIONS.VIEW)
   @ApiOperation({ summary: '获取角色的数据权限' })
   @ApiResponse({ status: 200, description: '获取成功' })
   @ApiResponse({ status: 404, description: '角色不存在' })
@@ -209,7 +210,7 @@ export class RolesController {
   }
 
   @Post('batch-delete')
-  @RequirePermissions('system:role:delete')
+  @RequirePermissions(ROLE_PERMISSIONS.DELETE)
   @Audit('delete')
   @ApiOperation({ summary: '批量删除角色' })
   @ApiBody({ type: BatchDeleteRolesDto })
