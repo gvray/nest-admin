@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { LogStatus } from '@/shared/constants/log-status.constant';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { UsersService } from '@/modules/system/users/users.service';
 import { LoginLogsService } from '@/modules/system/login-logs/login-logs.service';
 import { LoginDto } from './dto/login.dto';
@@ -15,6 +16,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { UserStatus } from '../../shared/constants/user-status.constant';
 import { SUPER_ROLE_KEY } from '../../shared/constants/role.constant';
 import { UAParser } from 'ua-parser-js';
+import * as crypto from 'crypto';
 
 interface RequestWithHeaders {
   headers?: Record<string, string | string[]>;
@@ -28,13 +30,21 @@ export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
     private readonly loginLogsService: LoginLogsService,
   ) {}
 
   async register(
     registerDto: RegisterDto,
-  ): Promise<{ access_token: string; user: unknown }> {
+  ): Promise<{
+    access_token: string;
+    refresh_token: string;
+    access_token_expires_in: number;
+    refresh_token_expires_in: number;
+    expires_at: number;
+    user: unknown;
+  }> {
     const { email, username, nickname, password } = registerDto;
 
     if (email) {
@@ -85,12 +95,29 @@ export class AuthService {
       username: user.username,
     };
 
+    // 生成 access token 和 refresh token
+    const accessToken = this.generateAccessToken(payload);
+    const refreshToken = await this.generateRefreshToken(user.userId);
+
     // 移除密码字段
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _, ...userWithoutPassword } = user;
 
+    // 计算过期时间戳
+    const accessTokenExpiresIn = this.parseExpiresIn(
+      this.configService.get<string>('jwt.accessTokenExpiresIn') || '2h',
+    );
+    const refreshTokenExpiresIn = this.parseExpiresIn(
+      this.configService.get<string>('jwt.refreshTokenExpiresIn') || '7d',
+    );
+    const now = Date.now();
+
     const result = {
-      access_token: this.jwtService.sign(payload),
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      access_token_expires_in: accessTokenExpiresIn,
+      refresh_token_expires_in: refreshTokenExpiresIn,
+      expires_at: now + accessTokenExpiresIn * 1000,
       user: userWithoutPassword,
     };
 
@@ -98,7 +125,6 @@ export class AuthService {
   }
 
   async validateUser(account: string, password: string) {
-    console.log('validateUser called with account:', account);
     try {
       // 直接从数据库查询用户，包含密码字段
       const user = await this.prisma.user.findFirst({
@@ -112,34 +138,14 @@ export class AuthService {
         },
       });
 
-      console.log('Query result:', user);
-
-      console.log(
-        'Found user:',
-        user
-          ? {
-              userId: user.userId,
-              username: user.username,
-              status: user.status,
-            }
-          : 'null',
-      );
-
       if (user) {
-        console.log('User password hash:', user.password);
         const passwordMatch = await bcrypt.compare(password, user.password);
-        console.log('Password match:', passwordMatch);
 
         if (passwordMatch) {
-          console.log('Password validation successful');
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { password: _, ...result } = user;
           return result;
-        } else {
-          console.log('Password validation failed');
         }
-      } else {
-        console.log('No user found');
       }
     } catch (error) {
       console.error('Error in validateUser:', error);
@@ -150,7 +156,13 @@ export class AuthService {
   async login(
     loginDto: LoginDto,
     req?: RequestWithHeaders,
-  ): Promise<{ access_token: string }> {
+  ): Promise<{
+    access_token: string;
+    refresh_token: string;
+    access_token_expires_in: number;
+    refresh_token_expires_in: number;
+    expires_at: number;
+  }> {
     const ipAddress = this.getClientIp(req);
     const userAgent: string = (req?.headers?.['user-agent'] as string) || '';
 
@@ -172,8 +184,29 @@ export class AuthService {
         username: user.username,
       };
 
+      // 生成 access token 和 refresh token
+      const accessToken = this.generateAccessToken(payload);
+      const refreshToken = await this.generateRefreshToken(
+        user.userId,
+        ipAddress,
+        userAgent,
+      );
+
+      // 计算过期时间戳
+      const accessTokenExpiresIn = this.parseExpiresIn(
+        this.configService.get<string>('jwt.accessTokenExpiresIn') || '2h',
+      );
+      const refreshTokenExpiresIn = this.parseExpiresIn(
+        this.configService.get<string>('jwt.refreshTokenExpiresIn') || '7d',
+      );
+      const now = Date.now();
+
       const result = {
-        access_token: this.jwtService.sign(payload),
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        access_token_expires_in: accessTokenExpiresIn,
+        refresh_token_expires_in: refreshTokenExpiresIn,
+        expires_at: now + accessTokenExpiresIn * 1000,
       };
 
       // 记录登录日志
@@ -304,10 +337,20 @@ export class AuthService {
     return userResponse;
   }
 
-  logout(): void {
-    // 在无状态JWT系统中，logout主要是客户端删除token
-    // 这里返回成功响应，实际的token失效由客户端处理
-    return;
+  async logout(userId: string): Promise<void> {
+    // 撤销该用户的所有 refresh token
+    await this.prisma.refreshToken.updateMany({
+      where: {
+        userId,
+        isRevoked: false,
+      },
+      data: {
+        isRevoked: true,
+      },
+    });
+    
+    // 在无状态JWT系统中，access token 的失效由客户端删除处理
+    // refresh token 已在数据库中标记为撤销
   }
 
   async getMenus(userId: string): Promise<MenuResponseDto[]> {
@@ -564,7 +607,6 @@ export class AuthService {
         os,
       });
     } catch (error) {
-      // 记录日志失败不应该影响登录流程，只记录错误
       console.error('记录登录日志失败:', error);
     }
   }
@@ -627,5 +669,173 @@ export class AuthService {
       console.warn('获取IP地理位置时发生错误:', error);
       return undefined;
     }
+  }
+
+  /**
+   * 生成 Access Token
+   */
+  private generateAccessToken(payload: {
+    sub: string;
+    email: string | null;
+    username: string;
+  }): string {
+    const expiresIn =
+      this.configService.get<string>('jwt.accessTokenExpiresIn') || '2h';
+    return this.jwtService.sign(payload, { expiresIn: expiresIn as any });
+  }
+
+  /**
+   * 生成 Refresh Token 并存储到数据库
+   */
+  private async generateRefreshToken(
+    userId: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<string> {
+    // 生成随机的 refresh token
+    const token = crypto.randomBytes(64).toString('hex');
+    
+    // 计算过期时间
+    const refreshTokenExpiresIn = this.configService.get<string>('jwt.refreshTokenExpiresIn') || '7d';
+    const expiresAt = this.calculateExpirationDate(refreshTokenExpiresIn);
+
+    // 存储到数据库
+    await this.prisma.refreshToken.create({
+      data: {
+        userId,
+        token,
+        expiresAt,
+        ipAddress,
+        userAgent,
+      },
+    });
+
+    return token;
+  }
+
+  /**
+   * 使用 Refresh Token 刷新 Access Token
+   */
+  async refreshAccessToken(
+    refreshToken: string,
+  ): Promise<{
+    access_token: string;
+    refresh_token: string;
+    access_token_expires_in: number;
+    refresh_token_expires_in: number;
+    expires_at: number;
+  }> {
+    // 查找 refresh token
+    const tokenRecord = await this.prisma.refreshToken.findUnique({
+      where: { token: refreshToken },
+    });
+
+    if (!tokenRecord) {
+      throw new UnauthorizedException('Refresh token 无效');
+    }
+
+    // 检查是否已撤销
+    if (tokenRecord.isRevoked) {
+      throw new UnauthorizedException('Refresh token 已被撤销');
+    }
+
+    // 检查是否过期
+    if (new Date() > tokenRecord.expiresAt) {
+      throw new UnauthorizedException('Refresh token 已过期');
+    }
+
+    // 获取用户信息
+    const user = await this.prisma.user.findUnique({
+      where: { userId: tokenRecord.userId },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('用户不存在');
+    }
+
+    // 生成新的 access token
+    const payload = {
+      sub: user.userId,
+      email: user.email,
+      username: user.username,
+    };
+    const accessToken = this.generateAccessToken(payload);
+
+    // 生成新的 refresh token（可选：可以选择复用旧的或生成新的）
+    const newRefreshToken = await this.generateRefreshToken(
+      user.userId,
+      tokenRecord.ipAddress || undefined,
+      tokenRecord.userAgent || undefined,
+    );
+
+    // 撤销旧的 refresh token
+    await this.prisma.refreshToken.update({
+      where: { token: refreshToken },
+      data: { isRevoked: true },
+    });
+
+    // 计算过期时间戳
+    const accessTokenExpiresIn = this.parseExpiresIn(
+      this.configService.get<string>('jwt.accessTokenExpiresIn') || '2h',
+    );
+    const refreshTokenExpiresIn = this.parseExpiresIn(
+      this.configService.get<string>('jwt.refreshTokenExpiresIn') || '7d',
+    );
+    const now = Date.now();
+
+    return {
+      access_token: accessToken,
+      refresh_token: newRefreshToken,
+      access_token_expires_in: accessTokenExpiresIn,
+      refresh_token_expires_in: refreshTokenExpiresIn,
+      expires_at: now + accessTokenExpiresIn * 1000,
+    };
+  }
+
+  /**
+   * 撤销 Refresh Token
+   */
+  async revokeRefreshToken(refreshToken: string): Promise<void> {
+    await this.prisma.refreshToken.updateMany({
+      where: { token: refreshToken },
+      data: { isRevoked: true },
+    });
+  }
+
+  /**
+   * 解析过期时间字符串为秒数
+   */
+  private parseExpiresIn(expiresIn: string): number {
+    const match = expiresIn.match(/^(\d+)([smhd])$/);
+
+    if (!match) {
+      // 默认 2 小时
+      return 2 * 60 * 60;
+    }
+
+    const value = parseInt(match[1], 10);
+    const unit = match[2];
+
+    switch (unit) {
+      case 's':
+        return value;
+      case 'm':
+        return value * 60;
+      case 'h':
+        return value * 60 * 60;
+      case 'd':
+        return value * 24 * 60 * 60;
+      default:
+        return 2 * 60 * 60;
+    }
+  }
+
+  /**
+   * 计算过期时间
+   */
+  private calculateExpirationDate(expiresIn: string): Date {
+    const now = new Date();
+    const seconds = this.parseExpiresIn(expiresIn);
+    return new Date(now.getTime() + seconds * 1000);
   }
 }

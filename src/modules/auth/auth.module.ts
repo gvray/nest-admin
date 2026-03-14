@@ -17,7 +17,8 @@ import { RolesGuard } from '@/core/guards/roles.guard';
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('jwt.secret') || 'default-secret-key',
         signOptions: {
-          expiresIn: (configService.get<string>('jwt.expiresIn') || '7d') as any,
+          expiresIn: (configService.get<string>('jwt.accessTokenExpiresIn') ||
+            '2h') as any,
         },
       }),
     }),

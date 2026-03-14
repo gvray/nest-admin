@@ -8,6 +8,7 @@ import {
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { MenuResponseDto } from './dto/menu-response.dto';
 import { ResponseUtil } from '../../shared/utils/response.util';
 import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard';
@@ -71,7 +72,7 @@ export class AuthController {
   @Post('login')
   @ApiOperation({
     summary: '用户登录',
-    description: '支持用户名或邮箱登录，返回JWT访问令牌',
+    description: '支持用户名或邮箱登录，返回JWT访问令牌和刷新令牌',
   })
   @ApiResponse({
     status: 200,
@@ -84,6 +85,26 @@ export class AuthController {
           description: 'JWT访问令牌',
           example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
         },
+        refresh_token: {
+          type: 'string',
+          description: '刷新令牌',
+          example: 'a1b2c3d4e5f6...',
+        },
+        access_token_expires_in: {
+          type: 'number',
+          description: 'Access Token 过期时间（秒）',
+          example: 7200,
+        },
+        refresh_token_expires_in: {
+          type: 'number',
+          description: 'Refresh Token 过期时间（秒）',
+          example: 604800,
+        },
+        expires_at: {
+          type: 'number',
+          description: 'Access Token 过期时间戳（毫秒）',
+          example: 1709899200000,
+        },
       },
     },
   })
@@ -91,6 +112,53 @@ export class AuthController {
   async login(@Body() loginDto: LoginDto, @Req() req: any) {
     const data = await this.authService.login(loginDto, req);
     return ResponseUtil.success(data, '登录成功');
+  }
+
+  @Post('refresh')
+  @ApiOperation({
+    summary: '刷新访问令牌',
+    description: '使用刷新令牌获取新的访问令牌和刷新令牌',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '刷新成功',
+    schema: {
+      type: 'object',
+      properties: {
+        access_token: {
+          type: 'string',
+          description: '新的JWT访问令牌',
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        },
+        refresh_token: {
+          type: 'string',
+          description: '新的刷新令牌',
+          example: 'a1b2c3d4e5f6...',
+        },
+        access_token_expires_in: {
+          type: 'number',
+          description: 'Access Token 过期时间（秒）',
+          example: 7200,
+        },
+        refresh_token_expires_in: {
+          type: 'number',
+          description: 'Refresh Token 过期时间（秒）',
+          example: 604800,
+        },
+        expires_at: {
+          type: 'number',
+          description: 'Access Token 过期时间戳（毫秒）',
+          example: 1709899200000,
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Refresh token 无效或已过期' })
+  async refresh(@Body() refreshTokenDto: RefreshTokenDto) {
+    const data = await this.authService.refreshAccessToken(
+      refreshTokenDto.refreshToken,
+    );
+    return ResponseUtil.success(data, '刷新令牌成功');
   }
 
   @Post('logout')
@@ -128,8 +196,8 @@ export class AuthController {
       },
     },
   })
-  logout() {
-    this.authService.logout();
+  async logout(@CurrentUser() user: { userId: string }) {
+    await this.authService.logout(user.userId);
     return ResponseUtil.success(null, '退出登录成功');
   }
 

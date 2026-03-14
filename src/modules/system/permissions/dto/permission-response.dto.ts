@@ -63,6 +63,11 @@ export class PermissionResponseDto {
   @Transform(({ value }): string => value ?? '')
   description?: string;
 
+  @ApiPropertyOptional({ description: '备注信息' })
+  @Expose()
+  @Transform(({ value }): string => value ?? '')
+  remark?: string;
+
   @ApiPropertyOptional({
     description: '菜单元数据（仅 DIRECTORY 和 MENU 类型有）',
     type: MenuMetaDto,

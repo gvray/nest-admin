@@ -29,7 +29,7 @@ export async function seedUsers(
       password: hashedSuperPassword,
       gender: Gender.OTHER, // 其他
       status: UserStatus.ENABLED, // 确保启用状态
-      remark: '系统超级管理员，不可删除和禁用',
+      description: '系统超级管理员，不可删除和禁用',
     },
   });
 
@@ -300,7 +300,7 @@ export async function seedUsers(
           phone: userData.phone,
           password: hashedPassword,
           avatar: '',
-          remark: `测试用户 - ${userData.nickname}`,
+          description: `测试用户 - ${userData.nickname}`,
           status: UserStatus.ENABLED,
           departmentId: departmentToUse.departmentId,
         },

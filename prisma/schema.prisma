@@ -24,7 +24,7 @@ model User {
   password      String
   avatar        String?
   gender        String?        @db.VarChar(16) // 性别：unknown-未知, male-男, female-女, other-其他
-  remark        String? // 备注信息
+  description   String?        @db.Text // 用户描述
   status        String         @default("enabled") @db.VarChar(16) // disabled: 禁用, enabled: 启用, pending: 审核中, banned: 封禁
   departmentId  String?
   department    Department?    @relation(fields: [departmentId], references: [departmentId])
@@ -85,11 +85,11 @@ model Role {
   roleId          String           @unique @default(uuid())
   roleKey         String           @unique
   name            String           @unique
-  description     String?
-  remark          String? // 备注信息
-  sort            Int              @default(0) // 排序权重
+  description     String?          @db.Text // 角色描述
   status          String           @default("enabled") @db.VarChar(16) // disabled: 禁用, enabled: 启用
   dataScope       Int              @default(1) // 数据权限：1-仅本人, 2-本部门, 3-本部门及以下, 4-自定义, 5-全部
+  sort            Int              @default(0) // 排序权重
+  remark          String?          @db.Text // 备注信息
   userRoles       UserRole[]
   rolePermissions RolePermission[]
   roleDepartments RoleDepartment[] // 角色-部门关联（一对多）
@@ -153,8 +153,9 @@ model Permission {
   type               PermissionType   @default(BUTTON)
   origin             PermissionOrigin @default(USER) // 来源：USER=用户创建, SYSTEM=系统扫描
   action             String // 操作类型：view(查看), create(创建), update(更新), delete(删除), export(导出), import(导入)
+  description        String?          @db.Text // 权限描述
+  remark             String?          @db.Text // 备注信息
   rolePermissions    RolePermission[]
-  description        String?          @db.Text
   menuMeta           MenuMeta?
   parentPermissionId String?
   parent             Permission?      @relation("PermissionHierarchy", fields: [parentPermissionId], references: [permissionId], onDelete: NoAction, onUpdate: NoAction)
@@ -204,18 +205,18 @@ model Department {
   id              Int              @id @default(autoincrement())
   departmentId    String           @unique @default(uuid())
   name            String           @unique
-  description     String?
-  remark          String? // 备注信息
+  description     String?          @db.Text // 部门描述
   parentId        String
   manager         String?
   phone           String?
   email           String?
+  status          String           @default("enabled") @db.VarChar(16) // disabled: 禁用, enabled: 启用
+  sort            Int              @default(0)
+  remark          String?          @db.Text // 备注信息
   parent          Department?      @relation("DepartmentHierarchy", fields: [parentId], references: [departmentId], onDelete: NoAction, onUpdate: NoAction)
   children        Department[]     @relation("DepartmentHierarchy")
   users           User[] // 部门下的用户
   roleDepartments RoleDepartment[] // 角色-部门关联
-  status          String           @default("enabled") @db.VarChar(16) // disabled: 禁用, enabled: 启用
-  sort            Int              @default(0)
 
   // 审计字段
   createdById String? // 创建者ID
@@ -234,11 +235,11 @@ model Position {
   positionId    String         @unique @default(uuid())
   name          String         @unique
   code          String         @unique
-  description   String?
-  remark        String? // 备注信息
-  userPositions UserPosition[]
+  description   String?        @db.Text // 岗位描述
   status        String         @default("enabled") @db.VarChar(16) // disabled: 禁用, enabled: 启用
   sort          Int            @default(0)
+  remark        String?        @db.Text // 备注信息
+  userPositions UserPosition[]
 
   // 审计字段
   createdById String? // 创建者ID
@@ -293,10 +294,10 @@ model DictionaryType {
   typeId      String           @unique @default(uuid())
   code        String           @unique // 字典类型编码
   name        String           @unique // 字典类型名称
-  description String? // 描述
+  description String?          @db.Text // 字典类型描述
   status      String           @default("enabled") @db.VarChar(16) // disabled: 禁用, enabled: 启用
   sort        Int              @default(0) // 排序权重
-  remark      String? // 备注信息
+  remark      String?          @db.Text // 备注信息
   items       DictionaryItem[] // 字典项列表
 
   // 审计字段
@@ -318,10 +319,10 @@ model DictionaryItem {
   type        DictionaryType @relation(fields: [typeCode], references: [code], onDelete: Cascade)
   value       String // 字典项值
   label       String // 显示标签
-  description String? // 描述
+  description String?        @db.Text // 字典项描述
   status      String         @default("enabled") @db.VarChar(16) // disabled: 禁用, enabled: 启用
   sort        Int            @default(0) // 排序权重
-  remark      String? // 备注信息
+  remark      String?        @db.Text // 备注信息
 
   // 审计字段
   createdById String? // 创建者ID
@@ -339,14 +340,14 @@ model Config {
   id          Int     @id @default(autoincrement())
   configId    String  @unique @default(uuid())
   key         String  @unique // 配置键
-  value       String // 配置值
+  value       String  @db.Text // 配置值
   name        String // 配置名称
-  description String? // 描述
+  description String? @db.Text // 配置描述
   type        String  @default("string") // 配置类型: string, number, boolean, json
   group       String  @default("system") // 配置分组
   status      String  @default("enabled") @db.VarChar(16) // disabled: 禁用, enabled: 启用
   sort        Int     @default(0) // 排序权重
-  remark      String? // 备注信息
+  remark      String? @db.Text // 备注信息
 
   // 审计字段
   createdById String? // 创建者ID
@@ -376,6 +377,23 @@ model LoginLog {
   createdAt DateTime @default(now())
 
   @@map("login_logs")
+}
+
+model RefreshToken {
+  id           Int      @id @default(autoincrement())
+  tokenId      String   @unique @default(uuid())
+  userId       String
+  token        String   @unique @db.VarChar(500)
+  expiresAt    DateTime
+  isRevoked    Boolean  @default(false)
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
 }
 
 model OperationLog {

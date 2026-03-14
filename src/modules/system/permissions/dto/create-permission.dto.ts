@@ -74,6 +74,11 @@ export class CreatePermissionDto {
   @IsString({ message: '权限描述必须是字符串' })
   description?: string;
 
+  @ApiPropertyOptional({ description: '备注信息' })
+  @IsOptional()
+  @IsString({ message: '备注信息必须是字符串' })
+  remark?: string;
+
   @ApiPropertyOptional({
     description: '菜单元信息（仅菜单）',
     type: CreateMenuMetaDto,

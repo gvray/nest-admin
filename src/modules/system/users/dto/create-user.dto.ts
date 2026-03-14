@@ -41,11 +41,11 @@ export class CreateUserDto {
   @IsString({ message: '手机号码必须是字符串' })
   phone?: string;
 
-  @ApiPropertyOptional({ description: '备注信息', example: '这是一个备注' })
+  @ApiPropertyOptional({ description: '用户描述', example: '这是一个用户描述' })
   @IsOptional()
-  @IsString({ message: '备注信息必须是字符串' })
-  @MaxLength(500, { message: '备注信息不能超过500个字符' })
-  remark?: string;
+  @IsString({ message: '用户描述必须是字符串' })
+  @MaxLength(500, { message: '用户描述不能超过500个字符' })
+  description?: string;
 
   @ApiProperty({ description: '密码' })
   @IsString({ message: '密码必须是字符串' })

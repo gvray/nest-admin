@@ -98,10 +98,10 @@ export class UserResponseDto {
   @Transform(({ value }): Gender => value ?? Gender.UNKNOWN)
   gender?: Gender;
 
-  @ApiPropertyOptional({ description: '备注信息' })
+  @ApiPropertyOptional({ description: '用户描述' })
   @Expose()
   @Transform(({ value }): string => value ?? '')
-  remark?: string;
+  description?: string;
 
   @ApiProperty({
     description: '用户状态',
