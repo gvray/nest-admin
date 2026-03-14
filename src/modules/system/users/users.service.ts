@@ -355,6 +355,7 @@ export class UsersService extends BaseService {
         phone: true,
         avatar: true,
         gender: true,
+        description: true,
         status: true,
         createdAt: true,
         updatedAt: true,
