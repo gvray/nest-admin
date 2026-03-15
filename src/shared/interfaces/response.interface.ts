@@ -1,4 +1,22 @@
 /**
+ * 错误展示类型枚举
+ */
+export enum ErrorShowType {
+  /** 静默 - 不展示错误信息 */
+  SILENT = 0,
+  /** 警告信息提示 */
+  WARN_MESSAGE = 1,
+  /** 错误信息提示 */
+  ERROR_MESSAGE = 2,
+  /** 通知提醒 */
+  NOTIFICATION = 3,
+  /** 默认 - 使用系统默认行为 */
+  DEFAULT = 4,
+  /** 页面跳转 */
+  REDIRECT = 9,
+}
+
+/**
  * 统一响应格式接口
  */
 export interface ApiResponse<T = unknown> {
@@ -14,6 +32,8 @@ export interface ApiResponse<T = unknown> {
   timestamp: string;
   /** 请求路径 */
   path?: string;
+  /** 错误展示类型 - 仅在错误响应时使用 */
+  showType?: ErrorShowType;
 }
 
 /**

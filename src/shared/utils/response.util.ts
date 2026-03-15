@@ -4,6 +4,7 @@ import {
   PaginationData,
   ResponseCode,
   ResponseMessage,
+  ErrorShowType,
 } from '../interfaces/response.interface';
 
 /**
@@ -118,12 +119,14 @@ export class ResponseUtil {
    * @param message 错误消息
    * @param code 错误状态码
    * @param path 请求路径
+   * @param showType 错误展示类型
    * @returns 统一响应格式
    */
   static error(
     message: string,
     code: number = ResponseCode.INTERNAL_SERVER_ERROR,
     path?: string,
+    showType: ErrorShowType = ErrorShowType.ERROR_MESSAGE,
   ): ApiResponse<null> {
     return {
       success: false,
@@ -132,6 +135,7 @@ export class ResponseUtil {
       data: null,
       timestamp: new Date().toISOString(),
       path,
+      showType,
     };
   }
 
@@ -139,51 +143,59 @@ export class ResponseUtil {
    * 构建请求错误响应
    * @param message 错误消息
    * @param path 请求路径
+   * @param showType 错误展示类型
    * @returns 统一响应格式
    */
   static badRequest(
     message: string = ResponseMessage.BAD_REQUEST,
     path?: string,
+    showType: ErrorShowType = ErrorShowType.ERROR_MESSAGE,
   ): ApiResponse<null> {
-    return this.error(message, ResponseCode.BAD_REQUEST, path);
+    return this.error(message, ResponseCode.BAD_REQUEST, path, showType);
   }
 
   /**
    * 构建未授权响应
    * @param message 错误消息
    * @param path 请求路径
+   * @param showType 错误展示类型
    * @returns 统一响应格式
    */
   static unauthorized(
     message: string = ResponseMessage.UNAUTHORIZED,
     path?: string,
+    showType: ErrorShowType = ErrorShowType.NOTIFICATION,
   ): ApiResponse<null> {
-    return this.error(message, ResponseCode.UNAUTHORIZED, path);
+    return this.error(message, ResponseCode.UNAUTHORIZED, path, showType);
   }
 
   /**
    * 构建禁止访问响应
    * @param message 错误消息
    * @param path 请求路径
+   * @param showType 错误展示类型
    * @returns 统一响应格式
    */
   static forbidden(
     message: string = ResponseMessage.FORBIDDEN,
     path?: string,
+    showType: ErrorShowType = ErrorShowType.NOTIFICATION,
   ): ApiResponse<null> {
-    return this.error(message, ResponseCode.FORBIDDEN, path);
+    return this.error(message, ResponseCode.FORBIDDEN, path, showType);
   }
 
   /**
    * 构建资源不存在响应
    * @param message 错误消息
    * @param path 请求路径
+   * @param showType 错误展示类型
    * @returns 统一响应格式
    */
   static notFound(
     message: string = ResponseMessage.NOT_FOUND,
     path?: string,
+    showType: ErrorShowType = ErrorShowType.ERROR_MESSAGE,
   ): ApiResponse<null> {
-    return this.error(message, ResponseCode.NOT_FOUND, path);
+    return this.error(message, ResponseCode.NOT_FOUND, path, showType);
   }
 }

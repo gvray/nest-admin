@@ -8,7 +8,10 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { ResponseUtil } from '../../shared/utils/response.util';
-import { ResponseCode } from '../../shared/interfaces/response.interface';
+import {
+  ResponseCode,
+  ErrorShowType,
+} from '../../shared/interfaces/response.interface';
 
 /**
  * HTTP异常过滤器
@@ -62,10 +65,49 @@ export class HttpExceptionFilter implements ExceptionFilter {
       `${request.method} ${path}`,
     );
 
+    // 获取错误展示类型
+    const showType = this.getShowType(status);
+
     // 构建错误响应
-    const errorResponse = ResponseUtil.error(message, status, path);
+    const errorResponse = ResponseUtil.error(message, status, path, showType);
 
     response.status(this.getHttpStatus(status)).json(errorResponse);
+  }
+
+  /**
+   * 根据状态码获取错误展示类型
+   * @param code 状态码
+   * @returns 错误展示类型
+   */
+  private getShowType(code: number): ErrorShowType {
+    switch (code) {
+      // 认证/授权相关 - 使用通知提醒
+      case HttpStatus.UNAUTHORIZED:
+      case HttpStatus.FORBIDDEN:
+        return ErrorShowType.NOTIFICATION;
+
+      // 验证错误 - 使用错误消息提示
+      case HttpStatus.BAD_REQUEST:
+      case HttpStatus.UNPROCESSABLE_ENTITY:
+        return ErrorShowType.ERROR_MESSAGE;
+
+      // 资源不存在 - 使用警告消息
+      case HttpStatus.NOT_FOUND:
+        return ErrorShowType.WARN_MESSAGE;
+
+      // 冲突 - 使用错误消息提示
+      case HttpStatus.CONFLICT:
+        return ErrorShowType.ERROR_MESSAGE;
+
+      // 服务器错误 - 使用通知提醒
+      case HttpStatus.INTERNAL_SERVER_ERROR:
+      case HttpStatus.SERVICE_UNAVAILABLE:
+        return ErrorShowType.NOTIFICATION;
+
+      // 默认使用错误消息提示
+      default:
+        return ErrorShowType.ERROR_MESSAGE;
+    }
   }
 
   /**
