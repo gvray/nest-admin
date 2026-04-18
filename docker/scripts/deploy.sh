@@ -107,14 +107,14 @@ cmd_deploy() {
   [[ ! -f "$ENV_FILE" ]] && fatal ".env.production not found: ${ENV_FILE}"
   set -a; source "$ENV_FILE"; set +a
 
-  [[ -z "${JWT_SECRET:-}"    ]] && fatal "JWT_SECRET is not set — add it to .env"
-  [[ -z "${DATABASE_URL:-}"  ]] && fatal "DATABASE_URL is not set — add it to .env"
+  [[ -z "${JWT_SECRET:-}"    ]] && fatal "JWT_SECRET is not set - add it to .env"
+  [[ -z "${DATABASE_URL:-}"  ]] && fatal "DATABASE_URL is not set - add it to .env"
 
   printf "\n"
   printf "  ${BOLD}Image     ${NC} %s\n" "${image_tag}"
   printf "  ${BOLD}Platform  ${NC} %s\n" "${PLATFORM}"
   printf "  ${BOLD}Container ${NC} %s\n" "${CONTAINER_NAME}"
-  printf "  ${BOLD}Network   ${NC} %s\n" "${NETWORK}"
+  printf "  ${BOLD}Port      ${NC} %s\n" "${PORT:-8001}"
   printf "\n"
 
   info "Pulling ${image_tag} (${PLATFORM})..."
@@ -130,16 +130,19 @@ cmd_deploy() {
     ok "Backed up container as ${prev_container}"
   fi
 
-  # Ensure network exists (created by compose when db starts, or create standalone)
-  docker network inspect "$NETWORK" >/dev/null 2>&1 \
-    || { info "Creating network ${NETWORK}..."; docker network create "$NETWORK"; }
+  # Parse DATABASE_URL to extract host and port for health check
+  local db_host db_port health_url
+  db_host=$(echo "$DATABASE_URL" | sed -n 's/.*@\([^:]*\):.*/\1/p')
+  db_port=$(echo "$DATABASE_URL" | sed -n 's/.*:\([0-9]*\)\/.*/\1/p')
+  health_url="http://localhost:${PORT:-8001}/health"
 
-  # Start new container
+  # Start new container with port mapping for direct access
+  info "Starting new container..."
   docker run -d \
     --name     "$CONTAINER_NAME" \
-    --network  "$NETWORK" \
     --platform "$PLATFORM" \
     --restart  unless-stopped \
+    -p "${PORT:-8001}:${PORT:-8001}" \
     -e NODE_ENV="${NODE_ENV:-production}" \
     -e DATABASE_URL="$DATABASE_URL" \
     -e PORT="${PORT:-8001}" \
@@ -148,15 +151,14 @@ cmd_deploy() {
     -e ENABLE_CORS="${ENABLE_CORS:-false}" \
     "$image_tag"
 
-  # Health check (90s)
-  ok "Waiting for health check..."
-  local healthy=false
-  for i in $(seq 1 18); do
-    if curl -sf --max-time 5 "$HEALTH_URL" >/dev/null 2>&1; then
-      healthy=true; break
-    fi
-    sleep 5
-  done
+  # Health check (5s timeout)
+  ok "Waiting for health check at ${health_url}..."
+  if curl -sf --max-time 5 "$health_url" >/dev/null 2>&1; then
+    ok "Health check passed!"
+  else
+    warn "Health check failed after 5 seconds"
+    return 1
+  fi
 
   # Rollback on failure
   if [[ "$healthy" != "true" ]]; then
@@ -166,9 +168,12 @@ cmd_deploy() {
     if [[ -n "$prev_container" ]]; then
       docker rename "$prev_container" "$CONTAINER_NAME"
       docker start  "$CONTAINER_NAME"
+      docker port "$CONTAINER_NAME" "${PORT:-8001}" >/dev/null 2>&1 && \
+        health_url="http://localhost:${PORT:-8001}/health" || \
+        health_url="http://localhost:$(docker port "$CONTAINER_NAME" | grep -o '[0-9]*' | head -1)/health"
       fatal "Rolled back to ${prev_image}. Check: docker logs ${CONTAINER_NAME}"
     else
-      fatal "Health check failed. No previous container — manual intervention required."
+      fatal "Health check failed. No previous container - manual intervention required."
     fi
   fi
 
@@ -182,7 +187,8 @@ cmd_deploy() {
   docker image prune -f >/dev/null
 
   printf "\n"
-  ok "Deployed → ${image_tag}"
+  ok "Deployed -> ${image_tag}"
+  ok "Health check: ${health_url}"
 }
 
 # ── Dispatch ──────────────────────────────────────────────────────────────────
