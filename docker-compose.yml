@@ -1,94 +1,55 @@
-version: '3.8'
-
 services:
-  # 主应用服务
-  nest-admin:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: production
-    container_name: nest-admin
-    restart: unless-stopped
-    environment:
-      - NODE_ENV=production
-      - DATABASE_URL=${DATABASE_URL:-mysql://root:password@mysql:3306/nest_admin}
-      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
-      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-24h}
-    ports:
-      - "3000:3000"
-    depends_on:
-      mysql:
-        condition: service_healthy
-    volumes:
-      - ./logs:/app/logs
-    networks:
-      - nest-admin-network
-    healthcheck:
-      test: ["CMD", "node", "dist/main.js", "--version"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  # MySQL 数据库服务
   mysql:
     image: mysql:8.0
-    container_name: nest-admin-mysql
-    restart: unless-stopped
+    container_name: nest-admin-mysql-test
+    restart: "no"
     environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-password}
-      - MYSQL_DATABASE=${MYSQL_DATABASE:-nest_admin}
-      - MYSQL_USER=${MYSQL_USER:-nest_admin}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-password}
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: nest_admin
+    volumes:
+      - mysql-test-data:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
     ports:
       - "3306:3306"
-    volumes:
-      - mysql-data:/var/lib/mysql
-      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
     networks:
-      - nest-admin-network
+      - nest-test
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-ppassword"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
       start_period: 30s
     command: >
       --default-authentication-plugin=mysql_native_password
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_unicode_ci
-      --innodb-buffer-pool-size=256M
-      --innodb-log-file-size=64M
-      --max-connections=200
 
-  
-  # Nginx 反向代理
-  nginx:
-    image: nginx:1.25-alpine
-    container_name: nest-admin-nginx
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
-      - ./logs/nginx:/var/log/nginx
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: nest-admin-app-test
+    restart: "no"
     depends_on:
-      - nest-admin
+      mysql:
+        condition: service_healthy
+    environment:
+      NODE_ENV: test
+      DATABASE_URL: mysql://root:password@mysql:3306/nest_admin
+      JWT_SECRET: test-jwt-secret-local-only
+      JWT_EXPIRES_IN: 7d
+      PORT: 8001
+      ENABLE_CORS: "true"
+    ports:
+      - "8001:8001"
     networks:
-      - nest-admin-network
-    healthcheck:
-      test: ["CMD", "nginx", "-t"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - nest-test
 
 volumes:
-  mysql-data:
-    driver: local
+  mysql-test-data:
 
 networks:
-  nest-admin-network:
+  nest-test:
     driver: bridge
+

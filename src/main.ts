@@ -8,16 +8,12 @@ import { AuditInterceptor } from './core/interceptors/audit.interceptor';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // 测试环境变量
-  console.log('Environment Variables:');
-  console.log('DATABASE_URL:', process.env.DATABASE_URL);
-  console.log('PORT:', process.env.PORT);
-  console.log('NODE_ENV:', process.env.NODE_ENV);
-  console.log('JWT_SECRET:', process.env.JWT_SECRET);
-  console.log('ENABLE_CORS:', process.env.ENABLE_CORS);
+  // CORS 配置
+  const enableCors =
+    process.env.NODE_ENV === 'development' ||
+    process.env.ENABLE_CORS === 'true';
 
-  // CORS 配置 - 仅在开发环境启用
-  if (process.env.NODE_ENV === 'development') {
+  if (enableCors) {
     const corsOrigins = [
       'http://localhost:3000',
       'http://localhost:3001',
@@ -55,7 +51,7 @@ async function bootstrap() {
       maxAge: 3600, // 开发环境1小时缓存预检请求
     });
 
-    console.log('🌐 CORS enabled for development environment');
+    console.log('🌐 CORS enabled');
     console.log('📍 Allowed origins:', corsOrigins);
   } else {
     // 生产环境提示：CORS应在反向代理层处理

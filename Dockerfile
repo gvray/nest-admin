@@ -37,6 +37,11 @@ ENV DATABASE_URL="mysql://build:build@build:3306/build"
 
 RUN pnpm prisma generate
 RUN pnpm build
+# Compile prisma seed files without overwriting the nest build dist/src/ output.
+# tsc outputs to /tmp so only dist/prisma/ is copied back; dist/src/ stays intact.
+RUN node_modules/.bin/tsc -p tsconfig.json \
+      --outDir /tmp/seed-build --noEmitOnError false 2>/dev/null || true \
+ && cp -r /tmp/seed-build/prisma ./dist/prisma 2>/dev/null || true
 
 
 # ─── Runner: lean production image ────────────────────────────────────────────
@@ -84,7 +89,7 @@ EXPOSE 8001
 # Health check uses Node itself — no need for wget or curl in the image
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e \
-    "require('http').get('http://localhost:8001/health', r => { process.exit(r.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"
+    "require('http').get('http://localhost:' + (process.env.PORT||8001) + '/health', r => { process.exit(r.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"
 
 ENTRYPOINT ["/sbin/tini", "--", "./entrypoint.sh"]
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/src/main.js"]

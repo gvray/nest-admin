@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_INTERCEPTOR, APP_FILTER, Reflector, DiscoveryModule } from '@nestjs/core';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 import { AuthModule } from '@/modules/auth/auth.module';
 import { SystemModule } from '@/modules/system/system.module';
 import { PrismaModule } from '@/prisma/prisma.module';
@@ -14,6 +16,7 @@ import { OperationLogInterceptor } from '@/core/interceptors/operation-log.inter
 import { ApiPermissionSyncService } from '@/core/services/api-permission-sync.service';
 
 @Module({
+  controllers: [AppController],
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
@@ -32,6 +35,7 @@ import { ApiPermissionSyncService } from '@/core/services/api-permission-sync.se
     DiscoveryModule,
   ],
   providers: [
+    AppService,
     {
       provide: APP_INTERCEPTOR,
       useClass: ResponseInterceptor,
