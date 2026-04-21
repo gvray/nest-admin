@@ -35,7 +35,11 @@ p.user.count()
 
 if [ "$USER_COUNT" = "0" ]; then
   echo "[entrypoint] Fresh database — running seed..."
-  node dist/prisma/seed.js
+  if [ "${NODE_ENV}" = "development" ]; then
+    node_modules/.bin/ts-node prisma/seed.ts
+  else
+    node dist/prisma/seed.js
+  fi
   echo "[entrypoint] Seed complete."
 else
   echo "[entrypoint] Database already seeded (${USER_COUNT} users) — skipping."

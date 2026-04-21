@@ -1,19 +1,19 @@
 services:
   mysql:
     image: mysql:8.0
-    container_name: nest-admin-mysql
+    container_name: nest-admin-mysql-dev
     restart: unless-stopped
     env_file:
-      - path: .env.${ENV:-production}
+      - path: .env.${ENV:-development}
         required: false
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-password}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-nest_admin}
     volumes:
-      - mysql-data:/var/lib/mysql
+      - mysql-dev-data:/var/lib/mysql
       - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
     networks:
-      - nest-net
+      - nest-dev
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
       interval: 5s
@@ -26,48 +26,35 @@ services:
       --collation-server=utf8mb4_unicode_ci
 
   app:
-    image: ${IMAGE:-gvray/nest-admin:latest}
-    container_name: nest-admin-app
-    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    container_name: nest-admin-app-dev
+    restart: "no"
     depends_on:
       mysql:
         condition: service_healthy
     env_file:
-      - path: .env.${ENV:-production}
+      - path: .env.${ENV:-development}
         required: false
     environment:
-      NODE_ENV: ${NODE_ENV:-production}
+      NODE_ENV: development
       DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD:-password}@mysql:3306/${MYSQL_DATABASE:-nest_admin}
-      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-local-only}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
-      PORT: ${PORT:-8001}
+      PORT: ${PORT:-3000}
       ENABLE_CORS: ${ENABLE_CORS:-true}
     ports:
-      - "${PORT:-8001}:${PORT:-8001}"
+      - "${PORT:-3000}:${PORT:-3000}"
+    volumes:
+      - ./src:/app/src
     networks:
-      - nest-net
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:$$PORT/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-
-  web:
-    image: ${WEB_IMAGE:-gvray/react-umi-admin:latest}
-    container_name: nest-admin-web
-    restart: unless-stopped
-    depends_on:
-      app:
-        condition: service_healthy
-    ports:
-      - "${WEB_PORT:-80}:80"
-    networks:
-      - nest-net
+      - nest-dev
 
 volumes:
-  mysql-data:
+  mysql-dev-data:
 
 networks:
-  nest-net:
+  nest-dev:
     driver: bridge

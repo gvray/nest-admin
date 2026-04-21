@@ -1,6 +1,3 @@
-# syntax=docker/dockerfile:1.7
-# BuildKit required: DOCKER_BUILDKIT=1 or Docker 23+
-
 ARG NODE_VERSION=20
 ARG ALPINE_VERSION=3.20
 
@@ -24,6 +21,24 @@ COPY package.json pnpm-lock.yaml ./
 # BuildKit cache mount: pnpm store is reused across builds without being committed to the layer
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile
+
+
+# ─── Dev: hot-reload development (no full compile) ────────────────────────────
+FROM base AS dev
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+ENV DATABASE_URL="mysql://build:build@build:3306/build"
+
+RUN pnpm prisma generate
+
+RUN chmod +x docker/entrypoint.sh
+
+EXPOSE 3000
+
+ENTRYPOINT ["/sbin/tini", "--", "docker/entrypoint.sh"]
+CMD ["pnpm", "start:dev"]
 
 
 # ─── Builder: compile TypeScript + generate Prisma client ─────────────────────
