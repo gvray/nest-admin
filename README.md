@@ -167,7 +167,7 @@ pnpm start:prod
 ## 👤 默认账户
 
 - 管理员账号：admin@example.com 或 admin
-- 初始密码：admin123
+- 初始密码：123456
 
 ## 🔧 API 测试
 
@@ -176,12 +176,12 @@ pnpm start:prod
 # 用户名登录
 curl -X POST http://localhost:8001/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"account": "admin", "password": "admin123"}'
+  -d '{"account": "admin", "password": "123456"}'
 
 # 邮箱登录
 curl -X POST http://localhost:8001/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"account": "admin@example.com", "password": "admin123"}'
+  -d '{"account": "admin@example.com", "password": "123456"}'
 ```
 
 ### 获取用户列表

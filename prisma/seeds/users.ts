@@ -14,7 +14,7 @@ export async function seedUsers(
 
   // 创建超级管理员用户（不可删除和禁用）
   console.log('创建超级管理员用户...');
-  const hashedSuperPassword = await bcrypt.hash('super123', 10);
+  const hashedSuperPassword = await bcrypt.hash('123456', 10);
   const superUser = await prisma.user.upsert({
     where: { email: 'super@example.com' },
     update: {
@@ -67,7 +67,7 @@ export async function seedUsers(
 
   // 创建管理员用户
   console.log('创建管理员用户...');
-  const hashedAdminPassword = await bcrypt.hash('admin123', 10);
+  const hashedAdminPassword = await bcrypt.hash('123456', 10);
   const adminUser = await prisma.user.upsert({
     where: { email: 'admin@example.com' },
     update: {
@@ -135,7 +135,7 @@ export async function seedUsers(
 
   // 创建游客用户（生产和开发环境都创建）
   console.log('创建游客用户...');
-  const hashedGuestPassword = await bcrypt.hash('guest123', 10);
+  const hashedGuestPassword = await bcrypt.hash('123456', 10);
   const guestUser = await prisma.user.upsert({
     where: { email: 'guest@example.com' },
     update: {
@@ -191,7 +191,7 @@ export async function seedUsers(
   console.log('📝 游客登录信息:');
   console.log('   用户名: guest');
   console.log('   邮箱: guest@example.com');
-  console.log('   密码: guest123');
+  console.log('   密码: 123456');
 
   // 开发环境下创建测试用户
   if (process.env.NODE_ENV === 'development') {
