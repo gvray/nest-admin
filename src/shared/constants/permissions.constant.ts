@@ -191,31 +191,28 @@ export const CONFIG_PERMISSIONS = {
   DELETE: `${CONFIG_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`,
 } as const;
 
-// ==================== 登录日志权限 ====================
-const LOGIN_LOG_RESOURCE = 'system:loginlog';
-export const LOGIN_LOG_PERMISSIONS = {
-  // 菜单
-  MENU: LOGIN_LOG_RESOURCE,
+// ==================== 日志管理权限 ====================
+const LOG_RESOURCE = 'system:log';
+export const LOG_PERMISSIONS = {
+  MENU: LOG_RESOURCE,
+  VIEW: `${LOG_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`,
+} as const;
 
-  // 查询操作
+// ==================== 登录日志权限 ====================
+const LOGIN_LOG_RESOURCE = 'system:log:login';
+export const LOGIN_LOG_PERMISSIONS = {
+  MENU: LOGIN_LOG_RESOURCE,
   LIST: `${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.LIST}`,
   VIEW: `${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`,
-
-  // 操作
   DELETE: `${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`,
 } as const;
 
 // ==================== 操作日志权限 ====================
-const OPERATION_LOG_RESOURCE = 'system:oplog';
+const OPERATION_LOG_RESOURCE = 'system:log:operation';
 export const OPERATION_LOG_PERMISSIONS = {
-  // 菜单
   MENU: OPERATION_LOG_RESOURCE,
-
-  // 查询操作
   LIST: `${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.LIST}`,
   VIEW: `${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.VIEW}`,
-
-  // 操作
   DELETE: `${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.DELETE}`,
 } as const;
 
@@ -228,6 +225,7 @@ export const PERMISSIONS = {
   POSITION: POSITION_PERMISSIONS,
   DICTIONARY: DICTIONARY_PERMISSIONS,
   CONFIG: CONFIG_PERMISSIONS,
+  LOG: LOG_PERMISSIONS,
   LOGIN_LOG: LOGIN_LOG_PERMISSIONS,
   OPERATION_LOG: OPERATION_LOG_PERMISSIONS,
 } as const;

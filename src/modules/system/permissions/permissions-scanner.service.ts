@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { DiscoveryService, MetadataScanner, Reflector } from '@nestjs/core';
 import { PrismaService } from '@/prisma/prisma.service';
 import { PERMISSIONS_KEY } from '@/core/decorators/permissions.decorator';
@@ -12,7 +12,7 @@ interface ScannedPermission {
 }
 
 @Injectable()
-export class PermissionsScannerService {
+export class PermissionsScannerService implements OnApplicationBootstrap {
   private readonly logger = new Logger(PermissionsScannerService.name);
 
   constructor(
@@ -21,6 +21,10 @@ export class PermissionsScannerService {
     private readonly reflector: Reflector,
     private readonly prisma: PrismaService,
   ) {}
+
+  async onApplicationBootstrap() {
+    await this.scanControllers();
+  }
 
   /**
    * 扫描所有控制器，提取 API 权限

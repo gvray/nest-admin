@@ -8,6 +8,7 @@ import {
   POSITION_PERMISSIONS,
   DICTIONARY_PERMISSIONS,
   CONFIG_PERMISSIONS,
+  LOG_PERMISSIONS,
   LOGIN_LOG_PERMISSIONS,
   OPERATION_LOG_PERMISSIONS,
 } from '../../src/shared/constants/permissions.constant';
@@ -304,52 +305,61 @@ export async function seedPermissions(prisma: PrismaClient) {
           ],
         },
 
-        // ==================== 登录日志 ====================
+        // ==================== 日志管理 ====================
         {
           type: 'MENU',
-          name: '登录日志',
-          code: LOGIN_LOG_PERMISSIONS.MENU,
-          path: '/system/loginlog',
-          icon: 'LoginOutlined',
-          sort: 8,
-          description: '登录日志菜单',
-          children: [
-            {
-              type: 'BUTTON',
-              name: '查看日志',
-              code: LOGIN_LOG_PERMISSIONS.VIEW,
-              description: '查看登录日志',
-            },
-            {
-              type: 'BUTTON',
-              name: '删除日志',
-              code: LOGIN_LOG_PERMISSIONS.DELETE,
-              description: '删除登录日志',
-            },
-          ],
-        },
-
-        // ==================== 操作日志 ====================
-        {
-          type: 'MENU',
-          name: '操作日志',
-          code: OPERATION_LOG_PERMISSIONS.MENU,
-          path: '/system/oplog',
+          name: '日志管理',
+          code: LOG_PERMISSIONS.MENU,
+          path: '/system/log',
           icon: 'FileTextOutlined',
-          sort: 9,
-          description: '操作日志菜单',
+          sort: 8,
+          description: '日志管理菜单',
           children: [
             {
-              type: 'BUTTON',
-              name: '查看日志',
-              code: OPERATION_LOG_PERMISSIONS.VIEW,
-              description: '查看操作日志',
+              type: 'MENU',
+              name: '登录日志',
+              code: LOGIN_LOG_PERMISSIONS.MENU,
+              path: '/system/log/login',
+              icon: 'LoginOutlined',
+              sort: 1,
+              description: '登录日志菜单',
+              children: [
+                {
+                  type: 'BUTTON',
+                  name: '查看日志',
+                  code: LOGIN_LOG_PERMISSIONS.VIEW,
+                  description: '查看登录日志',
+                },
+                {
+                  type: 'BUTTON',
+                  name: '删除日志',
+                  code: LOGIN_LOG_PERMISSIONS.DELETE,
+                  description: '删除登录日志',
+                },
+              ],
             },
             {
-              type: 'BUTTON',
-              name: '删除日志',
-              code: OPERATION_LOG_PERMISSIONS.DELETE,
-              description: '删除操作日志',
+              type: 'MENU',
+              name: '操作日志',
+              code: OPERATION_LOG_PERMISSIONS.MENU,
+              path: '/system/log/operation',
+              icon: 'AuditOutlined',
+              sort: 2,
+              description: '操作日志菜单',
+              children: [
+                {
+                  type: 'BUTTON',
+                  name: '查看日志',
+                  code: OPERATION_LOG_PERMISSIONS.VIEW,
+                  description: '查看操作日志',
+                },
+                {
+                  type: 'BUTTON',
+                  name: '删除日志',
+                  code: OPERATION_LOG_PERMISSIONS.DELETE,
+                  description: '删除操作日志',
+                },
+              ],
             },
           ],
         },
@@ -362,7 +372,6 @@ export async function seedPermissions(prisma: PrismaClient) {
   // 递归创建菜单和按钮权限
   async function createMenuNode(node: MenuNode, parentId?: string) {
     const parentPermissionId = parentId || ROOT_PARENT_ID;
-    
     // 创建权限记录
     const perm = await prisma.permission.upsert({
       where: { code: node.code },
@@ -377,7 +386,10 @@ export async function seedPermissions(prisma: PrismaClient) {
         name: node.name,
         code: node.code,
         type: node.type,
-        action: node.type === 'BUTTON' ? node.code.split(':').pop() || 'access' : 'access',
+        action:
+          node.type === 'BUTTON'
+            ? node.code.split(':').pop() || 'access'
+            : 'access',
         parentPermissionId,
         description: node.description,
         origin: 'USER',
