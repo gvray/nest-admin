@@ -199,7 +199,7 @@ export const LOG_PERMISSIONS = {
 } as const;
 
 // ==================== 登录日志权限 ====================
-const LOGIN_LOG_RESOURCE = 'system:log:login';
+const LOGIN_LOG_RESOURCE = 'system:log-login';
 export const LOGIN_LOG_PERMISSIONS = {
   MENU: LOGIN_LOG_RESOURCE,
   LIST: `${LOGIN_LOG_RESOURCE}:${PERMISSION_ACTIONS.LIST}`,
@@ -208,7 +208,7 @@ export const LOGIN_LOG_PERMISSIONS = {
 } as const;
 
 // ==================== 操作日志权限 ====================
-const OPERATION_LOG_RESOURCE = 'system:log:operation';
+const OPERATION_LOG_RESOURCE = 'system:log-operation';
 export const OPERATION_LOG_PERMISSIONS = {
   MENU: OPERATION_LOG_RESOURCE,
   LIST: `${OPERATION_LOG_RESOURCE}:${PERMISSION_ACTIONS.LIST}`,

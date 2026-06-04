@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -24,10 +25,14 @@ import { RequirePermissions } from '@/core/decorators/permissions.decorator';
 import { ResponseUtil } from '@/shared/utils/response.util';
 import { DEPARTMENT_PERMISSIONS } from '@/shared/constants/permissions.constant';
 import { BatchDeleteDepartmentsDto } from './dto/batch-delete-departments.dto';
+import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
+import { RolesGuard } from '@/core/guards/roles.guard';
+import { PermissionsGuard } from '@/core/guards/permissions.guard';
 
 @ApiTags('部门管理')
 @ApiBearerAuth()
 @Controller('system/departments')
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 export class DepartmentsController {
   constructor(private readonly departmentsService: DepartmentsService) {}
 
