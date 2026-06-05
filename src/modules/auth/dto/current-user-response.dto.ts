@@ -185,7 +185,7 @@ export class CurrentUserResponseDto {
   isSuperAdmin?: boolean;
 
   @ApiPropertyOptional({
-    description: '权限代码聚合（超管返回 ["*:*:*"]）',
+    description: '权限代码聚合（超管动态返回全部权限代码）',
     type: [String],
   })
   @Expose()

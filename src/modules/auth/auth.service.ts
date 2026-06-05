@@ -35,9 +35,7 @@ export class AuthService {
     private readonly loginLogsService: LoginLogsService,
   ) {}
 
-  async register(
-    registerDto: RegisterDto,
-  ): Promise<{
+  async register(registerDto: RegisterDto): Promise<{
     access_token: string;
     refresh_token: string;
     access_token_expires_in: number;
@@ -318,19 +316,25 @@ export class AuthService {
     // 将 isSuperAdmin 合并到响应对象
     Object.assign(userResponse, { isSuperAdmin });
 
-    // 计算前端使用的权限代码聚合：超管 -> ['*:*:*']；非超管 -> 角色权限并集
-    const permissionCodes: string[] = isSuperAdmin
-      ? ['*:*:*']
-      : Array.from(
-          new Set(
-            rolesArr
+    const permissionCodes: string[] = Array.from(
+      new Set(
+        isSuperAdmin
+          ? (
+              await this.prisma.permission.findMany({
+                where: { deletedAt: null },
+                select: { code: true },
+              })
+            )
+              .map((permission) => permission.code)
+              .filter(Boolean)
+          : rolesArr
               .flatMap((ur: any) => ur.role?.rolePermissions || [])
               .map((rp: any) => rp?.permission?.code)
               .filter(
                 (c: any): c is string => typeof c === 'string' && c.length > 0,
               ),
-          ),
-        );
+      ),
+    );
 
     Object.assign(userResponse, { permissionCodes });
 
@@ -348,7 +352,7 @@ export class AuthService {
         isRevoked: true,
       },
     });
-    
+
     // 在无状态JWT系统中，access token 的失效由客户端删除处理
     // refresh token 已在数据库中标记为撤销
   }
@@ -391,7 +395,9 @@ export class AuthService {
       | [] = [];
     if (isSuperAdmin) {
       const perms = await this.prisma.permission.findMany({
-        where: { type: { in: [PermissionType.DIRECTORY, PermissionType.MENU] } },
+        where: {
+          type: { in: [PermissionType.DIRECTORY, PermissionType.MENU] },
+        },
         select: {
           permissionId: true,
           parentPermissionId: true,
@@ -598,7 +604,10 @@ export class AuthService {
         account: logData.account,
         ipAddress: logData.ipAddress,
         userAgent: logData.userAgent,
-        status: logData.status >= 200 && logData.status < 300 ? LogStatus.SUCCESS : LogStatus.FAILURE,
+        status:
+          logData.status >= 200 && logData.status < 300
+            ? LogStatus.SUCCESS
+            : LogStatus.FAILURE,
         loginType: logData.loginType,
         failReason: logData.failReason,
         location,
@@ -694,9 +703,10 @@ export class AuthService {
   ): Promise<string> {
     // 生成随机的 refresh token
     const token = crypto.randomBytes(64).toString('hex');
-    
+
     // 计算过期时间
-    const refreshTokenExpiresIn = this.configService.get<string>('jwt.refreshTokenExpiresIn') || '7d';
+    const refreshTokenExpiresIn =
+      this.configService.get<string>('jwt.refreshTokenExpiresIn') || '7d';
     const expiresAt = this.calculateExpirationDate(refreshTokenExpiresIn);
 
     // 存储到数据库
@@ -716,9 +726,7 @@ export class AuthService {
   /**
    * 使用 Refresh Token 刷新 Access Token
    */
-  async refreshAccessToken(
-    refreshToken: string,
-  ): Promise<{
+  async refreshAccessToken(refreshToken: string): Promise<{
     access_token: string;
     refresh_token: string;
     access_token_expires_in: number;

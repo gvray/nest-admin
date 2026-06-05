@@ -380,7 +380,7 @@ export async function seedPermissions(prisma: PrismaClient) {
         type: node.type,
         parentPermissionId,
         description: node.description,
-        origin: 'USER',
+        origin: 'SYSTEM',
       },
       create: {
         name: node.name,
@@ -392,7 +392,7 @@ export async function seedPermissions(prisma: PrismaClient) {
             : 'access',
         parentPermissionId,
         description: node.description,
-        origin: 'USER',
+        origin: 'SYSTEM',
       },
     });
 

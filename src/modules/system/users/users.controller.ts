@@ -46,8 +46,14 @@ export class UsersController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '创建用户' })
   @ApiResponse({ status: 201, description: '创建成功', type: UserResponseDto })
-  async create(@Body() createUserDto: CreateUserDto) {
-    const data = await this.usersService.create(createUserDto);
+  async create(
+    @Body() createUserDto: CreateUserDto,
+    @CurrentUser() currentUser: IUser,
+  ) {
+    const data = await this.usersService.create(
+      createUserDto,
+      currentUser.userId,
+    );
     return ResponseUtil.created(data, '创建成功');
   }
 
@@ -89,8 +95,13 @@ export class UsersController {
   async update(
     @Param('userId') userId: string,
     @Body() updateUserDto: UpdateUserDto,
+    @CurrentUser() currentUser: IUser,
   ) {
-    const data = await this.usersService.update(userId, updateUserDto);
+    const data = await this.usersService.update(
+      userId,
+      updateUserDto,
+      currentUser.userId,
+    );
     return ResponseUtil.updated(data, '更新成功');
   }
 
@@ -100,8 +111,11 @@ export class UsersController {
   @ApiOperation({ summary: '删除用户（通过UserId）' })
   @ApiResponse({ status: 200, description: '删除成功' })
   @ApiResponse({ status: 404, description: '用户不存在' })
-  async remove(@Param('userId') userId: string) {
-    await this.usersService.remove(userId);
+  async remove(
+    @Param('userId') userId: string,
+    @CurrentUser() currentUser: IUser,
+  ) {
+    await this.usersService.remove(userId, currentUser.userId);
     return ResponseUtil.deleted(null, '删除成功');
   }
 
@@ -141,10 +155,12 @@ export class UsersController {
   async removeRoles(
     @Param('userId') userId: string,
     @Body() assignRolesDto: AssignRolesDto,
+    @CurrentUser() currentUser: IUser,
   ) {
     const data = await this.usersService.removeRoles(
       userId,
       assignRolesDto.roleIds,
+      currentUser.userId,
     );
     return ResponseUtil.updated(data, '角色移除成功');
   }
@@ -153,8 +169,11 @@ export class UsersController {
   @RequirePermissions(USER_PERMISSIONS.DELETE)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '批量删除用户' })
-  async batchDelete(@Body() { ids }: BatchDeleteUsersDto) {
-    await this.usersService.removeMany(ids);
+  async batchDelete(
+    @Body() { ids }: BatchDeleteUsersDto,
+    @CurrentUser() currentUser: IUser,
+  ) {
+    await this.usersService.removeMany(ids, currentUser.userId);
     return ResponseUtil.deleted(null, '删除成功');
   }
 }

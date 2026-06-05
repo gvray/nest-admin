@@ -111,10 +111,12 @@ export class RolesController {
   async assignPermissions(
     @Param('id') id: string,
     @Body() assignPermissionsDto: AssignPermissionsDto,
+    @CurrentUser() user: IUser,
   ) {
     const data = await this.rolesService.assignPermissions(
       id,
       assignPermissionsDto.permissionIds,
+      user.userId,
     );
     return ResponseUtil.updated(data, '分配成功');
   }
@@ -127,10 +129,12 @@ export class RolesController {
   async removePermissions(
     @Param('id') id: string,
     @Body() assignPermissionsDto: AssignPermissionsDto,
+    @CurrentUser() user: IUser,
   ) {
     const data = await this.rolesService.removePermissions(
       id,
       assignPermissionsDto.permissionIds,
+      user.userId,
     );
     return ResponseUtil.updated(data, '移除成功');
   }

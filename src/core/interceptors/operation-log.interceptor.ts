@@ -57,15 +57,15 @@ export class OperationLogInterceptor implements NestInterceptor {
     );
     if (!enabled) return next.handle();
 
-    // 仅拦截 POST/PUT/DELETE
+    // 仅拦截变更请求
     const method = (req.method || '').toUpperCase();
     console.log(
       'OperationLog Interceptor - method:',
       method,
       'should intercept:',
-      ['POST', 'PUT', 'DELETE'].includes(method),
+      ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method),
     );
-    if (!['POST', 'PUT', 'DELETE'].includes(method)) {
+    if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
       return next.handle();
     }
 
@@ -106,7 +106,8 @@ export class OperationLogInterceptor implements NestInterceptor {
     const maskedBody = maskSensitive(req.body, maskFields);
 
     const finish = async (status: number, message?: string) => {
-      const statusStr = status >= 200 && status < 300 ? LogStatus.SUCCESS : LogStatus.FAILURE;
+      const statusStr =
+        status >= 200 && status < 300 ? LogStatus.SUCCESS : LogStatus.FAILURE;
       try {
         const user = req.user || {};
         const latencyMs = Date.now() - start;
@@ -114,7 +115,7 @@ export class OperationLogInterceptor implements NestInterceptor {
         const autoAction =
           method === 'POST'
             ? 'create'
-            : method === 'PUT'
+            : method === 'PUT' || method === 'PATCH'
               ? 'update'
               : method === 'DELETE'
                 ? 'delete'
@@ -148,7 +149,7 @@ export class OperationLogInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       tap(async () => {
-        await finish(1);
+        await finish(200);
       }),
       catchError((err) => {
         const msg = (err?.message as string) || 'Unknown error';

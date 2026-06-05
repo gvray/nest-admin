@@ -57,7 +57,7 @@ export class PermissionsService extends BaseService {
 
     // 验证父子类型关系
     const parentType = parent.type;
-    
+
     if (parentType === 'DIRECTORY') {
       // 目录下只能有目录或菜单
       if (type !== 'DIRECTORY' && type !== 'MENU') {
@@ -94,70 +94,10 @@ export class PermissionsService extends BaseService {
   }
 
   async create(
-    createPermissionDto: CreatePermissionDto,
-    currentUserId?: string,
+    _createPermissionDto: CreatePermissionDto,
+    _currentUserId?: string,
   ): Promise<PermissionResponseDto> {
-    const {
-      name,
-      code,
-      type,
-      parentPermissionId,
-      action,
-      description,
-      menuMeta,
-    } = createPermissionDto;
-
-    // 检查权限代码是否已存在
-    const existingPermissionByCode = await this.prisma.permission.findUnique({
-      where: { code },
-    });
-
-    if (existingPermissionByCode) {
-      throw new ConflictException('权限代码已存在');
-    }
-
-    // 验证权限类型层级关系
-    await this.validatePermissionHierarchy(type, parentPermissionId);
-
-    const finalAction = type === 'MENU' ? 'access' : action || 'view';
-
-    const permission = await (this.prisma as any).permission.create({
-      data: {
-        name,
-        code,
-        type,
-        origin: 'USER',
-        parentPermissionId: parentPermissionId || ROOT_PARENT_ID,
-        description,
-        action: finalAction,
-        createdById: currentUserId,
-      },
-    });
-
-    if (type === 'MENU') {
-      await (this.prisma as any).menuMeta.upsert({
-        where: { permissionId: permission.permissionId },
-        update: {
-          path: menuMeta?.path ?? undefined,
-          icon: menuMeta?.icon ?? undefined,
-          hidden: menuMeta?.hidden ?? false,
-          component: menuMeta?.component ?? undefined,
-          sort: menuMeta?.sort ?? 0,
-        },
-        create: {
-          permissionId: permission.permissionId,
-          path: menuMeta?.path ?? undefined,
-          icon: menuMeta?.icon ?? undefined,
-          hidden: menuMeta?.hidden ?? false,
-          component: menuMeta?.component ?? undefined,
-          sort: menuMeta?.sort ?? 0,
-        },
-      });
-    }
-
-    return plainToInstance(PermissionResponseDto, permission, {
-      excludeExtraneousValues: true,
-    });
+    throw new ConflictException('权限必须由扫描同步生成，不允许手动创建');
   }
 
   async findAll(
@@ -289,6 +229,10 @@ export class PermissionsService extends BaseService {
       throw new NotFoundException(`权限ID ${id} 不存在`);
     }
 
+    if (permission.origin !== 'SYSTEM') {
+      throw new ConflictException('权限必须由扫描同步生成，不允许手动修改');
+    }
+
     // API 权限不允许手动修改
     if (permission.type === 'API') {
       throw new ConflictException('API 权限由系统自动管理，不能手动修改');
@@ -299,15 +243,8 @@ export class PermissionsService extends BaseService {
       throw new ConflictException('权限类型创建后不可修改');
     }
 
-    let newCode = permission.code;
     if (code && code !== permission.code) {
-      const existingPermissionByCode = await this.prisma.permission.findUnique({
-        where: { code },
-      });
-      if (existingPermissionByCode) {
-        throw new ConflictException('权限代码已存在');
-      }
-      newCode = code;
+      throw new ConflictException('权限代码不可修改');
     }
 
     // 如果修改了父权限，需要验证层级关系
@@ -329,7 +266,6 @@ export class PermissionsService extends BaseService {
       where: { id: permission.id },
       data: {
         name,
-        code: newCode,
         description,
         parentPermissionId: finalParentId,
         action: finalAction,
@@ -484,7 +420,13 @@ export class PermissionsService extends BaseService {
       where,
       include: {
         menuMeta: {
-          select: { path: true, icon: true, hidden: true, component: true, sort: true },
+          select: {
+            path: true,
+            icon: true,
+            hidden: true,
+            component: true,
+            sort: true,
+          },
         },
       },
       orderBy: [{ createdAt: 'asc' }],
