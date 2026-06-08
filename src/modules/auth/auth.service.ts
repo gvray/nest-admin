@@ -318,21 +318,13 @@ export class AuthService {
 
     const permissionCodes: string[] = Array.from(
       new Set(
-        isSuperAdmin
-          ? (
-              await this.prisma.permission.findMany({
-                where: { deletedAt: null },
-                select: { code: true },
-              })
-            )
-              .map((permission) => permission.code)
-              .filter(Boolean)
-          : rolesArr
-              .flatMap((ur: any) => ur.role?.rolePermissions || [])
-              .map((rp: any) => rp?.permission?.code)
-              .filter(
-                (c: any): c is string => typeof c === 'string' && c.length > 0,
-              ),
+        rolesArr
+          .flatMap((ur: any) => ur.role?.rolePermissions || [])
+          .filter((rp: any) => rp?.permission?.type !== 'API')
+          .map((rp: any) => rp?.permission?.code)
+          .filter(
+            (c: any): c is string => typeof c === 'string' && c.length > 0,
+          ),
       ),
     );
 

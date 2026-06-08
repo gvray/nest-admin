@@ -8,7 +8,6 @@ import {
   Delete,
   UseGuards,
   Query,
-  Request,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -170,6 +169,13 @@ export class PermissionsController {
         created: { type: 'number', description: '新增的权限数量' },
         updated: { type: 'number', description: '更新的权限数量' },
         deleted: { type: 'number', description: '删除的权限数量' },
+        assigned: {
+          type: 'object',
+          properties: {
+            total: { type: 'number', description: '超级角色已绑定总数' },
+            newAssigned: { type: 'number', description: '本次新增绑定数量' },
+          },
+        },
       },
     },
   })

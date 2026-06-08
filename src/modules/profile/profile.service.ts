@@ -9,10 +9,72 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { SUPER_ROLE_KEY } from '@/shared/constants/role.constant';
 
 @Injectable()
 export class ProfileService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async getPermissions(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { userId },
+      select: {
+        userRoles: {
+          select: {
+            role: {
+              select: {
+                roleId: true,
+                name: true,
+                roleKey: true,
+                description: true,
+                rolePermissions: {
+                  where: { permission: { deletedAt: null } },
+                  select: {
+                    permission: {
+                      select: {
+                        permissionId: true,
+                        name: true,
+                        code: true,
+                        type: true,
+                        action: true,
+                        description: true,
+                        parentPermissionId: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!user) throw new NotFoundException('用户不存在');
+
+    const roles = user.userRoles.map((ur) => ({
+      roleId: ur.role.roleId,
+      name: ur.role.name,
+      roleKey: ur.role.roleKey,
+      description: ur.role.description,
+    }));
+
+    const isSuperAdmin = user.userRoles.some(
+      (ur) => ur.role.roleKey === SUPER_ROLE_KEY,
+    );
+
+    const permissionMap = new Map<string, { permissionId: string; name: string; code: string; type: string; action: string; description: string | null; parentPermissionId: string | null }>();
+    user.userRoles
+      .flatMap((ur) => ur.role.rolePermissions)
+      .forEach((rp) => {
+        if (!permissionMap.has(rp.permission.code)) {
+          permissionMap.set(rp.permission.code, rp.permission);
+        }
+      });
+    const permissions = Array.from(permissionMap.values());
+
+    return { roles, permissions, isSuperAdmin };
+  }
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {
     const user = await this.prisma.user.findUnique({ where: { userId } });

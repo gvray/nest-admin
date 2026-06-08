@@ -33,6 +33,13 @@ export class ProfileController {
     return ResponseUtil.found(data, '获取当前用户信息');
   }
 
+  @Get('permissions')
+  @ApiOperation({ summary: '获取当前用户角色与权限' })
+  async getPermissions(@CurrentUser() user: { userId: string }) {
+    const data = await this.profileService.getPermissions(user.userId);
+    return ResponseUtil.found(data, '获取权限成功');
+  }
+
   @Patch()
   @ApiOperation({ summary: '更新个人信息' })
   @ApiResponse({ status: 200, description: '更新成功' })
