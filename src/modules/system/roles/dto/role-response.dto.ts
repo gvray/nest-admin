@@ -119,3 +119,22 @@ export class RoleResponseDto {
   @Expose()
   updatedAt: Date;
 }
+
+export class RoleDepartmentDto {
+  @ApiProperty({ description: '部门ID' })
+  departmentId: string;
+
+  @ApiProperty({ description: '部门名称' })
+  departmentName: string;
+}
+
+export class RoleDataScopeResponseDto {
+  @ApiProperty({ description: '角色ID' })
+  roleId: string;
+
+  @ApiProperty({ description: '数据权限范围' })
+  dataScope: number;
+
+  @ApiProperty({ description: '关联部门列表', type: [RoleDepartmentDto] })
+  departments: RoleDepartmentDto[];
+}

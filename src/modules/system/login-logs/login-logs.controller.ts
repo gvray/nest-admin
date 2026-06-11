@@ -35,7 +35,7 @@ export class LoginLogsController {
   constructor(private readonly loginLogsService: LoginLogsService) {}
 
   @Get()
-  @RequirePermissions(LOGIN_LOG_PERMISSIONS.VIEW)
+  @RequirePermissions(LOGIN_LOG_PERMISSIONS.LIST)
   @ApiOperation({ summary: '获取登录日志列表' })
   @ApiResponse({
     status: 200,
@@ -60,7 +60,7 @@ export class LoginLogsController {
   }
 
   @Delete('clear')
-  @RequirePermissions(LOGIN_LOG_PERMISSIONS.DELETE)
+  @RequirePermissions(LOGIN_LOG_PERMISSIONS.CLEAR)
   @ApiOperation({ summary: '清空所有登录日志' })
   @ApiResponse({ status: 200, description: '清理成功' })
   async clear() {
@@ -103,7 +103,7 @@ export class LoginLogsController {
   }
 
   @Post('clean')
-  @RequirePermissions(LOGIN_LOG_PERMISSIONS.DELETE)
+  @RequirePermissions(LOGIN_LOG_PERMISSIONS.CLEAN)
   @ApiOperation({ summary: '清理指定天数之前的登录日志' })
   @ApiResponse({ status: 200, description: '清理成功' })
   @ApiBody({ type: CleanLoginLogsDto })

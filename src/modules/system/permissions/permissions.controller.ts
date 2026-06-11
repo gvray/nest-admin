@@ -34,6 +34,7 @@ import { BatchDeletePermissionsDto } from './dto/batch-delete-permissions.dto';
 import {
   PermissionResponseDto,
   PermissionTreeNodeDto,
+  SimplePermissionTreeNodeDto,
 } from './dto/permission-response.dto';
 
 @ApiTags('权限管理')
@@ -100,7 +101,7 @@ export class PermissionsController {
   @Get('tree/simple')
   @RequirePermissions(PERMISSION_PERMISSIONS.LIST)
   @ApiOperation({ summary: '获取简化权限树（仅包含权限代码）' })
-  @ApiResponse({ status: 200, description: '简化权限树结构' })
+  @ApiResponse({ status: 200, description: '简化权限树结构', type: [SimplePermissionTreeNodeDto] })
   async getSimpleTree() {
     const data = await this.permissionsService.getSimplePermissionTree();
     return ResponseUtil.found(data, '简化权限树结构');

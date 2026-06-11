@@ -25,7 +25,7 @@ import { ROLE_PERMISSIONS } from '@/shared/constants/permissions.constant';
 import { AssignPermissionsDto } from './dto/assign-permissions.dto';
 import { AssignUsersDto } from './dto/assign-users.dto';
 import { QueryRoleDto } from './dto/query-role.dto';
-import { RoleResponseDto } from './dto/role-response.dto';
+import { RoleResponseDto, RoleDataScopeResponseDto } from './dto/role-response.dto';
 import { AssignDataScopeDto } from './dto/assign-data-scope.dto';
 
 import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
@@ -62,7 +62,7 @@ export class RolesController {
   @Get()
   @RequirePermissions(ROLE_PERMISSIONS.LIST)
   @ApiOperation({ summary: '获取角色列表' })
-  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 200, description: '获取成功', type: [RoleResponseDto] })
   async findAll(@Query() query: QueryRoleDto) {
     const pageData = await this.rolesService.findAll(query);
     return ResponseUtil.paginated(pageData, '获取成功');
@@ -71,7 +71,7 @@ export class RolesController {
   @Get(':id')
   @RequirePermissions(ROLE_PERMISSIONS.VIEW)
   @ApiOperation({ summary: '获取指定角色' })
-  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 200, description: '获取成功', type: RoleResponseDto })
   @ApiResponse({ status: 404, description: '角色不存在' })
   async findOne(@Param('id') id: string) {
     const data = await this.rolesService.findOne(id);
@@ -104,9 +104,9 @@ export class RolesController {
   }
 
   @Put(':id/permissions')
-  @RequirePermissions(ROLE_PERMISSIONS.ASSIGN_PERMISSIONS)
+  @RequirePermissions(ROLE_PERMISSIONS.UPDATE_PERMISSIONS)
   @ApiOperation({ summary: '为角色分配权限（替换所有权限）' })
-  @ApiResponse({ status: 200, description: '分配成功' })
+  @ApiResponse({ status: 200, description: '分配成功', type: RoleResponseDto })
   @ApiResponse({ status: 404, description: '角色不存在' })
   async assignPermissions(
     @Param('id') id: string,
@@ -122,9 +122,9 @@ export class RolesController {
   }
 
   @Delete(':id/permissions')
-  @RequirePermissions(ROLE_PERMISSIONS.REMOVE_PERMISSIONS)
+  @RequirePermissions(ROLE_PERMISSIONS.UPDATE_PERMISSIONS)
   @ApiOperation({ summary: '移除角色的权限' })
-  @ApiResponse({ status: 200, description: '移除成功' })
+  @ApiResponse({ status: 200, description: '移除成功', type: RoleResponseDto })
   @ApiResponse({ status: 404, description: '角色不存在' })
   async removePermissions(
     @Param('id') id: string,
@@ -140,7 +140,7 @@ export class RolesController {
   }
 
   @Put(':id/users')
-  @RequirePermissions(ROLE_PERMISSIONS.UPDATE)
+  @RequirePermissions(ROLE_PERMISSIONS.UPDATE_USERS)
   @ApiOperation({ summary: '为角色分配用户（替换所有用户）' })
   @ApiResponse({
     status: 200,
@@ -162,7 +162,7 @@ export class RolesController {
   }
 
   @Delete(':id/users')
-  @RequirePermissions(ROLE_PERMISSIONS.UPDATE)
+  @RequirePermissions(ROLE_PERMISSIONS.UPDATE_USERS)
   @ApiOperation({ summary: '移除角色用户' })
   @ApiResponse({
     status: 200,
@@ -184,10 +184,10 @@ export class RolesController {
   }
 
   @Put(':id/data-scope')
-  @RequirePermissions(ROLE_PERMISSIONS.UPDATE)
+  @RequirePermissions(ROLE_PERMISSIONS.UPDATE_DATA_SCOPE)
   @Audit('update')
   @ApiOperation({ summary: '为角色分配数据权限' })
-  @ApiResponse({ status: 200, description: '数据权限分配成功' })
+  @ApiResponse({ status: 200, description: '数据权限分配成功', type: RoleDataScopeResponseDto })
   @ApiResponse({ status: 404, description: '角色不存在' })
   async assignDataScope(
     @Param('id') id: string,
@@ -206,7 +206,7 @@ export class RolesController {
   @Get(':id/data-scope')
   @RequirePermissions(ROLE_PERMISSIONS.VIEW)
   @ApiOperation({ summary: '获取角色的数据权限' })
-  @ApiResponse({ status: 200, description: '获取成功' })
+  @ApiResponse({ status: 200, description: '获取成功', type: RoleDataScopeResponseDto })
   @ApiResponse({ status: 404, description: '角色不存在' })
   async getRoleDataScope(@Param('id') id: string) {
     const data = await this.rolesService.getRoleDataScope(id);

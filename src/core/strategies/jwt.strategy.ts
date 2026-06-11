@@ -106,24 +106,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('用户不存在或已被禁用');
     }
 
-    const hasSuperRole = user.userRoles.some(
-      (userRole) => userRole.role.roleKey === SUPER_ROLE_KEY,
-    );
-    const allPermissions = hasSuperRole
-      ? await this.prisma.permission.findMany({
-          where: { deletedAt: null },
-          select: {
-            permissionId: true,
-            name: true,
-            code: true,
-            action: true,
-            description: true,
-            createdAt: true,
-            updatedAt: true,
-          },
-        })
-      : null;
-
     return {
       userId: user.userId,
       email: user.email,
@@ -140,18 +122,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         description: userRole.role.description,
         createdAt: userRole.role.createdAt,
         updatedAt: userRole.role.updatedAt,
-        permissions:
-          userRole.role.roleKey === SUPER_ROLE_KEY && allPermissions
-            ? allPermissions
-            : userRole.role.rolePermissions.map((rp) => ({
-                permissionId: rp.permission.permissionId,
-                name: rp.permission.name,
-                code: rp.permission.code,
-                action: rp.permission.action,
-                description: rp.permission.description,
-                createdAt: rp.permission.createdAt,
-                updatedAt: rp.permission.updatedAt,
-              })),
+        permissions: userRole.role.rolePermissions.map((rp) => ({
+          permissionId: rp.permission.permissionId,
+          name: rp.permission.name,
+          code: rp.permission.code,
+          action: rp.permission.action,
+          description: rp.permission.description,
+          createdAt: rp.permission.createdAt,
+          updatedAt: rp.permission.updatedAt,
+        })),
       })),
     };
   }

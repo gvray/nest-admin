@@ -2,13 +2,21 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, IsEnum } from 'class-validator';
 
 export enum ActionType {
-  ACCESS = 'access',
+  LIST = 'list',
   VIEW = 'view',
   CREATE = 'create',
   UPDATE = 'update',
   DELETE = 'delete',
-  EXPORT = 'export',
+  CLEAN = 'clean',
+  CLEAR = 'clear',
   IMPORT = 'import',
+  EXPORT = 'export',
+  SCAN = 'scan',
+  UPDATE_USERS = 'update-users',
+  UPDATE_ROLES = 'update-roles',
+  UPDATE_PERMISSIONS = 'update-permissions',
+  UPDATE_DATA_SCOPE = 'update-data-scope',
+  RESET_PASSWORD = 'reset-password',
 }
 
 export enum PermissionType {
@@ -62,7 +70,7 @@ export class CreatePermissionDto {
   parentPermissionId?: string;
 
   @ApiPropertyOptional({
-    description: '操作类型（菜单默认为access）',
+    description: '操作类型（菜单默认为list或view）',
     enum: ActionType,
   })
   @IsOptional()

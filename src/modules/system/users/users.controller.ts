@@ -120,7 +120,7 @@ export class UsersController {
   }
 
   @Put(':userId/roles')
-  @RequirePermissions(USER_PERMISSIONS.ASSIGN_ROLES)
+  @RequirePermissions(USER_PERMISSIONS.UPDATE_ROLES)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '为用户分配角色（替换所有角色）' })
   @ApiResponse({
@@ -143,7 +143,7 @@ export class UsersController {
   }
 
   @Delete(':userId/roles')
-  @RequirePermissions(USER_PERMISSIONS.REMOVE_ROLES)
+  @RequirePermissions(USER_PERMISSIONS.UPDATE_ROLES)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '移除用户的角色' })
   @ApiResponse({

@@ -28,42 +28,38 @@ export class ApiPermissionSyncService implements OnApplicationBootstrap {
 
     if (segs.includes('export')) return 'export';
     if (segs.includes('import')) return 'import';
-    if (segs.includes('assign')) return 'assign';
-    if (segs.includes('unbind') || segs.includes('unassign')) return 'unbind';
-    if (segs.includes('enable')) return 'enable';
-    if (segs.includes('disable')) return 'disable';
-    if (segs.includes('download') && segs.includes('template'))
-      return 'downloadTemplate';
-    if (segs.includes('upload') && segs.includes('template'))
-      return 'uploadTemplate';
-    if (segs.includes('reset') && segs.includes('password'))
-      return 'resetPassword';
+    if (segs.includes('scan')) return 'scan';
+    if (segs.includes('clear')) return 'clear';
+    if (segs.includes('clean')) return 'clean';
+    if (segs.includes('reset') && segs.includes('password')) return 'reset-password';
+    if (segs.includes('permissions')) return 'update-permissions';
+    if (segs.includes('roles')) return 'update-roles';
+    if (segs.includes('users')) return 'update-users';
+    if (segs.includes('data-scope')) return 'update-data-scope';
 
     switch (httpMethod.toUpperCase()) {
       case 'GET':
-        return isIdRoute ? 'get' : 'query';
+        return isIdRoute ? 'view' : 'list';
       case 'POST':
         return 'create';
       case 'PUT':
       case 'PATCH':
         return 'update';
       case 'DELETE':
-        return segs.some((s) => /batch|many/.test(s))
-          ? 'batchDelete'
-          : 'delete';
+        return 'delete';
       default:
         return 'access';
     }
   }
 
   async onApplicationBootstrap() {
-    // 构建菜单映射，直接用完整 code
-    const menuPerms = await this.prisma.permission.findMany({
-      where: { code: { startsWith: 'menu:' } },
+    // 构建菜单映射，key 为权限 code（如 system:role）
+    const menuPerms = await (this.prisma as any).permission.findMany({
+      where: { type: 'MENU' },
       select: { permissionId: true, code: true },
     });
     const menuMap: Record<string, string> = {};
-    menuPerms.forEach((p) => {
+    menuPerms.forEach((p: any) => {
       menuMap[p.code] = p.permissionId;
     });
 
@@ -120,17 +116,23 @@ export class ApiPermissionSyncService implements OnApplicationBootstrap {
         for (const code of codes) {
           if (!code || code === '*:*:*') continue;
           const parts = code.split(':');
-          if (parts.length < 3 || parts[0] !== 'system') continue;
-          menuCode = parts[1] || menuCode;
-          const actionFromCode = parts.slice(2).join(':');
+          // 支持两种格式：api:system:role:create 或 system:role:create
+          const isApiFormat = parts[0] === 'api' && parts.length >= 4;
+          const isLegacyFormat = parts[0] === 'system' && parts.length >= 3;
+          if (!isApiFormat && !isLegacyFormat) continue;
+          const moduleIdx = isApiFormat ? 1 : 0;
+          const resourceIdx = isApiFormat ? 2 : 1;
+          const actionIdx = isApiFormat ? 3 : 2;
+          menuCode = parts[resourceIdx] || menuCode;
+          const actionFromCode = parts.slice(actionIdx).join(':');
           const action =
             actionFromCode || this.guessAction(methodPath, httpMethod);
 
-          const fullMenuCode = `menu:${moduleKey}:${menuCode}`;
+          const fullMenuCode = `${parts[moduleIdx]}:${menuCode}`;
           const parentId = menuMap[fullMenuCode];
           if (!parentId) continue;
 
-          const apiCode = `api:${moduleKey}:${menuCode}:${action}`;
+          const apiCode = `api:${parts[moduleIdx]}:${menuCode}:${action}`;
           const exists = existingSet.has(apiCode);
           const wasSoftDeleted = softDeletedSet.has(apiCode);
           report.push({
@@ -139,7 +141,7 @@ export class ApiPermissionSyncService implements OnApplicationBootstrap {
             controller: metatype?.name ?? '',
             method: methodName,
             httpMethod,
-            route: `/${[controllerPath, methodPath].filter(Boolean).join('/')}`,
+            route: `/${[controllerPath, methodPath].map(s => s.replace(/^\/|\/$/g, '')).filter(Boolean).join('/')}`,
             menuCode: fullMenuCode,
             status: exists ? (wasSoftDeleted ? 'reactivated' : 'exists') : 'created',
           });

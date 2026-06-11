@@ -52,7 +52,7 @@ export class ConfigsController {
   }
 
   @Get()
-  @RequirePermissions(CONFIG_PERMISSIONS.VIEW)
+  @RequirePermissions(CONFIG_PERMISSIONS.LIST)
   @ApiOperation({ summary: '获取配置列表' })
   @ApiResponse({
     status: 200,

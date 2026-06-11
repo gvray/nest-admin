@@ -94,3 +94,32 @@ export class PermissionTreeNodeDto extends PermissionResponseDto {
   @Type(() => PermissionTreeNodeDto)
   children?: PermissionTreeNodeDto[];
 }
+
+export class SimplePermissionTreeNodeDto {
+  @ApiProperty({ description: '权限ID' })
+  key: string;
+
+  @ApiProperty({ description: '权限名称' })
+  title: string;
+
+  @ApiProperty({ description: '权限代码' })
+  code: string;
+
+  @ApiProperty({ description: '权限类型' })
+  type: string;
+
+  @ApiPropertyOptional({ description: '父权限ID' })
+  parentId: string | null;
+
+  @ApiPropertyOptional({ description: '操作动作' })
+  action?: string;
+
+  @ApiPropertyOptional({ description: '排序值' })
+  sort?: number;
+
+  @ApiPropertyOptional({
+    description: '子节点',
+    type: () => [SimplePermissionTreeNodeDto],
+  })
+  children?: SimplePermissionTreeNodeDto[];
+}

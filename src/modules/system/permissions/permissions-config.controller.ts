@@ -1,6 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { PERMISSION_METADATA } from '@/shared/constants/permissions.constant';
+import { PERMISSIONS } from '@/shared/constants/permissions.constant';
 import { ResponseUtil } from '@/shared/utils/response.util';
 
 @ApiTags('权限配置')
@@ -30,6 +30,6 @@ export class PermissionsConfigController {
     },
   })
   getPermissionsConfig() {
-    return ResponseUtil.success(PERMISSION_METADATA, '权限配置获取成功');
+    return ResponseUtil.success(PERMISSIONS, '权限配置获取成功');
   }
 }

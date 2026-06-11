@@ -261,6 +261,7 @@ export class AuthService {
                         permissionId: true,
                         name: true,
                         code: true,
+                        type: true,
                         action: true,
                         description: true,
                       },
@@ -365,121 +366,58 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('用户不存在');
     }
-    const isSuperAdmin =
-      Array.isArray(user.userRoles) &&
-      user.userRoles.some((ur) => ur.role?.roleKey === SUPER_ROLE_KEY);
-    let menus:
-      | Array<{
-          permissionId: string;
-          parentPermissionId: string | null;
-          name: string;
-          code: string;
-          type: string;
-          action: string;
-          meta: {
-            path: string | null;
-            icon: string | null;
-            hidden: boolean;
-            component: string | null;
-            sort: number;
-          } | null;
-        }>
-      | [] = [];
-    if (isSuperAdmin) {
-      const perms = await this.prisma.permission.findMany({
-        where: {
-          type: { in: [PermissionType.DIRECTORY, PermissionType.MENU] },
-        },
-        select: {
-          permissionId: true,
-          parentPermissionId: true,
-          name: true,
-          code: true,
-          type: true,
-          action: true,
-          menuMeta: {
-            select: {
-              path: true,
-              icon: true,
-              hidden: true,
-              component: true,
-              sort: true,
-            },
+    const assignedPermissionIds = Array.from(
+      new Set(
+        (user.userRoles || [])
+          .flatMap((ur) => ur.role?.rolePermissions || [])
+          .map((rp) => rp.permissionId)
+          .filter(
+            (id): id is string => typeof id === 'string' && id.length > 0,
+          ),
+      ),
+    );
+    if (assignedPermissionIds.length === 0) return [];
+    const perms = await this.prisma.permission.findMany({
+      where: {
+        permissionId: { in: assignedPermissionIds },
+        type: { in: [PermissionType.DIRECTORY, PermissionType.MENU] },
+      },
+      select: {
+        permissionId: true,
+        parentPermissionId: true,
+        name: true,
+        code: true,
+        type: true,
+        action: true,
+        menuMeta: {
+          select: {
+            path: true,
+            icon: true,
+            hidden: true,
+            component: true,
+            sort: true,
           },
         },
-        orderBy: [{ code: 'asc' }],
-      });
-      menus = perms.map((p) => ({
-        permissionId: p.permissionId,
-        parentPermissionId: p.parentPermissionId ?? null,
-        name: p.name,
-        code: p.code,
-        type: p.type,
-        action: p.action,
-        meta: p.menuMeta
-          ? {
-              path: p.menuMeta.path ?? null,
-              icon: p.menuMeta.icon ?? null,
-              hidden: p.menuMeta.hidden,
-              component: p.menuMeta.component ?? null,
-              sort: p.menuMeta.sort ?? 0,
-            }
-          : null,
-      }));
-    } else {
-      const assignedPermissionIds = Array.from(
-        new Set(
-          (user.userRoles || [])
-            .flatMap((ur) => ur.role?.rolePermissions || [])
-            .map((rp) => rp.permissionId)
-            .filter(
-              (id): id is string => typeof id === 'string' && id.length > 0,
-            ),
-        ),
-      );
-      if (assignedPermissionIds.length === 0) return [];
-      const perms = await this.prisma.permission.findMany({
-        where: {
-          permissionId: { in: assignedPermissionIds },
-          type: { in: [PermissionType.DIRECTORY, PermissionType.MENU] },
-        },
-        select: {
-          permissionId: true,
-          parentPermissionId: true,
-          name: true,
-          code: true,
-          type: true,
-          action: true,
-          menuMeta: {
-            select: {
-              path: true,
-              icon: true,
-              hidden: true,
-              component: true,
-              sort: true,
-            },
-          },
-        },
-        orderBy: [{ code: 'asc' }],
-      });
-      menus = perms.map((p) => ({
-        permissionId: p.permissionId,
-        parentPermissionId: p.parentPermissionId ?? null,
-        name: p.name,
-        code: p.code,
-        type: p.type,
-        action: p.action,
-        meta: p.menuMeta
-          ? {
-              path: p.menuMeta.path ?? null,
-              icon: p.menuMeta.icon ?? null,
-              hidden: p.menuMeta.hidden,
-              component: p.menuMeta.component ?? null,
-              sort: p.menuMeta.sort ?? 0,
-            }
-          : null,
-      }));
-    }
+      },
+      orderBy: [{ code: 'asc' }],
+    });
+    const menus = perms.map((p) => ({
+      permissionId: p.permissionId,
+      parentPermissionId: p.parentPermissionId ?? null,
+      name: p.name,
+      code: p.code,
+      type: p.type,
+      action: p.action,
+      meta: p.menuMeta
+        ? {
+            path: p.menuMeta.path ?? null,
+            icon: p.menuMeta.icon ?? null,
+            hidden: p.menuMeta.hidden,
+            component: p.menuMeta.component ?? null,
+            sort: p.menuMeta.sort ?? 0,
+          }
+        : null,
+    }));
     type Node = {
       permissionId: string;
       parentPermissionId: string | null;

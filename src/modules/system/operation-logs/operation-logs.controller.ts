@@ -28,7 +28,7 @@ export class OperationLogsController {
   constructor(private readonly service: OperationLogsService) {}
 
   @Get()
-  @RequirePermissions(OPERATION_LOG_PERMISSIONS.VIEW)
+  @RequirePermissions(OPERATION_LOG_PERMISSIONS.LIST)
   @ApiOperation({ summary: '分页查询操作日志' })
   async findMany(@Query() query: QueryOperationLogDto) {
     const pageData = await this.service.findAll(query);
@@ -36,7 +36,7 @@ export class OperationLogsController {
   }
 
   @Delete('clear')
-  @RequirePermissions(OPERATION_LOG_PERMISSIONS.DELETE)
+  @RequirePermissions(OPERATION_LOG_PERMISSIONS.CLEAR)
   @ApiOperation({ summary: '清空所有操作日志' })
   async clear() {
     const count = await this.service.clearAll();
@@ -69,7 +69,7 @@ export class OperationLogsController {
   }
 
   @Post('clean')
-  @RequirePermissions(OPERATION_LOG_PERMISSIONS.DELETE)
+  @RequirePermissions(OPERATION_LOG_PERMISSIONS.CLEAN)
   @ApiOperation({ summary: '清理指定天数之前的操作日志' })
   @ApiBody({ type: CleanOperationLogsDto })
   async clean(@Body() dto: CleanOperationLogsDto) {
