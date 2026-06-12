@@ -81,5 +81,11 @@ export async function seedRoles(prisma: PrismaClient) {
   console.log('角色创建完成');
 
   // 返回创建的角色
-  return { superRole: superAdminRole, adminRole, userRole, managerRole, guestRole };
+  return {
+    superRole: superAdminRole,
+    adminRole,
+    userRole,
+    managerRole,
+    guestRole,
+  };
 }

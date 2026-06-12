@@ -12,14 +12,21 @@ export async function seedUsers(
 ) {
   console.log('开始创建用户...');
 
-  // 创建超级管理员用户（不可删除和禁用）
+  // ================================
+  // 👑 超级管理员
+  // ================================
   console.log('创建超级管理员用户...');
-  const hashedSuperPassword = await bcrypt.hash('123456', 10);
+
+  const rawSuperPassword = process.env.SUPER_ADMIN_INITIAL_PASSWORD ?? '123456';
+
+  const hashedSuperPassword = await bcrypt.hash(rawSuperPassword, 10);
+  console.log('⚠️ 请登录后立即修改密码');
+
   const superUser = await prisma.user.upsert({
     where: { email: 'super@example.com' },
     update: {
       phone: '13900139000',
-      status: UserStatus.ENABLED, // 确保启用状态
+      status: UserStatus.ENABLED,
     },
     create: {
       email: 'super@example.com',
@@ -27,8 +34,8 @@ export async function seedUsers(
       nickname: '超级管理员',
       phone: '13900139000',
       password: hashedSuperPassword,
-      gender: Gender.OTHER, // 其他
-      status: UserStatus.ENABLED, // 确保启用状态
+      gender: Gender.OTHER,
+      status: UserStatus.ENABLED,
       description: '系统超级管理员，不可删除和禁用',
     },
   });
@@ -425,5 +432,3 @@ export async function seedUsers(
 
   return { superUser, adminUser };
 }
-
-
