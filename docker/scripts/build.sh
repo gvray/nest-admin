@@ -23,12 +23,12 @@ warn()  { printf "${YELLOW}${BOLD}[build]${NC} %s\n" "$*"; }
 fatal() { printf "${RED}${BOLD}[build]${NC} %b\n" "$*" >&2; exit 1; }
 
 # ── Config ────────────────────────────────────────────────────────────────────
-IMAGE_NAME="nest-admin"
+IMAGE_NAME="gvray-admin"
 REGISTRY="${DOCKER_REGISTRY:-docker.io}"
 NAMESPACE="${DOCKER_NAMESPACE:-gvray}"
 VERSION="${VERSION:-}"
 PLATFORM="${PLATFORM:-linux/amd64}"
-BUILDER="${BUILDER:-nest-admin-builder}"
+BUILDER="${BUILDER:-gvray-admin-builder}"
 
 # Flags — overridden by getopts below
 MULTI_ARCH=false

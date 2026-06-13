@@ -1,14 +1,14 @@
 services:
   mysql:
     image: mysql:8.0
-    container_name: nest-admin-mysql
+    container_name: gvray-admin-mysql
     restart: unless-stopped
     env_file:
       - path: .env.${ENV:-production}
         required: false
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-password}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-nest_admin}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-gvray_admin}
     volumes:
       - mysql-data:/var/lib/mysql
       - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
@@ -26,8 +26,8 @@ services:
       --collation-server=utf8mb4_unicode_ci
 
   app:
-    image: ${IMAGE:-gvray/nest-admin:latest}
-    container_name: nest-admin-app
+    image: ${IMAGE:-gvray/gvray-admin:latest}
+    container_name: gvray-admin-app
     restart: unless-stopped
     depends_on:
       mysql:
@@ -37,7 +37,7 @@ services:
         required: false
     environment:
       NODE_ENV: ${NODE_ENV:-production}
-      DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD:-password}@mysql:3306/${MYSQL_DATABASE:-nest_admin}
+      DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD:-password}@mysql:3306/${MYSQL_DATABASE:-gvray_admin}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       PORT: ${PORT:-8001}
@@ -55,7 +55,7 @@ services:
 
   web:
     image: ${WEB_IMAGE:-gvray/react-umi-admin:latest}
-    container_name: nest-admin-web
+    container_name: gvray-admin-web
     restart: unless-stopped
     depends_on:
       app:

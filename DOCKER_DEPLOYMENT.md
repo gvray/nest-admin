@@ -59,10 +59,10 @@ JWT_SECRET=your-strong-secret-here        # 必填，缺失则启动报错
 # 以下有默认值，按需覆盖
 NODE_ENV=production
 MYSQL_ROOT_PASSWORD=password
-DATABASE_URL=mysql://root:password@mysql:3306/nest_admin
+DATABASE_URL=mysql://root:password@mysql:3306/gvray_admin
 PORT=8001
 ENABLE_CORS=false
-IMAGE=gvray/nest-admin:latest             # 推荐指定固定版本
+IMAGE=gvray/gvray-admin:latest             # 推荐指定固定版本
 ```
 
 ### 2.2 启动
@@ -84,10 +84,10 @@ pnpm docker:down
 
 ```bash
 # 方式一：.env 中指定
-IMAGE=gvray/nest-admin:a3f79f3 docker compose up -d
+IMAGE=gvray/gvray-admin:a3f79f3 docker compose up -d
 
 # 方式二：环境变量传入（适合 CI/CD）
-IMAGE=gvray/nest-admin:v1.2.3 docker compose up -d app
+IMAGE=gvray/gvray-admin:v1.2.3 docker compose up -d app
 ```
 
 ---
@@ -188,11 +188,11 @@ pnpm db:reset          # 重置数据库并重新 seed
 curl http://localhost:8001/health
 
 # 进入容器
-docker exec -it nest-admin-app sh
+docker exec -it gvray-admin-app sh
 
 # 查看容器日志
-docker logs nest-admin-app
-docker logs nest-admin-mysql
+docker logs gvray-admin-app
+docker logs gvray-admin-mysql
 
 # 检查端口占用
 lsof -i :8001
@@ -203,6 +203,6 @@ lsof -i :8001
 | 现象 | 原因 | 解决 |
 |------|------|------|
 | 启动报错 `JWT_SECRET is required` | `.env` 缺少 JWT_SECRET | 添加 JWT_SECRET 到 `.env` |
-| 健康检查失败 → 自动回滚 | 应用启动超时或崩溃 | `docker logs nest-admin-app` 查原因 |
+| 健康检查失败 → 自动回滚 | 应用启动超时或崩溃 | `docker logs gvray-admin-app` 查原因 |
 | 数据库连接失败 | MySQL 未就绪或密码错误 | 检查 DATABASE_URL 和 MySQL 状态 |
 | 端口已被占用 | 旧容器未清理 | `docker ps` 找到并停止旧容器 |

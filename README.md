@@ -134,10 +134,10 @@
 ### 开发环境设置
 ```bash
 # 克隆项目
-git clone https://github.com/gvray/nest-admin.git
+git clone https://github.com/gvray/gvray-admin.git
 
 # 进入项目目录
-cd nest-admin
+cd gvray-admin
 
 # 安装依赖
 pnpm install

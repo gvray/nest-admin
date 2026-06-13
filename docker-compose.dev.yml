@@ -1,14 +1,14 @@
 services:
   mysql:
     image: mysql:8.0
-    container_name: nest-admin-mysql-dev
+    container_name: gvray-admin-mysql-dev
     restart: unless-stopped
     env_file:
       - path: .env.${ENV:-development}
         required: false
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-password}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-nest_admin}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-gvray_admin}
     volumes:
       - mysql-dev-data:/var/lib/mysql
       - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
@@ -30,7 +30,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: dev
-    container_name: nest-admin-app-dev
+    container_name: gvray-admin-app-dev
     restart: "no"
     depends_on:
       mysql:
@@ -40,7 +40,7 @@ services:
         required: false
     environment:
       NODE_ENV: development
-      DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD:-password}@mysql:3306/${MYSQL_DATABASE:-nest_admin}
+      DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD:-password}@mysql:3306/${MYSQL_DATABASE:-gvray_admin}
       JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-local-only}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       PORT: ${PORT:-3000}

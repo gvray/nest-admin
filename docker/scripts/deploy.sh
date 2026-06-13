@@ -21,9 +21,9 @@
 #
 # Environment variables (all optional, override via export or .env.production):
 #   TAG              Image tag            (default: latest)
-#   CONTAINER_NAME   App container name   (default: nest_admin_app)
-#   MYSQL_CONTAINER  MySQL container name (default: nest_admin_mysql)
-#   MYSQL_DATABASE   MySQL database name  (default: nest_admin)
+#   CONTAINER_NAME   App container name   (default: gvray_admin_app)
+#   MYSQL_CONTAINER  MySQL container name (default: gvray_admin_mysql)
+#   MYSQL_DATABASE   MySQL database name  (default: gvray_admin)
 #   PLATFORM         Docker platform      (default: linux/amd64)
 
 set -euo pipefail
@@ -36,12 +36,12 @@ warn()  { printf "${YELLOW}${BOLD}[deploy]${NC} %s\n" "$*"; }
 fatal() { printf "${RED}${BOLD}[deploy]${NC} %b\n" "$*" >&2; exit 1; }
 
 # ── Config ────────────────────────────────────────────────────────────────────
-IMAGE_NAME="nest-admin"
+IMAGE_NAME="gvray-admin"
 REGISTRY="${DOCKER_REGISTRY:-docker.io}"
 NAMESPACE="${DOCKER_NAMESPACE:-gvray}"
-CONTAINER_NAME="${CONTAINER_NAME:-nest_admin_app}"
-MYSQL_CONTAINER="${MYSQL_CONTAINER:-nest_admin_mysql}"
-MYSQL_DATABASE="${MYSQL_DATABASE:-nest_admin}"
+CONTAINER_NAME="${CONTAINER_NAME:-gvray_admin_app}"
+MYSQL_CONTAINER="${MYSQL_CONTAINER:-gvray_admin_mysql}"
+MYSQL_DATABASE="${MYSQL_DATABASE:-gvray_admin}"
 PLATFORM="${PLATFORM:-linux/amd64}"
 TAG="${TAG:-latest}"
 NO_PULL=false
@@ -95,7 +95,7 @@ ensure_mysql() {
       -p "${db_port}:3306" \
       -e MYSQL_ROOT_PASSWORD="${db_pass:-password}" \
       -e MYSQL_DATABASE="${MYSQL_DATABASE}" \
-      -v nest_admin_mysql_data:/var/lib/mysql \
+      -v gvray_admin_mysql_data:/var/lib/mysql \
       "${cnf_mount[@]}" \
       mysql:8.0 \
         --default-authentication-plugin=mysql_native_password \
@@ -283,7 +283,7 @@ cmd_reset() {
   printf "  ${RED}The following will be permanently destroyed:${NC}\n"
   printf "  ${RED}  • App container  : ${CONTAINER_NAME} (+ all backups)${NC}\n"
   printf "  ${RED}  • MySQL container: ${MYSQL_CONTAINER}${NC}\n"
-  printf "  ${RED}  • MySQL volume   : nest_admin_mysql_data${NC}\n"
+  printf "  ${RED}  • MySQL volume   : gvray_admin_mysql_data${NC}\n"
   printf "  ${RED}  • ALL DATABASE DATA WILL BE LOST${NC}\n"
   printf "\n"
   printf "  Then redeploy + optionally seed from scratch.\n"
@@ -302,7 +302,7 @@ cmd_reset() {
   docker rm   "$MYSQL_CONTAINER" 2>/dev/null || true
 
   info "Removing MySQL data volume..."
-  docker volume rm nest_admin_mysql_data 2>/dev/null || true
+  docker volume rm gvray_admin_mysql_data 2>/dev/null || true
 
   ok "Destroyed. Starting fresh deploy..."
   printf "\n"

@@ -70,7 +70,7 @@ WORKDIR /app
 ARG BUILD_DATE
 ARG GIT_SHA
 ARG VERSION="0.0.0"
-LABEL org.opencontainers.image.title="nest-admin" \
+LABEL org.opencontainers.image.title="gvray-admin" \
       org.opencontainers.image.description="企业级后台管理系统" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.created="${BUILD_DATE}" \
