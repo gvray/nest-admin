@@ -63,7 +63,18 @@ export class ProfileService {
       (ur) => ur.role.roleKey === SUPER_ROLE_KEY,
     );
 
-    const permissionMap = new Map<string, { permissionId: string; name: string; code: string; type: string; action: string; description: string | null; parentPermissionId: string | null }>();
+    const permissionMap = new Map<
+      string,
+      {
+        permissionId: string;
+        name: string;
+        code: string;
+        type: string;
+        action: string;
+        description: string | null;
+        parentPermissionId: string | null;
+      }
+    >();
     user.userRoles
       .flatMap((ur) => ur.role.rolePermissions)
       .forEach((rp) => {

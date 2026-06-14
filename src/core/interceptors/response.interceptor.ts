@@ -21,9 +21,10 @@ export const SKIP_RESPONSE_FORMAT = 'skipResponseFormat';
  * 自动将控制器返回的数据包装为统一的响应格式
  */
 @Injectable()
-export class ResponseInterceptor<T>
-  implements NestInterceptor<T, ApiResponse<T>>
-{
+export class ResponseInterceptor<T> implements NestInterceptor<
+  T,
+  ApiResponse<T>
+> {
   constructor(private reflector: Reflector) {}
 
   intercept(

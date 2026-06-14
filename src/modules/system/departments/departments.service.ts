@@ -301,7 +301,7 @@ export class DepartmentsService extends BaseService {
 
       // 处理状态过滤
       if (queryDto?.status !== undefined) {
-        whereConditions.status = queryDto.status as string;
+        whereConditions.status = queryDto.status;
       } else {
         whereConditions.status = CommonStatus.ENABLED;
       }
@@ -368,7 +368,10 @@ export class DepartmentsService extends BaseService {
         allDepartments = await this.prisma.department.findMany({
           where: {
             departmentId: { in: Array.from(departmentIdsToInclude) },
-            status: queryDto?.status !== undefined ? (queryDto.status as string) : CommonStatus.ENABLED,
+            status:
+              queryDto?.status !== undefined
+                ? queryDto.status
+                : CommonStatus.ENABLED,
           },
           orderBy: [{ sort: 'asc' }, { createdAt: 'asc' }],
         });

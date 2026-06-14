@@ -31,7 +31,8 @@ export class ApiPermissionSyncService implements OnApplicationBootstrap {
     if (segs.includes('scan')) return 'scan';
     if (segs.includes('clear')) return 'clear';
     if (segs.includes('clean')) return 'clean';
-    if (segs.includes('reset') && segs.includes('password')) return 'reset-password';
+    if (segs.includes('reset') && segs.includes('password'))
+      return 'reset-password';
     if (segs.includes('permissions')) return 'update-permissions';
     if (segs.includes('roles')) return 'update-roles';
     if (segs.includes('users')) return 'update-users';
@@ -141,9 +142,16 @@ export class ApiPermissionSyncService implements OnApplicationBootstrap {
             controller: metatype?.name ?? '',
             method: methodName,
             httpMethod,
-            route: `/${[controllerPath, methodPath].map(s => s.replace(/^\/|\/$/g, '')).filter(Boolean).join('/')}`,
+            route: `/${[controllerPath, methodPath]
+              .map((s) => s.replace(/^\/|\/$/g, ''))
+              .filter(Boolean)
+              .join('/')}`,
             menuCode: fullMenuCode,
-            status: exists ? (wasSoftDeleted ? 'reactivated' : 'exists') : 'created',
+            status: exists
+              ? wasSoftDeleted
+                ? 'reactivated'
+                : 'exists'
+              : 'created',
           });
         }
       }

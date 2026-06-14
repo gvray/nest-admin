@@ -112,5 +112,6 @@
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
-  }
+  },
+  "packageManager": "pnpm@9.15.9"
 }

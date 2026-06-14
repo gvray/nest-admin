@@ -51,7 +51,11 @@ export class PermissionsController {
   @RequirePermissions(PERMISSION_PERMISSIONS.CREATE)
   @Audit('create')
   @ApiOperation({ summary: '创建权限' })
-  @ApiResponse({ status: 201, description: '创建成功', type: PermissionResponseDto })
+  @ApiResponse({
+    status: 201,
+    description: '创建成功',
+    type: PermissionResponseDto,
+  })
   async create(
     @Body() createPermissionDto: CreatePermissionDto,
     @CurrentUser() user: IUser,
@@ -66,7 +70,11 @@ export class PermissionsController {
   @Get()
   @RequirePermissions(PERMISSION_PERMISSIONS.LIST)
   @ApiOperation({ summary: '获取权限列表' })
-  @ApiResponse({ status: 200, description: '权限列表', type: [PermissionResponseDto] })
+  @ApiResponse({
+    status: 200,
+    description: '权限列表',
+    type: [PermissionResponseDto],
+  })
   async findAll(@Query() query: QueryPermissionDto) {
     const pageData = await this.permissionsService.findAll(query);
     return ResponseUtil.paginated(pageData, '权限列表');
@@ -101,7 +109,11 @@ export class PermissionsController {
   @Get('tree/simple')
   @RequirePermissions(PERMISSION_PERMISSIONS.LIST)
   @ApiOperation({ summary: '获取简化权限树（仅包含权限代码）' })
-  @ApiResponse({ status: 200, description: '简化权限树结构', type: [SimplePermissionTreeNodeDto] })
+  @ApiResponse({
+    status: 200,
+    description: '简化权限树结构',
+    type: [SimplePermissionTreeNodeDto],
+  })
   async getSimpleTree() {
     const data = await this.permissionsService.getSimplePermissionTree();
     return ResponseUtil.found(data, '简化权限树结构');
@@ -110,7 +122,11 @@ export class PermissionsController {
   @Get(':id')
   @RequirePermissions(PERMISSION_PERMISSIONS.VIEW)
   @ApiOperation({ summary: '获取指定权限' })
-  @ApiResponse({ status: 200, description: '获取成功', type: PermissionResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: '获取成功',
+    type: PermissionResponseDto,
+  })
   @ApiResponse({ status: 404, description: '权限不存在' })
   async findOne(@Param('id') id: string) {
     const data = await this.permissionsService.findOne(id);
@@ -121,7 +137,11 @@ export class PermissionsController {
   @RequirePermissions(PERMISSION_PERMISSIONS.UPDATE)
   @Audit('update')
   @ApiOperation({ summary: '更新权限' })
-  @ApiResponse({ status: 200, description: '更新成功', type: PermissionResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: '更新成功',
+    type: PermissionResponseDto,
+  })
   @ApiResponse({ status: 404, description: '权限不存在' })
   async update(
     @Param('id') id: string,

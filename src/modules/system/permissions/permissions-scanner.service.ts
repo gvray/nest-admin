@@ -94,7 +94,9 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
     }
 
     const uniqueCodes = new Set(scannedPermissions.map((p) => p.code));
-    this.logger.log(`📊 扫描到 ${scannedPermissions.length} 个 API 权限（去重后 ${uniqueCodes.size} 个唯一 code）`);
+    this.logger.log(
+      `📊 扫描到 ${scannedPermissions.length} 个 API 权限（去重后 ${uniqueCodes.size} 个唯一 code）`,
+    );
 
     // 同步到数据库
     const stats = await this.syncPermissions(scannedPermissions);
@@ -103,9 +105,13 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
     this.logger.log(`   - 新增: ${stats.created} 个`);
     this.logger.log(`   - 更新: ${stats.updated} 个`);
     this.logger.log(`   - 删除: ${stats.deleted} 个`);
-    this.logger.log(`   - 超级角色 API 权限: 已绑定 ${stats.assigned.apiTotal} 个，本次新增 ${stats.assigned.newAssigned} 个`);
+    this.logger.log(
+      `   - 超级角色 API 权限: 已绑定 ${stats.assigned.apiTotal} 个，本次新增 ${stats.assigned.newAssigned} 个`,
+    );
     if (stats.assigned.apiTotal !== scannedPermissions.length) {
-      this.logger.warn(`   ⚠️  超级角色 API 权限数量不一致: 已绑定 ${stats.assigned.apiTotal} 个，扫描到 ${scannedPermissions.length} 个`);
+      this.logger.warn(
+        `   ⚠️  超级角色 API 权限数量不一致: 已绑定 ${stats.assigned.apiTotal} 个，扫描到 ${scannedPermissions.length} 个`,
+      );
     }
 
     return {
@@ -119,7 +125,12 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
    */
   private async syncPermissions(
     scannedPermissions: ScannedPermission[],
-  ): Promise<{ created: number; updated: number; deleted: number; assigned: { newAssigned: number; apiTotal: number } }> {
+  ): Promise<{
+    created: number;
+    updated: number;
+    deleted: number;
+    assigned: { newAssigned: number; apiTotal: number };
+  }> {
     let created = 0;
     let updated = 0;
 
@@ -145,7 +156,9 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
       where: { type: { in: ['MENU', 'DIRECTORY'] }, deletedAt: null },
       select: { permissionId: true, code: true },
     });
-    const menuMap = new Map(menuPermissions.map((m) => [m.code, m.permissionId]));
+    const menuMap = new Map(
+      menuPermissions.map((m) => [m.code, m.permissionId]),
+    );
 
     // 创建或更新权限（使用 upsert 避免唯一约束冲突）
     for (const perm of scannedPermissions) {
@@ -203,7 +216,10 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
     return { created, updated, deleted, assigned };
   }
 
-  private async assignNewPermissionsToSuperRole(): Promise<{ newAssigned: number; apiTotal: number }> {
+  private async assignNewPermissionsToSuperRole(): Promise<{
+    newAssigned: number;
+    apiTotal: number;
+  }> {
     const superRole = await this.prisma.role.findFirst({
       where: { roleKey: SUPER_ROLE_KEY },
       select: { roleId: true },
@@ -219,7 +235,9 @@ export class PermissionsScannerService implements OnApplicationBootstrap {
       select: { permissionId: true },
     });
     const linkedIds = new Set(existingLinks.map((l) => l.permissionId));
-    const toAssign = allPermissions.filter((p) => !linkedIds.has(p.permissionId));
+    const toAssign = allPermissions.filter(
+      (p) => !linkedIds.has(p.permissionId),
+    );
 
     if (toAssign.length > 0) {
       await this.prisma.rolePermission.createMany({

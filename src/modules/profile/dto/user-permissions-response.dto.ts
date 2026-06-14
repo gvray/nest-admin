@@ -41,7 +41,10 @@ export class UserPermissionsResponseDto {
   @ApiProperty({ description: '用户角色列表', type: [UserRoleSimpleDto] })
   roles: UserRoleSimpleDto[];
 
-  @ApiProperty({ description: '用户权限列表（去重）', type: [UserPermissionSimpleDto] })
+  @ApiProperty({
+    description: '用户权限列表（去重）',
+    type: [UserPermissionSimpleDto],
+  })
   permissions: UserPermissionSimpleDto[];
 
   @ApiProperty({ description: '是否为超级管理员' })

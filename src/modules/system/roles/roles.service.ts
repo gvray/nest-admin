@@ -134,7 +134,7 @@ export class RolesService extends BaseService {
     }
 
     if (query?.status !== undefined) {
-      where.status = query.status as string;
+      where.status = query.status;
     }
 
     if (query?.createdAtStart || query?.createdAtEnd) {
@@ -270,7 +270,7 @@ export class RolesService extends BaseService {
         description,
         remark,
         sort,
-        status: status as string | undefined,
+        status: status,
         updatedById: currentUserId,
       },
     });

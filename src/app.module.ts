@@ -1,6 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_INTERCEPTOR, APP_FILTER, Reflector, DiscoveryModule } from '@nestjs/core';
+import {
+  APP_INTERCEPTOR,
+  APP_FILTER,
+  Reflector,
+  DiscoveryModule,
+} from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from '@/modules/auth/auth.module';

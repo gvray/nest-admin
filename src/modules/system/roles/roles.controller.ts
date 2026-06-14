@@ -25,7 +25,10 @@ import { ROLE_PERMISSIONS } from '@/shared/constants/permissions.constant';
 import { AssignPermissionsDto } from './dto/assign-permissions.dto';
 import { AssignUsersDto } from './dto/assign-users.dto';
 import { QueryRoleDto } from './dto/query-role.dto';
-import { RoleResponseDto, RoleDataScopeResponseDto } from './dto/role-response.dto';
+import {
+  RoleResponseDto,
+  RoleDataScopeResponseDto,
+} from './dto/role-response.dto';
 import { AssignDataScopeDto } from './dto/assign-data-scope.dto';
 
 import { JwtAuthGuard } from '@/core/guards/jwt-auth.guard';
@@ -62,7 +65,11 @@ export class RolesController {
   @Get()
   @RequirePermissions(ROLE_PERMISSIONS.LIST)
   @ApiOperation({ summary: '获取角色列表' })
-  @ApiResponse({ status: 200, description: '获取成功', type: [RoleResponseDto] })
+  @ApiResponse({
+    status: 200,
+    description: '获取成功',
+    type: [RoleResponseDto],
+  })
   async findAll(@Query() query: QueryRoleDto) {
     const pageData = await this.rolesService.findAll(query);
     return ResponseUtil.paginated(pageData, '获取成功');
@@ -187,7 +194,11 @@ export class RolesController {
   @RequirePermissions(ROLE_PERMISSIONS.UPDATE_DATA_SCOPE)
   @Audit('update')
   @ApiOperation({ summary: '为角色分配数据权限' })
-  @ApiResponse({ status: 200, description: '数据权限分配成功', type: RoleDataScopeResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: '数据权限分配成功',
+    type: RoleDataScopeResponseDto,
+  })
   @ApiResponse({ status: 404, description: '角色不存在' })
   async assignDataScope(
     @Param('id') id: string,
@@ -206,7 +217,11 @@ export class RolesController {
   @Get(':id/data-scope')
   @RequirePermissions(ROLE_PERMISSIONS.VIEW)
   @ApiOperation({ summary: '获取角色的数据权限' })
-  @ApiResponse({ status: 200, description: '获取成功', type: RoleDataScopeResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: '获取成功',
+    type: RoleDataScopeResponseDto,
+  })
   @ApiResponse({ status: 404, description: '角色不存在' })
   async getRoleDataScope(@Param('id') id: string) {
     const data = await this.rolesService.getRoleDataScope(id);
